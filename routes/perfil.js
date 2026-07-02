@@ -6,3 +6,4 @@ router.put('/editar', autenticar, editarPerfil);
 router.post('/foto', autenticar, upload.single('foto'), uploadFoto);
 router.put('/localizacao', autenticar, atualizarLocalizacao);
 router.put('/verificar-temp', autenticar, verificarTemp);
+module.exports = router;
