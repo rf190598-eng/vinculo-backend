@@ -88,4 +88,14 @@ const atualizarLocalizacao = async (req, res) => {
   }
 };
 
-module.exports = { editarPerfil, uploadFoto, upload, atualizarLocalizacao }; 
+const verificarTemp = async (req, res) => {
+  try {
+    await Usuario.update({ verificado: true }, { where: { id: req.usuarioId } });
+    const usuario = await Usuario.findByPk(req.usuarioId, { attributes: { exclude: ['senha'] } });
+    res.json({ mensagem: 'Perfil verificado!', usuario });
+  } catch (erro) {
+    res.status(500).json({ erro: 'Erro ao verificar: ' + erro.message });
+  }
+};
+
+module.exports = { editarPerfil, uploadFoto, upload, atualizarLocalizacao, verificarTemp };
