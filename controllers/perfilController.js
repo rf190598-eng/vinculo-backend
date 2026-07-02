@@ -6,7 +6,12 @@ const fs = require('fs');
 // Configurar upload de foto
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    const pasta = 'uploads/';
+    if (!fs.existsSync(pasta)) {
+      fs.mkdirSync(pasta, { recursive: true });
+    }
+    cb(null, pasta);
+  },
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
