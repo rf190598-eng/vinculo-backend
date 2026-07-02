@@ -27,16 +27,15 @@ const upload = multer({
 
 const editarPerfil = async (req, res) => {
   try {
-    const { nome, bio, genero, data_nascimento, cidade } = req.body;
+   const { nome, bio, genero, data_nascimento, cidade, objetivo } = req.body;
     const usuario_id = req.usuarioId;
-
     const dados = {};
     if (nome) dados.nome = nome;
     if (bio) dados.bio = bio;
     if (genero) dados.genero = genero;
     if (data_nascimento) dados.data_nascimento = data_nascimento;
     if (cidade) dados.cidade = cidade;
-
+    if (objetivo) dados.objetivo = objetivo;
     await Usuario.update(dados, { where: { id: usuario_id } });
 
     const usuario = await Usuario.findByPk(usuario_id, {

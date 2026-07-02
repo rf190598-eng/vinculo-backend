@@ -24,10 +24,15 @@ const Usuario = sequelize.define('Usuario', {
     type: DataTypes.DATEONLY,
     allowNull: false
   },
-  genero: {
+ 
+genero: {
     type: DataTypes.STRING,
     allowNull: true
   },
+  objetivo: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },  },
   bio: {
     type: DataTypes.TEXT,
     allowNull: true
