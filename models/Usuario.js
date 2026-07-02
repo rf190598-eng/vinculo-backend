@@ -32,7 +32,7 @@ genero: {
   objetivo: {
     type: DataTypes.STRING,
     allowNull: true
-  },  },
+  },  
   bio: {
     type: DataTypes.TEXT,
     allowNull: true
