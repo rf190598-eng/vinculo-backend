@@ -3,7 +3,6 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Configurar upload de foto
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const pasta = 'uploads/';
@@ -11,7 +10,6 @@ const storage = multer.diskStorage({
       fs.mkdirSync(pasta, { recursive: true });
     }
     cb(null, pasta);
-  },
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
@@ -21,7 +19,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const tipos = /jpeg|jpg|png/;
     const valido = tipos.test(file.mimetype);
@@ -32,7 +30,7 @@ const upload = multer({
 
 const editarPerfil = async (req, res) => {
   try {
-   const { nome, bio, genero, data_nascimento, cidade, objetivo } = req.body;
+    const { nome, bio, genero, data_nascimento, cidade, objetivo } = req.body;
     const usuario_id = req.usuarioId;
     const dados = {};
     if (nome) dados.nome = nome;
@@ -42,13 +40,10 @@ const editarPerfil = async (req, res) => {
     if (cidade) dados.cidade = cidade;
     if (objetivo) dados.objetivo = objetivo;
     await Usuario.update(dados, { where: { id: usuario_id } });
-
     const usuario = await Usuario.findByPk(usuario_id, {
       attributes: { exclude: ['senha'] }
     });
-
     res.json({ mensagem: 'Perfil atualizado!', usuario });
-
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao editar perfil: ' + erro.message });
   }
@@ -59,19 +54,15 @@ const uploadFoto = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ erro: 'Nenhuma foto enviada' });
     }
-
     const foto_url = '/uploads/' + req.file.filename;
-
     await Usuario.update(
       { foto_url },
       { where: { id: req.usuarioId } }
     );
-
     res.json({
       mensagem: 'Foto atualizada com sucesso!',
       foto_url
     });
-
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao fazer upload: ' + erro.message });
   }
@@ -80,14 +71,11 @@ const uploadFoto = async (req, res) => {
 const atualizarLocalizacao = async (req, res) => {
   try {
     const { latitude, longitude } = req.body;
-
     await Usuario.update(
       { latitude, longitude },
       { where: { id: req.usuarioId } }
     );
-
     res.json({ mensagem: 'Localização atualizada!' });
-
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao atualizar localização: ' + erro.message });
   }
