@@ -5,6 +5,21 @@ const Usuario = require('../models/Usuario');
 const cadastrar = async (req, res) => {
   try {
     const { nome, email, senha, data_nascimento, genero } = req.body;
+
+    // Validação de idade mínima (18 anos) — feita no servidor, não pode ser burlada
+    const nascimento = new Date(data_nascimento);
+    if (isNaN(nascimento.getTime())) {
+      return res.status(400).json({ erro: 'Data de nascimento inválida' });
+    }
+    const hoje = new Date();
+    let idade = hoje.getFullYear() - nascimento.getFullYear();
+    const aindaNaoFezAniversario = (hoje.getMonth() < nascimento.getMonth()) ||
+      (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() < nascimento.getDate());
+    if (aindaNaoFezAniversario) idade--;
+    if (idade < 18) {
+      return res.status(400).json({ erro: 'É preciso ter 18 anos ou mais para se cadastrar' });
+    }
+
     const usuarioExiste = await Usuario.findOne({ where: { email } });
     if (usuarioExiste) return res.status(400).json({ erro: 'Email ja cadastrado' });
     const senhaCriptografada = await bcrypt.hash(senha, 10);
