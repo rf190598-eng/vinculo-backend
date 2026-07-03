@@ -2651,27 +2651,20 @@ async function selfieSelecionada(event){
   try {
     const formData = new FormData();
     formData.append('foto', arquivo);
-    const respFoto = await fetch(`${API_URL}/api/perfil/foto`, {
+    const resp = await fetch(`${API_URL}/api/perfil/selfie-verificacao`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${tokenAtual}` },
       body: formData
     });
-    const dadosFoto = await respFoto.json();
-    if (!respFoto.ok) {
-      erroEl.textContent = dadosFoto.erro || 'Não foi possível enviar a foto.';
+    const dados = await resp.json();
+    if (!resp.ok) {
+      erroEl.textContent = dados.erro || 'Não foi possível enviar a foto.';
       btn.disabled = false;
       btn.textContent = 'Tentar de novo';
       return;
     }
-
-    // Marca como verificado (fluxo temporário — ver nota abaixo)
-    const respVerif = await fetch(`${API_URL}/api/perfil/verificar-temp`, {
-      method: 'PUT',
-      headers: { 'Authorization': `Bearer ${tokenAtual}` }
-    });
-    const dadosVerif = await respVerif.json();
-    if (respVerif.ok && dadosVerif.usuario) {
-      usuarioAtual = dadosVerif.usuario;
+    if (dados.usuario) {
+      usuarioAtual = dados.usuario;
       localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
     }
 
