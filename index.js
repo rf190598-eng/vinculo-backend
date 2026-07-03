@@ -17,7 +17,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.get('/prototipo', (req, res) => {
+  res.set('Cache-Control', 'no-store');
   res.sendFile(path.join(__dirname, 'prototipo.html'));
+});
 });
 app.use(cors());
 app.use(express.json());
