@@ -727,7 +727,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <div class="card-online">Online agora</div>
         <div id="bigHeartAnim" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:90px;opacity:0;pointer-events:none">&#128150;</div>
       </div>
-      <div class="card-info" onclick="goTo('profile-view')" style="cursor:pointer">
+      <div class="card-info" onclick="verPerfilCompleto()" style="cursor:pointer">
         <div class="card-name">Camila <span class="card-age">27</span> <span style="font-size:13px;color:#f0a0b8;font-weight:700">&#8250; ver mais</span></div>
         <div class="card-tags">
           <div class="card-tag">&#127807; Natureza</div>
@@ -796,148 +796,51 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 <!-- PERFIL VIEW -->
 <div class="screen" id="screen-profile-view" style="background:#1a0810;min-height:100vh;">
   <div style="position:relative">
-    <div class="my-profile-photo" style="height:320px;font-size:90px">&#128100;
+    <div class="my-profile-photo" id="pvFoto" style="height:320px;font-size:90px">&#128100;
       <div style="position:absolute;top:14px;left:14px" class="icon-btn" onclick="goTo('discover')">&#8592;</div>
       <div style="position:absolute;top:14px;right:14px" class="icon-btn" onclick="openModal('report')">&#9888;</div>
     </div>
-    <div style="position:absolute;bottom:14px;left:18px;display:flex;gap:8px;flex-wrap:wrap">
-      <span style="background:rgba(26,10,14,.85);border:1px solid #c9a06b;border-radius:20px;padding:5px 12px;font-size:10.5px;color:#c9a06b;font-weight:700">&#10003; Foto verificada</span>
-      <span style="background:rgba(26,10,14,.75);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:5px 12px;font-size:10.5px;color:#fdf6f2">&#128205; 3 km</span>
-    </div>
+    <div style="position:absolute;bottom:14px;left:18px;display:flex;gap:8px;flex-wrap:wrap" id="pvBadgesFoto"></div>
   </div>
   <div style="padding:16px 18px 0">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div>
-        <div class="card-name" style="font-size:30px">Camila <span class="card-age" style="font-size:22px">27</span></div>
-        <div style="color:#6dcc6d;font-size:12px;margin-top:3px;display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:#6dcc6d;display:inline-block"></span>Online agora</div>
+        <div class="card-name" id="pvNome" style="font-size:30px">—</div>
       </div>
       <div style="display:flex;gap:8px">
         <div class="icon-btn" onclick="openModal('report')" style="font-size:14px">&#128683;</div>
       </div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-      <div class="badge badge-gold">&#10003; Foto verificada</div>
-      <div class="badge badge-green">&#128157; 87% compatível</div>
-      <div class="badge" style="background:rgba(225,100,80,.12);border:1px solid rgba(225,100,80,.4);color:#ff8870">📸 Instagram</div>
-    </div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap" id="pvBadges"></div>
 
     <!-- Sobre mim -->
     <div style="margin-top:18px">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:#d8b0c4;margin-bottom:8px">Sobre mim</div>
-      <div style="font-size:13.5px;line-height:1.7;color:#e8d8de">Apaixonada por trilhas, livros e um bom café. Buscando algo genuíno e com futuro. Adoro cozinhar e explorar lugares novos em São José do Rio Preto.</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:#d8b0c4;margin-bottom:8px">Sobre</div>
+      <div style="font-size:13.5px;line-height:1.7;color:#e8d8de" id="pvBio">Essa pessoa ainda não escreveu uma bio.</div>
     </div>
 
-    <!-- Prompts -->
-    <div style="margin-top:16px">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:#d8b0c4;margin-bottom:8px">Sobre ela</div>
-      <div class="prompt-card">
-        <div class="prompt-q">Meu fim de semana ideal é...</div>
-        <div style="font-size:13px;color:#e8d8de;line-height:1.5">Uma trilha de manhã cedo, almoço com a família e filme à noite</div>
-      </div>
-      <div class="prompt-card">
-        <div class="prompt-q">Algo que me surpreende nas pessoas...</div>
-        <div style="font-size:13px;color:#e8d8de;line-height:1.5">Quando elas sabem ouvir de verdade, sem pressa</div>
-      </div>
-    </div>
-
-    <!-- Estilo de vida -->
-    <div style="margin-top:16px">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:#d8b0c4;margin-bottom:8px">Estilo de vida</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px">
-        <div class="card-tag" style="padding:7px 13px;font-size:12px">&#128684; Não fuma</div>
-        <div class="card-tag" style="padding:7px 13px;font-size:12px">&#127866; Bebe socialmente</div>
-        <div class="card-tag" style="padding:7px 13px;font-size:12px">&#127939; Pratica esportes</div>
-        <div class="card-tag" style="padding:7px 13px;font-size:12px">&#128021; Tem pets</div>
-        <div class="card-tag" style="padding:7px 13px;font-size:12px">&#128719; Relacionamento sério</div>
-      </div>
-    </div>
-
-    <!-- Interesses -->
-    <div style="margin-top:16px">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:#d8b0c4;margin-bottom:8px">Interesses em comum</div>
-      <div>
-        <span class="interest-tag" style="background:rgba(109,204,109,.1);border-color:rgba(109,204,109,.3);color:#6dcc6d">&#127807; Natureza</span>
-        <span class="interest-tag" style="background:rgba(109,204,109,.1);border-color:rgba(109,204,109,.3);color:#6dcc6d">&#9749; Café</span>
-        <span class="interest-tag">&#128218; Leitura</span>
-        <span class="interest-tag">&#127869; Gastronomia</span>
-        <span class="interest-tag">&#127939; Trilhas</span>
-        <span class="interest-tag">&#127926; Música</span>
-      </div>
-      <div style="font-size:11px;color:#6dcc6d;margin-top:6px">&#10003; 2 interesses em comum</div>
-    </div>
-
-    <!-- Localização -->
-    <div style="margin-top:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px 14px">
-      <div style="font-size:12px;color:#d8b0c4;margin-bottom:4px">&#128205; Localização aproximada</div>
-      <div style="font-size:13.5px;font-weight:600">Região central · ~3 km de você</div>
-      <div style="font-size:12px;color:#b09098;margin-top:3px">Endereço exato nunca é revelado</div>
+    <!-- O que busca -->
+    <div style="margin-top:16px" id="pvObjetivoWrap">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:#d8b0c4;margin-bottom:8px">O que busca</div>
+      <div class="card-tag" id="pvObjetivo" style="padding:7px 13px;font-size:12px;display:inline-block"></div>
     </div>
   </div>
 
   <!-- Botões de ação -->
   <div class="other-profile-action-bar">
     <button class="btn btn-ghost" style="flex:1;padding:14px" onclick="doSwipe('left');goTo('discover')">&#10005; Passar</button>
-    <button class="btn btn-primary" style="flex:2;padding:14px" onclick="doSwipe('right');goTo('discover')">&#128150; Curtir Camila</button>
+    <button class="btn btn-primary" style="flex:2;padding:14px" id="pvBtnCurtir" onclick="doSwipe('right');goTo('discover')">&#128150; Curtir</button>
   </div>
 </div>
-
 <!-- CHATS -->
 <div class="screen" id="screen-chats" style="background:#1a0810;min-height:100vh;">
   <div class="topbar">
     <div class="logo serif">Conversas</div>
-    <div style="background:linear-gradient(135deg,#e0607a,#c9a06b);border-radius:20px;padding:4px 12px;font-size:10px;font-weight:800;color:#fff;letter-spacing:.5px">PREMIUM</div>
   </div>
-
-  <!-- BANNER PREMIUM — chat bloqueado -->
-  <div style="margin:0 18px 14px;background:linear-gradient(135deg,rgba(212,131,154,.18),rgba(201,160,107,.1));border:1.5px solid rgba(212,131,154,.4);border-radius:18px;padding:16px;text-align:center">
-    <div style="font-size:28px;margin-bottom:6px">&#128274;</div>
-    <div style="font-size:15px;font-weight:800;color:#fdf6f2;margin-bottom:4px">Chat exclusivo Premium</div>
-    <div style="font-size:12.5px;color:#e0c0d0;line-height:1.6;margin-bottom:12px">No Vínculo, conversar é um recurso Premium.<br>Isso garante conexões mais sérias e seguras.</div>
-    <button class="btn btn-primary" style="padding:13px;font-size:13.5px" onclick="goTo('assinatura')">&#128274; Desbloquear chat — a partir de R$9,90/semana</button>
-  </div>
-
-  <!-- Match novo — visível mas bloqueado -->
-  <div onclick="goTo('assinatura')" style="display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(212,131,154,.12),rgba(201,160,107,.08));border:1.5px solid rgba(212,131,154,.35);border-radius:14px;padding:12px 14px;cursor:pointer;margin:0 18px 4px">
-    <span style="font-size:20px">&#128150;</span>
-    <div style="flex:1">
-      <div style="font-size:13.5px;font-weight:800;color:#fdf6f2">1 Vínculo mútuo novo!</div>
-      <div style="font-size:12px;color:#f0a0b8">Vocês se curtiram — assine para conversar</div>
-    </div>
-    <span style="font-size:18px">&#128274;</span>
-  </div>
-
-  <!-- Conversas bloqueadas — preview desfocado -->
-  <div style="position:relative;margin-top:8px">
-    <!-- Overlay de bloqueio -->
-    <div style="position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);background:rgba(26,8,16,.6);border-radius:14px;margin:0 8px">
-      <div style="font-size:32px">&#128274;</div>
-      <div style="font-size:14px;font-weight:700;color:#fdf6f2;text-align:center">Assine para ver e responder<br>suas conversas</div>
-      <button class="btn btn-primary" style="padding:12px 24px;width:auto;font-size:13px" onclick="goTo('assinatura')">Ver planos</button>
-    </div>
-    <!-- Conversas desfocadas atrás -->
-    <div class="chat-list-item" style="opacity:.4">
-      <div class="chat-avatar">&#128100;<div class="online-dot"></div></div>
-      <div class="chat-info">
-        <div class="chat-name-row"><span class="chat-name">Camila, 27</span><span class="chat-time">12:40</span></div>
-        <div class="chat-preview">████████████████████</div>
-      </div>
-      <div class="unread-dot"></div>
-    </div>
-    <div class="chat-list-item" style="opacity:.4">
-      <div class="chat-avatar">&#128104;</div>
-      <div class="chat-info">
-        <div class="chat-name-row"><span class="chat-name">Rafael, 31</span><span class="chat-time">Ontem</span></div>
-        <div class="chat-preview">████████████████</div>
-      </div>
-      <div class="unread-dot"></div>
-    </div>
-    <div class="chat-list-item" style="opacity:.4">
-      <div class="chat-avatar">&#128100;</div>
-      <div class="chat-info">
-        <div class="chat-name-row"><span class="chat-name">Beatriz, 29</span><span class="chat-time">2 dias</span></div>
-        <div class="chat-preview">████████████████████</div>
-      </div>
-    </div>
+  <div id="listaChats" style="padding:0 8px"></div>
+  <div id="chatsVazio" style="display:none;text-align:center;padding:60px 20px;color:#d8b0c4">
+    <div style="font-size:40px;margin-bottom:12px">&#128172;</div>
+    <div style="font-size:13.5px;line-height:1.6">Você ainda não tem nenhum Vínculo. Continue dando swipe!</div>
   </div>
 </div>
 
@@ -945,34 +848,22 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 <div class="screen" id="screen-chatroom" style="background:#1a0810;min-height:100vh;">
   <div class="chatroom-topbar">
     <div class="icon-btn" onclick="goTo('chats')">&#8592;</div>
-    <div class="chatroom-avatar">&#128100;</div>
-    <div style="flex:1"><div style="font-weight:700;font-size:14px">Camila, 27</div><div style="font-size:10.5px;color:#6dcc6d">Online agora</div></div>
+    <div class="chatroom-avatar" id="chatroomAvatar">&#128100;</div>
+    <div style="flex:1"><div style="font-weight:700;font-size:14px" id="chatroomNome">—</div></div>
     <div class="icon-btn" onclick="goTo('safety')">&#128737;</div>
-  </div>
-  <!-- Badge Premium no chat -->
-  <div style="display:flex;align-items:center;gap:8px;padding:8px 16px;background:linear-gradient(135deg,rgba(212,131,154,.15),rgba(201,160,107,.08));border-bottom:1px solid rgba(212,131,154,.2)">
-    <span style="font-size:14px">&#128274;</span>
-    <span style="font-size:12px;color:#f0c8d8;font-weight:600;flex:1">Chat Premium · Sua conversa é privada e segura</span>
-    <span style="background:linear-gradient(135deg,#e0607a,#c9a06b);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:800;color:#fff">ATIVO</span>
   </div>
   <div class="chat-safety-bar" onclick="openModal('share-route')">
     <span style="font-size:18px">&#128205;</span>
     <span>Ativar compartilhamento de rota antes do encontro</span>
     <span style="margin-left:auto">&#8250;</span>
   </div>
-  <div class="chat-messages" style="background:#1a0810;min-height:300px;">
-    <div class="msg msg-them">Oi! Vi que voce tambem gosta de trilhas &#127807;</div>
-    <div class="msg msg-me">Sim! Topo marcar algo num parque. Que tal sabado?</div>
-    <div class="msg msg-them">Adorei o lugar que voce sugeriu!</div>
-    <div class="msg msg-me">Que horas fica melhor pra voce?</div>
-    <div class="msg msg-them">15h, no parque da cidade. Te encontro la!</div>
-  </div>
+  <div class="chat-messages" id="chatMensagens" style="background:#1a0810;min-height:300px;"></div>
   <div style="padding:0 16px 10px">
     <button class="btn btn-ghost" style="font-size:12.5px;padding:11px" onclick="openModal('share-route')">&#9989; Vou nesse encontro &mdash; checklist de seguranca</button>
   </div>
   <div class="chat-input-bar">
-    <input class="chat-inp" placeholder="Mensagem..."/>
-    <button class="send-btn">&#9658;</button>
+    <input class="chat-inp" id="chatInput" placeholder="Mensagem..." onkeypress="if(event.key==='Enter')enviarMensagemChat()"/>
+    <button class="send-btn" onclick="enviarMensagemChat()">&#9658;</button>
   </div>
 </div>
 
@@ -2034,7 +1925,8 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="font-size:11px;color:#907080;margin-top:10px;line-height:1.5">&#128274; Nunca publicamos nada em suas redes. Apenas verificamos que a conta é sua.</div>
   </div>
 
-  <div class="settings-item"><div class="settings-label"><span class="settings-ic">&#128247;</span>Verificar mais fotos</div><span style="color:#d0a8b8">&#8250;</span></div>
+  <div class="settings-item" onclick="document.getElementById('inputFotoPerfil').click()"><div class="settings-label"><span class="settings-ic">&#128247;</span>Adicionar foto de perfil</div><span style="color:#d0a8b8" id="statusFotoPerfil">&#8250;</span></div>
+  <input type="file" id="inputFotoPerfil" accept="image/*" style="display:none" onchange="fotoPerfilSelecionada(event)"/>
   <div class="settings-item" onclick="goTo('edit-profile')"><div class="settings-label"><span class="settings-ic">&#128101;</span>Editar perfil</div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item"><div class="settings-label"><span class="settings-ic">&#128591;</span>Preferências de busca</div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item" onclick="goTo('safety')"><div class="settings-label"><span class="settings-ic">&#128737;</span>Central de Segurança</div><span style="color:#d0a8b8">&#8250;</span></div>
@@ -2418,6 +2310,7 @@ function goTo(name){
   document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.s===name));
   window.scrollTo(0,0);
   if(name==='discover'){ setTimeout(initSwipeTouch, 150); carregarPerfis(); }
+  if(name==='chats'){ carregarChats(); }
   if(name==='match') setTimeout(launchConfetti, 300);
 }
 
@@ -2627,6 +2520,7 @@ async function doSwipe(dir){
     card.id='card2';back.id='card1';
     document.getElementById('card1').dataset.enviando='0';
     initSwipeTouch();
+    perfilCard1Data = perfilCard2Data;
     preencherCard('card2', filaPerfis.shift());
     if(!document.getElementById('card1').dataset.perfilId){
       showEmptyState();
@@ -2678,14 +2572,179 @@ async function selfieSelecionada(event){
   }
 }
 
+let perfilCard1Data = null;
+let perfilCard2Data = null;
+
+let matchAtual = null;
+
+async function carregarChats(){
+  const lista = document.getElementById('listaChats');
+  const vazio = document.getElementById('chatsVazio');
+  lista.innerHTML = '';
+  try{
+    const resp = await fetch(`${API_URL}/api/swipe/matches`, {
+      headers: { 'Authorization': `Bearer ${tokenAtual}` }
+    });
+    const dados = await resp.json();
+    const matches = dados.matches || [];
+    if(matches.length === 0){
+      vazio.style.display='block';
+      return;
+    }
+    vazio.style.display='none';
+    matches.forEach(m => {
+      const outro = m.outro_usuario || {};
+      const idade = outro.data_nascimento ? calcularIdade(outro.data_nascimento) : '';
+      const item = document.createElement('div');
+      item.className = 'chat-list-item';
+      item.style.cursor='pointer';
+      item.innerHTML = `
+        <div class="chat-avatar">&#128100;</div>
+        <div class="chat-info">
+          <div class="chat-name-row"><span class="chat-name">${outro.nome || 'Usuário'}, ${idade}</span></div>
+          <div class="chat-preview">Toque para conversar</div>
+        </div>`;
+      item.onclick = () => abrirChat(m);
+      lista.appendChild(item);
+    });
+  } catch(e){
+    vazio.style.display='block';
+  }
+}
+
+async function abrirChat(match){
+  matchAtual = match;
+  const outro = match.outro_usuario || {};
+  document.getElementById('chatroomNome').textContent = outro.nome || 'Usuário';
+  goTo('chatroom');
+  await carregarMensagens();
+}
+
+async function carregarMensagens(){
+  const container = document.getElementById('chatMensagens');
+  if(!matchAtual) return;
+  container.innerHTML = '<div style="text-align:center;color:#a07080;font-size:12px;padding:20px">Carregando...</div>';
+  try{
+    const resp = await fetch(`${API_URL}/api/chat/mensagens/${matchAtual.id}`, {
+      headers: { 'Authorization': `Bearer ${tokenAtual}` }
+    });
+    const dados = await resp.json();
+    const mensagens = dados.mensagens || [];
+    container.innerHTML = '';
+    if(mensagens.length === 0){
+      container.innerHTML = '<div style="text-align:center;color:#a07080;font-size:12px;padding:20px">Nenhuma mensagem ainda. Diga oi!</div>';
+      return;
+    }
+    mensagens.forEach(msg => {
+      const div = document.createElement('div');
+      const souEu = msg.remetente_id === usuarioAtual.id;
+      div.className = souEu ? 'msg msg-me' : 'msg msg-them';
+      div.textContent = msg.conteudo;
+      container.appendChild(div);
+    });
+    container.scrollTop = container.scrollHeight;
+  } catch(e){
+    container.innerHTML = '<div style="text-align:center;color:#ff8fa3;font-size:12px;padding:20px">Erro ao carregar mensagens.</div>';
+  }
+}
+
+async function enviarMensagemChat(){
+  const input = document.getElementById('chatInput');
+  const conteudo = input.value.trim();
+  if(!conteudo || !matchAtual) return;
+  input.value='';
+  try{
+    await fetch(`${API_URL}/api/chat/enviar`, {
+      method:'POST',
+      headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
+      body: JSON.stringify({ match_id: matchAtual.id, conteudo })
+    });
+    await carregarMensagens();
+  } catch(e){
+    alert('Erro ao enviar mensagem. Tenta de novo.');
+  }
+}
+
+async function fotoPerfilSelecionada(event){
+  const arquivo = event.target.files[0];
+  const statusEl = document.getElementById('statusFotoPerfil');
+  if (!arquivo) return;
+
+  statusEl.textContent = 'Enviando...';
+
+  try {
+    const formData = new FormData();
+    formData.append('foto', arquivo);
+    const resp = await fetch(`${API_URL}/api/perfil/foto`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${tokenAtual}` },
+      body: formData
+    });
+    const dados = await resp.json();
+    if (!resp.ok) {
+      statusEl.textContent = 'Erro';
+      alert(dados.erro || 'Não foi possível enviar a foto.');
+      return;
+    }
+    if (usuarioAtual) {
+      usuarioAtual.foto_url = dados.foto_url;
+      localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
+    }
+    statusEl.textContent = '✓ Enviada';
+  } catch (e) {
+    statusEl.textContent = 'Erro';
+    alert('Erro de conexão. Tenta de novo.');
+  }
+}
+
+function verPerfilCompleto(){
+  if(!perfilCard1Data) return;
+  const p = perfilCard1Data;
+  const idade = p.data_nascimento ? calcularIdade(p.data_nascimento) : '';
+
+  document.getElementById('pvNome').textContent = `${p.nome} ${idade}`;
+
+  const bioEl = document.getElementById('pvBio');
+  bioEl.textContent = p.bio ? p.bio : 'Essa pessoa ainda não escreveu uma bio.';
+
+  const objetivoWrap = document.getElementById('pvObjetivoWrap');
+  if(p.objetivo){
+    objetivoWrap.style.display='block';
+    const nomesObjetivo = {serio:'Relacionamento sério', amizade:'Amizade', casual:'Algo casual'};
+    document.getElementById('pvObjetivo').textContent = nomesObjetivo[p.objetivo] || p.objetivo;
+  } else {
+    objetivoWrap.style.display='none';
+  }
+
+  const badgesEl = document.getElementById('pvBadges');
+  badgesEl.innerHTML = p.verificado ? '<div class="badge badge-gold">&#10003; Foto verificada</div>' : '';
+
+  const badgesFotoEl = document.getElementById('pvBadgesFoto');
+  badgesFotoEl.innerHTML = p.verificado ? '<span style="background:rgba(26,10,14,.85);border:1px solid #c9a06b;border-radius:20px;padding:5px 12px;font-size:10.5px;color:#c9a06b;font-weight:700">&#10003; Foto verificada</span>' : '';
+
+  const fotoEl = document.getElementById('pvFoto');
+  if(p.foto_url){
+    fotoEl.style.backgroundImage = `url(${API_URL}${p.foto_url})`;
+    fotoEl.style.backgroundSize = 'cover';
+    fotoEl.style.backgroundPosition = 'center';
+    fotoEl.innerHTML = fotoEl.innerHTML; // mantém os botões de voltar/reportar
+  }
+
+  document.getElementById('pvBtnCurtir').innerHTML = `&#128150; Curtir ${p.nome}`;
+
+  goTo('profile-view');
+}
+
 function preencherCard(elId, perfil){
   const el = document.getElementById(elId);
   if(!el) return;
   if(!perfil){
     el.dataset.perfilId = '';
+    if(elId==='card1') perfilCard1Data=null; else perfilCard2Data=null;
     return;
   }
   el.dataset.perfilId = perfil.id;
+  if(elId==='card1') perfilCard1Data=perfil; else perfilCard2Data=perfil;
   const idade = perfil.data_nascimento ? calcularIdade(perfil.data_nascimento) : '';
   const nomeEl = el.querySelector('.card-name');
   if(nomeEl){
