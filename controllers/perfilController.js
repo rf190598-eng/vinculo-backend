@@ -41,7 +41,7 @@ const editarPerfil = async (req, res) => {
     if (objetivo) dados.objetivo = objetivo;
     await Usuario.update(dados, { where: { id: usuario_id } });
     const usuario = await Usuario.findByPk(usuario_id, {
-      attributes: { exclude: ['senha'] }
+      attributes: { exclude: ['senha', 'foto_verificacao'] }
     });
     res.json({ mensagem: 'Perfil atualizado!', usuario });
   } catch (erro) {
@@ -49,6 +49,7 @@ const editarPerfil = async (req, res) => {
   }
 };
 
+// Foto de PERFIL - pública, aparece pra outras pessoas no swipe
 const uploadFoto = async (req, res) => {
   try {
     if (!req.file) {
@@ -59,12 +60,30 @@ const uploadFoto = async (req, res) => {
       { foto_url },
       { where: { id: req.usuarioId } }
     );
-    res.json({
-      mensagem: 'Foto atualizada com sucesso!',
-      foto_url
-    });
+    res.json({ mensagem: 'Foto atualizada com sucesso!', foto_url });
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao fazer upload: ' + erro.message });
+  }
+};
+
+// Selfie de VERIFICAÇÃO - privada, nunca é mostrada pra outras pessoas.
+// Salva num campo separado e já marca o usuário como verificado.
+const uploadSelfieVerificacao = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ erro: 'Nenhuma selfie enviada' });
+    }
+    const foto_verificacao = '/uploads/' + req.file.filename;
+    await Usuario.update(
+      { foto_verificacao, verificado: true },
+      { where: { id: req.usuarioId } }
+    );
+    const usuario = await Usuario.findByPk(req.usuarioId, {
+      attributes: { exclude: ['senha', 'foto_verificacao'] }
+    });
+    res.json({ mensagem: 'Perfil verificado!', usuario });
+  } catch (erro) {
+    res.status(500).json({ erro: 'Erro ao verificar: ' + erro.message });
   }
 };
 
@@ -81,14 +100,4 @@ const atualizarLocalizacao = async (req, res) => {
   }
 };
 
-const verificarTemp = async (req, res) => {
-  try {
-    await Usuario.update({ verificado: true }, { where: { id: req.usuarioId } });
-    const usuario = await Usuario.findByPk(req.usuarioId, { attributes: { exclude: ['senha'] } });
-    res.json({ mensagem: 'Perfil verificado!', usuario });
-  } catch (erro) {
-    res.status(500).json({ erro: 'Erro ao verificar: ' + erro.message });
-  }
-};
-
-module.exports = { editarPerfil, uploadFoto, upload, atualizarLocalizacao, verificarTemp };
+module.exports = { editarPerfil, uploadFoto, upload, atualizarLocalizacao, uploadSelfieVerificacao };
