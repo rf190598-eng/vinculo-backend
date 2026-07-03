@@ -77,8 +77,7 @@ const listarPerfis = async (req, res) => {
         id: { [Op.notIn]: idsAvaliados },
         ativo: true
       },
-      attributes: { exclude: ['senha'] },
-      limit: 10
+     attributes: { exclude: ['senha', 'foto_verificacao'] },
     });
 
     res.json({ perfis });
