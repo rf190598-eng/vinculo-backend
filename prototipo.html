@@ -2283,6 +2283,18 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   </div>
 </div>
 
+<div class="overlay" id="overlay-pix" onclick="if(event.target===this)closeModal('pix')">
+  <div class="modal modal-center">
+    <div class="modal-handle"></div>
+    <div class="big-ic">&#128179;</div>
+    <h3 class="serif" style="margin-bottom:14px">Pague com Pix</h3>
+    <div id="pixConteudo"></div>
+    <button class="btn btn-primary" style="font-size:14px;padding:14px" onclick="verificarStatusPremium()">Já paguei — verificar</button>
+    <div id="pixStatus" style="font-size:12px;color:#d8b0c4;margin-top:10px;min-height:16px"></div>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('pix')">Fechar</button>
+  </div>
+</div>
+
 <!-- MODAL ASSINATURA CONFIRMADA -->
 <div class="overlay" id="overlay-assinatura-ok" onclick="if(event.target===this)closeModal('assinatura-ok')">
   <div class="modal modal-center">
@@ -2575,6 +2587,7 @@ async function selfieSelecionada(event){
 let perfilCard1Data = null;
 let perfilCard2Data = null;
 
+let planoSelecionado = 'mensal';
 let matchAtual = null;
 
 async function carregarChats(){
@@ -3228,6 +3241,7 @@ function showToast(msg){
 }
 
 function selectPlan(plan){
+  planoSelecionado = plan;
   document.querySelectorAll('.plan-card[id^="plan-"]').forEach(c=>{c.classList.remove('selected','popular');c.style.borderColor='rgba(255,255,255,.15)';});
   const el=document.getElementById('plan-'+plan);
   if(el){el.classList.add('selected');el.style.borderColor='#c9a06b';}
@@ -3262,9 +3276,58 @@ function selectPayment(el){
   selectedPayment=el;
 }
 
-function finalizarAssinatura(){
+async function finalizarAssinatura(){
+  const metodoTexto = selectedPayment ? selectedPayment.textContent : '';
+  if(!metodoTexto.includes('Pix')){
+    alert('Por enquanto, só o pagamento via Pix está funcionando de verdade no protótipo. Escolhe o Pix pra continuar.');
+    return;
+  }
   closeModal('confirma-assinatura');
-  setTimeout(()=>openModal('assinatura-ok'),300);
+  openModal('pix');
+  document.getElementById('pixConteudo').innerHTML = '<div style="text-align:center;padding:30px;color:#d8b0c4">Gerando Pix...</div>';
+  try{
+    const resp = await fetch(`${API_URL}/api/pagamento/pix`, {
+      method:'POST',
+      headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
+      body: JSON.stringify({ plano: planoSelecionado })
+    });
+    const dados = await resp.json();
+    if(!resp.ok){
+      document.getElementById('pixConteudo').innerHTML = `<div style="text-align:center;padding:20px;color:#ff8fa3">${dados.erro || 'Não foi possível gerar o Pix.'}</div>`;
+      return;
+    }
+    let html = '';
+    if(dados.qr_code_base64){
+      html += `<img src="data:image/png;base64,${dados.qr_code_base64}" style="width:200px;height:200px;border-radius:12px;margin:0 auto 14px;display:block"/>`;
+    }
+    html += `<div style="font-size:12px;color:#d8b0c4;margin-bottom:8px">Pix copia e cola:</div>`;
+    html += `<textarea readonly style="width:100%;height:70px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:#fdf6f2;font-size:11px;padding:10px;margin-bottom:12px" onclick="this.select()">${dados.pix_copia_cola || 'Código não disponível'}</textarea>`;
+    html += `<div style="font-size:13px;color:#e0c8d8;margin-bottom:16px">Valor: <b>R$ ${dados.valor.toFixed(2).replace('.',',')}</b></div>`;
+    document.getElementById('pixConteudo').innerHTML = html;
+  } catch(e){
+    document.getElementById('pixConteudo').innerHTML = '<div style="text-align:center;padding:20px;color:#ff8fa3">Erro de conexão. Tenta de novo.</div>';
+  }
+}
+
+async function verificarStatusPremium(){
+  const statusEl = document.getElementById('pixStatus');
+  statusEl.textContent = 'Verificando...';
+  try{
+    const resp = await fetch(`${API_URL}/api/pagamento/status`, {
+      headers: { 'Authorization': `Bearer ${tokenAtual}` }
+    });
+    const dados = await resp.json();
+    if(dados.premium){
+      statusEl.textContent = '✓ Pagamento confirmado! Premium ativo.';
+      usuarioAtual.premium = true;
+      localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
+      setTimeout(()=>{ closeModal('pix'); goTo('discover'); }, 1800);
+    } else {
+      statusEl.textContent = 'Pagamento ainda não identificado. Se já pagou, aguarde alguns segundos e tenta de novo.';
+    }
+  } catch(e){
+    statusEl.textContent = 'Erro ao verificar. Tenta de novo.';
+  }
 }
 
 function openModal(name){document.getElementById('overlay-'+name).classList.add('open');}
