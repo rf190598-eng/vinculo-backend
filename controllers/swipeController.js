@@ -91,7 +91,6 @@ const listarMatches = async (req, res) => {
   try {
     const usuario_id = req.usuarioId;
     const { Op } = require('sequelize');
-
     const matches = await Match.findAll({
       where: {
         [Op.or]: [
@@ -102,11 +101,21 @@ const listarMatches = async (req, res) => {
       }
     });
 
-    res.json({ matches });
+    const matchesComPerfil = await Promise.all(matches.map(async (match) => {
+      const outroId = match.usuario1_id === usuario_id ? match.usuario2_id : match.usuario1_id;
+      const outroUsuario = await Usuario.findByPk(outroId, {
+        attributes: ['id', 'nome', 'foto_url', 'verificado', 'data_nascimento']
+      });
+      return {
+        id: match.id,
+        criado_em: match.createdAt,
+        outro_usuario: outroUsuario
+      };
+    }));
 
+    res.json({ matches: matchesComPerfil });
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao listar matches: ' + erro.message });
   }
 };
-
 module.exports = { darSwipe, listarPerfis, listarMatches }; 
