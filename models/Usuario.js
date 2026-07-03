@@ -41,6 +41,11 @@ genero: {
     type: DataTypes.STRING,
     allowNull: true
   },
+  foto_verificacao: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+
   verificado: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
