@@ -1935,7 +1935,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div class="settings-item" onclick="goTo('indica')"><div class="settings-label"><span class="settings-ic">&#127873;</span>Indicar amigo — ganhe 7 dias grátis</div><span style="background:rgba(201,160,107,.2);border-radius:20px;padding:2px 8px;font-size:10px;color:#d4b87a;font-weight:700">GRÁTIS</span></div>
   <div class="settings-item" onclick="goTo('admin')"><div class="settings-label"><span class="settings-ic">&#128202;</span><span style="color:#d4b87a">Painel Admin</span></div><span style="background:rgba(212,131,154,.2);border-radius:20px;padding:2px 8px;font-size:10px;color:#f0a0b8;font-weight:700">ADMIN</span></div>
   <div class="settings-item" onclick="goTo('landing')"><div class="settings-label"><span class="settings-ic">&#127968;</span>Ver landing page</div><span style="color:#d0a8b8">&#8250;</span></div>
-  <div class="settings-item" onclick="goTo('auth')"><div class="settings-label"><span class="settings-ic">&#128682;</span><span style="color:#e8909e">Sair da conta</span></div></div>
+  <div class="settings-item" onclick="sairDaConta()"><div class="settings-label"><span class="settings-ic">&#128682;</span><span style="color:#e8909e">Sair da conta</span></div></div>
 </div>
 
 </div><!-- .app -->
@@ -2373,6 +2373,40 @@ function preencherSeletoresData(){
   diaEl.dataset.preenchido = '1';
 }
 document.addEventListener('DOMContentLoaded', preencherSeletoresData);
+
+document.addEventListener('DOMContentLoaded', verificarSessaoSalva);
+
+function sairDaConta(){
+  localStorage.removeItem('vinculo_token');
+  localStorage.removeItem('vinculo_usuario');
+  tokenAtual = null;
+  usuarioAtual = null;
+  goTo('landing');
+}
+
+async function verificarSessaoSalva(){
+  if (!tokenAtual) return; // ninguém logado antes, fica na tela inicial normal
+
+  try {
+    const resp = await fetch(`${API_URL}/api/auth/perfil`, {
+      headers: { 'Authorization': `Bearer ${tokenAtual}` }
+    });
+    if (!resp.ok) {
+      // Token expirado ou inválido — limpa e deixa a pessoa logar de novo
+      localStorage.removeItem('vinculo_token');
+      localStorage.removeItem('vinculo_usuario');
+      tokenAtual = null;
+      usuarioAtual = null;
+      return;
+    }
+    const usuario = await resp.json();
+    usuarioAtual = usuario;
+    localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
+    goTo('discover'); // o próprio goTo já redireciona pra 'verify' se não estiver verificado
+  } catch (e) {
+    // Erro de rede — mantém os dados salvos e deixa a pessoa tentar de novo manualmente
+  }
+}
 preencherSeletoresData();
 
 function calcularIdade(dataISO){
