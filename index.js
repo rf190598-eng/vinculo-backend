@@ -7,11 +7,16 @@ const Usuario = require('./models/Usuario');
 const Swipe = require('./models/Swipe');
 const Match = require('./models/Match');
 const Mensagem = require('./models/Mensagem');
+const ContatoConfianca = require('./models/ContatoConfianca');
+const AlertaSeguranca = require('./models/AlertaSeguranca');
+const SessaoSeguranca = require('./models/SessaoSeguranca');
 const authRoutes = require('./routes/auth');
 const swipeRoutes = require('./routes/swipe');
 const chatRoutes = require('./routes/chat');
 const perfilRoutes = require('./routes/perfil');
 const pagamentoRoutes = require('./routes/pagamento');
+const segurancaRoutes = require('./routes/seguranca');
+const { verificarCheckinsVencidos } = require('./controllers/segurancaController');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -39,6 +44,7 @@ app.use('/api/swipe', swipeRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/perfil', perfilRoutes);
 app.use('/api/pagamento', pagamentoRoutes);
+app.use('/api/seguranca', segurancaRoutes);
 
 const iniciar = async () => {
   await conectarBanco();
@@ -48,6 +54,7 @@ const iniciar = async () => {
     console.log('Servidor Vinculo rodando na porta ' + PORT);
     console.log('Acesse: http://localhost:' + PORT);
   });
+  setInterval(verificarCheckinsVencidos, 60 * 1000);
 };
 
 iniciar();
