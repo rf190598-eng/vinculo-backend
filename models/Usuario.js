@@ -79,14 +79,15 @@ genero: {
     type: DataTypes.STRING,
     allowNull: true
   },
-  bonus_indicacao_creditado: {
+ bonus_indicacao_creditado: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
-  },
   },
   ativo: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  }
+}, {
   }
   }
 }, {
