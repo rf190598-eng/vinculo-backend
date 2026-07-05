@@ -875,32 +875,23 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <span style="font-size:24px">&#128680;</span> Botao de Panico
     </button>
     <div class="timer-card">
-      <div class="sec-title" style="text-align:center;font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700">&#9201; Cronometro de Encontro</div>
+      <div class="sec-title" style="text-align:center;font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700">&#9201; Check-in de Encontro</div>
       <div class="timer-display" id="timerDisplay">00:00:00</div>
-      <div class="timer-sub">Ative ao sair para o encontro. Se nao confirmar retorno seguro, alertamos seus contatos.</div>
+      <div class="timer-sub">Ative ao sair para o encontro. Se não confirmar retorno seguro até o prazo, seus contatos de confiança são avisados automaticamente.</div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-primary" onclick="startTimer()" style="flex:1;padding:11px;font-size:13px">&#9654; Iniciar</button>
-        <button class="btn btn-ghost" onclick="stopTimer()" style="flex:1;padding:11px;font-size:13px">&#9632; Parar</button>
+        <button class="btn btn-primary" onclick="iniciarSessaoSeguranca()" style="flex:1;padding:11px;font-size:13px">&#9654; Iniciar</button>
+        <button class="btn btn-ghost" onclick="confirmarRetornoSeguroReal()" style="flex:1;padding:11px;font-size:13px">&#9989; Cheguei bem</button>
       </div>
     </div>
     <div class="sec-card">
-      <div class="sec-title">&#128205; Compartilhar rota</div>
-      <div class="sec-desc">Sua localizacao em tempo real vai para contatos de confianca durante o encontro.</div>
-      <div class="toggle-row">
-        <div><div class="tl">Compartilhar localizacao</div><div class="ts">Ativo durante encontros</div></div>
-        <div class="switch on" onclick="this.classList.toggle('on')"></div>
-      </div>
-      <div class="toggle-row">
-        <div><div class="tl">Check-in automatico</div><div class="ts">Avisa contatos ao chegar</div></div>
-        <div class="switch on" onclick="this.classList.toggle('on')"></div>
-      </div>
+      <div class="sec-title">&#128205; Localização durante o encontro</div>
+      <div class="sec-desc">Enquanto o check-in está ativo, sua localização é enviada periodicamente para seus contatos de confiança.</div>
     </div>
     <div class="sec-card">
-      <div class="sec-title">&#9742; Contatos de confianca</div>
-      <div class="sec-desc">Quem sera avisado em caso de emergencia.</div>
-      <div class="ec"><div class="ec-av">&#128105;</div><div><div class="tl">Juliana Alves</div><div class="ts">Irma &nbsp;&#9679;&nbsp; (17) 9999-1111</div></div></div>
-      <div class="ec"><div class="ec-av">&#128104;</div><div><div class="tl">Pedro Costa</div><div class="ts">Amigo &nbsp;&#9679;&nbsp; (17) 9999-2222</div></div></div>
-      <button class="btn btn-ghost" style="padding:10px;font-size:12.5px;margin-top:4px">+ Adicionar contato</button>
+      <div class="sec-title">&#9742; Contatos de confiança</div>
+      <div class="sec-desc">Quem será avisado em caso de emergência.</div>
+      <div id="listaContatosSeguranca"></div>
+      <button class="btn btn-ghost" style="padding:10px;font-size:12.5px;margin-top:4px" onclick="adicionarContatoSeguranca()">+ Adicionar contato</button>
     </div>
     <div class="sec-card">
       <div class="sec-title">&#9989; Verificacao e privacidade</div>
@@ -1979,13 +1970,14 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div class="big-ic" style="color:#e8909e">&#128680;</div>
       <h3 class="serif">Enviando alerta em...</h3>
       <div style="font-family:'Cormorant Garamond',serif;font-size:64px;font-weight:700;color:#e8909e;margin:10px 0" id="panicCountNum">3</div>
-      <p>Sua localizacao sera enviada para Juliana e Pedro. Cancele se foi engano.</p>
+      <p>Sua localização será enviada para seus contatos de confiança. Cancele se foi engano.</p>
       <button class="btn btn-ghost" onclick="cancelPanic()">Cancelar envio</button>
     </div>
     <div id="panicSentView" style="display:none">
       <div class="big-ic">&#9989;</div>
-      <h3 class="serif">Alerta enviado!</h3>
-      <p>Juliana e Pedro receberam sua localizacao GPS atual e um link de rastreamento em tempo real. Fique em local seguro.</p>
+      <h3 class="serif" id="panicSentTitulo">Alerta enviado!</h3>
+      <p id="panicSentTexto">Seus contatos de confiança foram avisados com sua última localização.</p>
+      <div id="panicMensagensSimuladas" style="text-align:left;font-size:11px;color:#a07080;margin:10px 0;max-height:120px;overflow-y:auto"></div>
       <button class="btn btn-danger" onclick="closeModal('panic')">Entendi</button>
     </div>
   </div>
@@ -2323,6 +2315,7 @@ function goTo(name){
   window.scrollTo(0,0);
   if(name==='discover'){ setTimeout(initSwipeTouch, 150); carregarPerfis(); }
   if(name==='chats'){ carregarChats(); }
+  if(name==='safety'){ carregarContatos(); carregarStatusSeguranca(); }
   if(name==='match') setTimeout(launchConfetti, 300);
 }
 
@@ -2946,7 +2939,7 @@ function openNotifications(){
 }
 
 let panicStage='idle', panicInterval=null, panicCount=3;
-function startPanicCountdown(){
+async function startPanicCountdown(){
   panicStage='counting';
   panicCount=3;
   document.getElementById('panicCountdownView').style.display='block';
@@ -2954,18 +2947,48 @@ function startPanicCountdown(){
   document.getElementById('panicCountNum').textContent=panicCount;
   openModal('panic');
   if(panicInterval)clearInterval(panicInterval);
-  panicInterval=setInterval(()=>{
+  panicInterval=setInterval(async ()=>{
     panicCount--;
     if(panicCount<=0){
       clearInterval(panicInterval);
       panicStage='sent';
       document.getElementById('panicCountdownView').style.display='none';
+      await dispararPanicoReal();
       document.getElementById('panicSentView').style.display='block';
       return;
     }
     document.getElementById('panicCountNum').textContent=panicCount;
   },1000);
 }
+
+async function dispararPanicoReal(){
+  const local = await obterLocalizacaoAtual();
+  const tituloEl = document.getElementById('panicSentTitulo');
+  const textoEl = document.getElementById('panicSentTexto');
+  const listaEl = document.getElementById('panicMensagensSimuladas');
+  try{
+    const resp = await fetch(`${API_URL}/api/seguranca/panico`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
+      body: JSON.stringify(local || {})
+    });
+    const dados = await resp.json();
+    if(!resp.ok){
+      tituloEl.textContent = 'Não foi possível avisar seus contatos';
+      textoEl.textContent = dados.erro || 'Verifique se você tem contatos de confiança cadastrados na Central de Segurança.';
+      listaEl.innerHTML='';
+      return;
+    }
+    tituloEl.textContent = 'Alerta enviado!';
+    textoEl.textContent = 'Seus contatos de confiança foram avisados com sua última localização (simulado nesta fase de testes).';
+    listaEl.innerHTML = (dados.mensagens||[]).map(m => `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08)"><b>${m.contato_nome}</b> (${m.contato_telefone}): ${m.mensagem}</div>`).join('');
+  }catch(e){
+    tituloEl.textContent = 'Erro de conexão';
+    textoEl.textContent = 'Não foi possível enviar o alerta agora. Tenta de novo.';
+    listaEl.innerHTML='';
+  }
+}
+
 function cancelPanic(){
   clearInterval(panicInterval);
   panicStage='idle';
@@ -3066,22 +3089,156 @@ function toggleIncognito(el){
   }
 }
 
-function startTimer(){
-  if(timerInterval)return;
-  timerSec=0;
-  timerInterval=setInterval(()=>{
-    timerSec++;
-    const h=String(Math.floor(timerSec/3600)).padStart(2,'0');
-    const m=String(Math.floor((timerSec%3600)/60)).padStart(2,'0');
-    const s=String(timerSec%60).padStart(2,'0');
-    const el=document.getElementById('timerDisplay');
-    if(el)el.textContent=h+':'+m+':'+s;
-  },1000);
+function obterLocalizacaoAtual(){
+  return new Promise((resolve) => {
+    if(!navigator.geolocation){ resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+      () => resolve(null),
+      { timeout: 8000 }
+    );
+  });
 }
-function stopTimer(){
-  clearInterval(timerInterval);timerInterval=null;timerSec=0;
-  const el=document.getElementById('timerDisplay');
-  if(el)el.textContent='00:00:00';
+
+let sessaoSegurancaAtiva = null;
+let intervalDisplaySeguranca = null;
+let intervalLocalizacaoSeguranca = null;
+
+function atualizarDisplayTimerSeguranca(){
+  const el = document.getElementById('timerDisplay');
+  if(!el) return;
+  if(!sessaoSegurancaAtiva || !sessaoSegurancaAtiva.prazo_confirmacao){
+    el.textContent = '00:00:00';
+    return;
+  }
+  const restante = new Date(sessaoSegurancaAtiva.prazo_confirmacao) - new Date();
+  if(restante <= 0){
+    el.textContent = 'Prazo esgotado';
+    return;
+  }
+  const h = String(Math.floor(restante/3600000)).padStart(2,'0');
+  const m = String(Math.floor((restante%3600000)/60000)).padStart(2,'0');
+  const s = String(Math.floor((restante%60000)/1000)).padStart(2,'0');
+  el.textContent = `${h}:${m}:${s} restantes`;
+}
+
+function iniciarTimersSeguranca(){
+  if(intervalDisplaySeguranca) clearInterval(intervalDisplaySeguranca);
+  intervalDisplaySeguranca = setInterval(atualizarDisplayTimerSeguranca, 1000);
+  if(intervalLocalizacaoSeguranca) clearInterval(intervalLocalizacaoSeguranca);
+  intervalLocalizacaoSeguranca = setInterval(async ()=>{
+    if(!sessaoSegurancaAtiva) return;
+    const local = await obterLocalizacaoAtual();
+    if(local){
+      fetch(`${API_URL}/api/seguranca/sessao/localizacao`, {
+        method:'PUT', headers:{'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
+        body: JSON.stringify(local)
+      }).catch(()=>{});
+    }
+  }, 60000);
+}
+
+function pararTimersSeguranca(){
+  clearInterval(intervalDisplaySeguranca); intervalDisplaySeguranca=null;
+  clearInterval(intervalLocalizacaoSeguranca); intervalLocalizacaoSeguranca=null;
+}
+
+async function iniciarSessaoSeguranca(){
+  const horasTexto = prompt('Por quantas horas você vai ficar no encontro?', '2');
+  const horas = parseFloat(horasTexto);
+  if(!horas || horas<=0) return;
+  const local = await obterLocalizacaoAtual();
+  try{
+    const resp = await fetch(`${API_URL}/api/seguranca/sessao/iniciar`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
+      body: JSON.stringify({ minutos: Math.round(horas*60), ...(local||{}) })
+    });
+    const dados = await resp.json();
+    if(!resp.ok){ alert(dados.erro||'Erro ao iniciar check-in.'); return; }
+    sessaoSegurancaAtiva = dados.sessao;
+    iniciarTimersSeguranca();
+    atualizarDisplayTimerSeguranca();
+    showToastVinculo('Check-in ativado! Seus contatos serão avisados se você não confirmar retorno a tempo.');
+  }catch(e){ alert('Erro de conexão.'); }
+}
+
+async function confirmarRetornoSeguroReal(){
+  if(!sessaoSegurancaAtiva){ showToastVinculo('Nenhum check-in ativo no momento.'); return; }
+  try{
+    await fetch(`${API_URL}/api/seguranca/sessao/confirmar`, {
+      method:'POST', headers:{'Authorization':`Bearer ${tokenAtual}`}
+    });
+  }catch(e){}
+  sessaoSegurancaAtiva = null;
+  pararTimersSeguranca();
+  const el = document.getElementById('timerDisplay');
+  if(el) el.textContent='00:00:00';
+  showToastVinculo('Que bom que você chegou bem! 💜');
+}
+
+async function carregarStatusSeguranca(){
+  try{
+    const resp = await fetch(`${API_URL}/api/seguranca/sessao/status`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
+    const dados = await resp.json();
+    if(dados.sessao){
+      sessaoSegurancaAtiva = dados.sessao;
+      iniciarTimersSeguranca();
+      atualizarDisplayTimerSeguranca();
+    }
+  }catch(e){}
+}
+
+async function carregarContatos(){
+  const lista = document.getElementById('listaContatosSeguranca');
+  if(!lista) return;
+  lista.innerHTML = '<div style="color:#a07080;font-size:12px;padding:8px 0">Carregando...</div>';
+  try{
+    const resp = await fetch(`${API_URL}/api/seguranca/contatos`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
+    const dados = await resp.json();
+    const contatos = dados.contatos || [];
+    if(contatos.length===0){
+      lista.innerHTML = '<div style="color:#a07080;font-size:12.5px;padding:6px 0">Nenhum contato cadastrado ainda. Adicione pelo menos um.</div>';
+      return;
+    }
+    lista.innerHTML='';
+    contatos.forEach(c=>{
+      const div=document.createElement('div');
+      div.className='ec';
+      div.innerHTML = `<div class="ec-av">&#128100;</div><div style="flex:1"><div class="tl">${c.nome}</div><div class="ts">${c.parentesco||'Contato'} &nbsp;&#9679;&nbsp; ${c.telefone}</div></div><div style="color:#e8909e;font-size:20px;padding:4px 10px;cursor:pointer" onclick="removerContatoSeguranca('${c.id}')">&times;</div>`;
+      lista.appendChild(div);
+    });
+  }catch(e){
+    lista.innerHTML = '<div style="color:#ff8fa3;font-size:12px">Erro ao carregar contatos.</div>';
+  }
+}
+
+async function adicionarContatoSeguranca(){
+  const nome = prompt('Nome do contato de confiança:');
+  if(!nome) return;
+  const telefone = prompt('Telefone com DDD, ex: (17) 99999-1111:');
+  if(!telefone) return;
+  const parentesco = prompt('Relação (ex: Irmã, Amigo, Mãe) - opcional:') || '';
+  try{
+    const resp = await fetch(`${API_URL}/api/seguranca/contatos`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
+      body: JSON.stringify({ nome, telefone, parentesco })
+    });
+    const dados = await resp.json();
+    if(!resp.ok){ alert(dados.erro || 'Erro ao adicionar contato'); return; }
+    carregarContatos();
+  }catch(e){ alert('Erro de conexão.'); }
+}
+
+async function removerContatoSeguranca(id){
+  if(!confirm('Remover esse contato de confiança?')) return;
+  try{
+    await fetch(`${API_URL}/api/seguranca/contatos/${id}`, {
+      method:'DELETE', headers:{'Authorization':`Bearer ${tokenAtual}`}
+    });
+    carregarContatos();
+  }catch(e){ alert('Erro ao remover.'); }
 }
 
 document.querySelectorAll('.star').forEach(star=>{
