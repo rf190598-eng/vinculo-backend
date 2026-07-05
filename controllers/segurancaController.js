@@ -168,7 +168,8 @@ const verificarCheckinsVencidos = async () => {
         });
         console.log(`Alerta automatico disparado para usuario ${sessao.usuario_id}`);
       }
-      sessao.alerta_disparado = true;
+     sessao.alerta_disparado = true;
+      sessao.ativa = false;
       await sessao.save();
     }
   } catch (erro) {
