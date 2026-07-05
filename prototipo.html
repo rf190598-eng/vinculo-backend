@@ -3181,11 +3181,13 @@ async function carregarStatusSeguranca(){
   try{
     const resp = await fetch(`${API_URL}/api/seguranca/sessao/status`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
     const dados = await resp.json();
-    if(dados.sessao){
-      sessaoSegurancaAtiva = dados.sessao;
+    sessaoSegurancaAtiva = dados.sessao || null;
+    if(sessaoSegurancaAtiva){
       iniciarTimersSeguranca();
-      atualizarDisplayTimerSeguranca();
+    } else {
+      pararTimersSeguranca();
     }
+    atualizarDisplayTimerSeguranca();
   }catch(e){}
 }
 
