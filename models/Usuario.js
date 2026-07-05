@@ -70,9 +70,19 @@ genero: {
     type: DataTypes.STRING,
     defaultValue: 'São José do Rio Preto'
   },
+  codigo_indicacao: {
+    type: DataTypes.STRING,
+    unique: true,
+    allowNull: true
+  },
+  indicado_por: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   ativo: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  }
   }
 }, {
   tableName: 'usuarios',
