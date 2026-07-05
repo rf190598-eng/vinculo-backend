@@ -24,15 +24,14 @@ const Usuario = sequelize.define('Usuario', {
     type: DataTypes.DATEONLY,
     allowNull: false
   },
- 
-genero: {
+  genero: {
     type: DataTypes.STRING,
     allowNull: true
   },
   objetivo: {
     type: DataTypes.STRING,
     allowNull: true
-  },  
+  },
   bio: {
     type: DataTypes.TEXT,
     allowNull: true
@@ -45,7 +44,6 @@ genero: {
     type: DataTypes.STRING,
     allowNull: true
   },
-
   verificado: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
@@ -79,7 +77,7 @@ genero: {
     type: DataTypes.STRING,
     allowNull: true
   },
- bonus_indicacao_creditado: {
+  bonus_indicacao_creditado: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
@@ -88,11 +86,8 @@ genero: {
     defaultValue: true
   }
 }, {
-  }
-  }
-}, {
   tableName: 'usuarios',
   timestamps: true
 });
 
-module.exports = Usuario; 
+module.exports = Usuario;
