@@ -980,6 +980,62 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   </div>
 </div>
 
+<!-- PREFERÊNCIAS DE NOTIFICAÇÃO -->
+<div class="screen" id="screen-notif-prefs" style="background:#1a0810;min-height:100vh;">
+  <div class="topbar">
+    <div class="icon-btn" onclick="goTo('myprofile')">&#8592;</div>
+    <div class="logo serif">Notificações</div>
+    <div style="width:38px"></div>
+  </div>
+  <div style="padding:0 18px">
+    <div class="sec-card">
+      <div class="toggle-row">
+        <div><div class="tl">Novos matches</div><div class="ts">Quando alguém curtir você de volta</div></div>
+        <div class="switch" id="prefNotifMatches" onclick="alternarPreferencia(this,'notif','matches')"></div>
+      </div>
+      <div class="toggle-row">
+        <div><div class="tl">Novas mensagens</div><div class="ts">Quando receber uma mensagem no chat</div></div>
+        <div class="switch" id="prefNotifMensagens" onclick="alternarPreferencia(this,'notif','mensagens')"></div>
+      </div>
+      <div class="toggle-row">
+        <div><div class="tl">Curtidas recebidas</div><div class="ts">Quando alguém curtir seu perfil</div></div>
+        <div class="switch" id="prefNotifCurtidas" onclick="alternarPreferencia(this,'notif','curtidas')"></div>
+      </div>
+      <div class="toggle-row">
+        <div><div class="tl">Novidades e promoções</div><div class="ts">Ofertas do Vínculo e novidades do app</div></div>
+        <div class="switch" id="prefNotifPromo" onclick="alternarPreferencia(this,'notif','promo')"></div>
+      </div>
+    </div>
+    <div style="font-size:11.5px;color:#a07080;padding:10px 4px;line-height:1.6">Essas preferências ficam salvas neste aparelho.</div>
+  </div>
+</div>
+
+<!-- PREFERÊNCIAS DE PRIVACIDADE -->
+<div class="screen" id="screen-privacy-prefs" style="background:#1a0810;min-height:100vh;">
+  <div class="topbar">
+    <div class="icon-btn" onclick="goTo('myprofile')">&#8592;</div>
+    <div class="logo serif">Privacidade</div>
+    <div style="width:38px"></div>
+  </div>
+  <div style="padding:0 18px">
+    <div class="sec-card">
+      <div class="toggle-row">
+        <div><div class="tl">Mostrar minha idade</div><div class="ts">Exibida no seu cartão de perfil</div></div>
+        <div class="switch" id="prefPrivIdade" onclick="alternarPreferencia(this,'priv','mostrarIdade')"></div>
+      </div>
+      <div class="toggle-row">
+        <div><div class="tl">Perfil visível só para verificados</div><div class="ts">Só quem tem selo de verificado te vê</div></div>
+        <div class="switch" id="prefPrivSoVerificados" onclick="alternarPreferencia(this,'priv','soVerificados')"></div>
+      </div>
+      <div class="toggle-row">
+        <div><div class="tl">Modo incógnito</div><div class="ts">Navega no app sem aparecer pra ninguém</div></div>
+        <div class="switch" id="prefPrivIncognito" onclick="alternarPreferencia(this,'priv','incognito')"></div>
+      </div>
+    </div>
+    <div style="font-size:11.5px;color:#a07080;padding:10px 4px;line-height:1.6">Essas preferências ficam salvas neste aparelho. Algumas (como modo incógnito) ainda não afetam a visibilidade real do seu perfil pra outras pessoas — isso é o próximo passo de desenvolvimento.</div>
+  </div>
+</div>
+
 <!-- MAPA -->
 <div class="screen" id="screen-map" style="background:#1a0810;min-height:100vh;">
   <div class="topbar"><div class="logo serif">Vín<span>culo</span></div><div class="icon-btn" onclick="goTo('safety')">&#128737;</div></div>
@@ -1679,53 +1735,35 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   </div>
   <div style="padding:0 18px 32px">
 
-    <!-- Hero -->
     <div style="background:linear-gradient(135deg,#3a1a2e,#1a0810);border:1.5px solid rgba(201,160,107,.35);border-radius:20px;padding:24px 18px;text-align:center;margin-bottom:20px;position:relative;overflow:hidden">
       <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(201,160,107,.12),transparent 70%);pointer-events:none"></div>
       <div style="font-size:52px;margin-bottom:12px">&#127873;</div>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#fdf6f2;margin-bottom:8px">Ganhe 7 dias Premium grátis</div>
-      <div style="font-size:13.5px;color:#d0a8b8;line-height:1.7;margin-bottom:16px">Para cada amigo que criar conta pelo seu link e usar o app por 3 dias, você ganha <b style="color:#d4b87a">7 dias de Premium grátis.</b></div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#fdf6f2;margin-bottom:8px">Ganhe 7 dias Premium gratis</div>
+      <div style="font-size:13.5px;color:#d0a8b8;line-height:1.7;margin-bottom:16px">Quando um amigo cria conta pelo seu link e verifica o perfil dele, voce ganha <b style="color:#d4b87a">7 dias de Premium gratis.</b></div>
       <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap">
-        <div style="text-align:center;background:rgba(255,255,255,.06);border-radius:14px;padding:12px 16px;min-width:80px">
-          <div style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:#fdf6f2">3</div>
+        <div style="text-align:center;background:rgba(255,255,255,.06);border-radius:14px;padding:12px 16px;min-width:90px">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:#fdf6f2" id="statIndicados">0</div>
           <div style="font-size:11px;color:#d0a8b8">amigos indicados</div>
         </div>
-        <div style="text-align:center;background:rgba(201,160,107,.1);border:1.5px solid rgba(201,160,107,.3);border-radius:14px;padding:12px 16px;min-width:80px">
-          <div style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:#d4b87a">21</div>
+        <div style="text-align:center;background:rgba(201,160,107,.1);border:1.5px solid rgba(201,160,107,.3);border-radius:14px;padding:12px 16px;min-width:90px">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:#d4b87a" id="statDiasGanhos">0</div>
           <div style="font-size:11px;color:#d0a8b8">dias ganhos</div>
-        </div>
-        <div style="text-align:center;background:rgba(109,204,109,.08);border:1.5px solid rgba(109,204,109,.25);border-radius:14px;padding:12px 16px;min-width:80px">
-          <div style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:#6dcc6d">1</div>
-          <div style="font-size:11px;color:#d0a8b8">ativo agora</div>
         </div>
       </div>
     </div>
 
-    <!-- Seu link -->
-    <div style="font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Seu link de indicação</div>
+    <div style="font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Seu link de indicacao</div>
     <div style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.15);border-radius:14px;padding:14px 16px;margin-bottom:14px">
       <div style="font-size:12px;color:#d0a8b8;margin-bottom:6px">Link exclusivo seu</div>
       <div style="display:flex;align-items:center;gap:10px">
-        <div style="flex:1;font-size:13.5px;color:#fdf6f2;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">vinculo.app/i/mauricio2024</div>
-        <button onclick="showToast('Link copiado! &#127881; Agora compartilhe com seus amigos.')" style="background:linear-gradient(135deg,#d4839a,#c9a06b);border:none;border-radius:8px;padding:8px 14px;color:#1a0508;font-weight:800;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap">Copiar</button>
+        <div style="flex:1;font-size:12.5px;color:#fdf6f2;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="linkIndicacaoTexto">Carregando...</div>
+        <button onclick="copiarLinkIndicacao()" style="background:linear-gradient(135deg,#d4839a,#c9a06b);border:none;border-radius:8px;padding:8px 14px;color:#1a0508;font-weight:800;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap">Copiar</button>
       </div>
     </div>
 
-    <!-- Botões de compartilhamento -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px">
-      <button onclick="showToast('Abrindo WhatsApp... &#128172;')" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(37,211,102,.12);border:1.5px solid rgba(37,211,102,.35);border-radius:12px;padding:14px;color:#fdf6f2;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit">
-        <span style="font-size:20px">&#128172;</span> WhatsApp
-      </button>
-      <button onclick="showToast('Abrindo Instagram... &#128247;')" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(212,131,154,.12);border:1.5px solid rgba(212,131,154,.35);border-radius:12px;padding:14px;color:#fdf6f2;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit">
-        <span style="font-size:20px">&#128247;</span> Instagram
-      </button>
-      <button onclick="showToast('Abrindo SMS... &#128241;')" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:12px;padding:14px;color:#fdf6f2;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit">
-        <span style="font-size:20px">&#128241;</span> SMS
-      </button>
-      <button onclick="showToast('Link copiado! &#128279;')" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:12px;padding:14px;color:#fdf6f2;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit">
-        <span style="font-size:20px">&#128279;</span> Copiar link
-      </button>
-    </div>
+    <button onclick="compartilharLinkIndicacao()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(37,211,102,.12);border:1.5px solid rgba(37,211,102,.35);border-radius:12px;padding:15px;color:#fdf6f2;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;margin-bottom:20px">
+      <span style="font-size:20px">&#128172;</span> Compartilhar link
+    </button>
 
     <!-- Como funciona -->
     <div style="font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">Como funciona</div>
@@ -1735,7 +1773,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#d4839a,#c9a06b);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#1a0508;flex-shrink:0;z-index:1">1</div>
         <div style="padding-top:6px">
           <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:3px">Compartilhe seu link</div>
-          <div style="font-size:12.5px;color:#d0a8b8;line-height:1.5">Mande para amigos solteiros pelo WhatsApp, Instagram ou SMS</div>
+          <div style="font-size:12.5px;color:#d0a8b8;line-height:1.5">Toque em "Compartilhar" e escolha WhatsApp, Instagram, SMS ou qualquer app</div>
         </div>
       </div>
       <div style="display:flex;gap:14px;align-items:flex-start;padding-bottom:14px;position:relative">
@@ -1743,7 +1781,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#d4839a,#c9a06b);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#1a0508;flex-shrink:0;z-index:1">2</div>
         <div style="padding-top:6px">
           <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:3px">Amigo cria a conta</div>
-          <div style="font-size:12.5px;color:#d0a8b8;line-height:1.5">Ele se cadastra pelo seu link e usa o app por pelo menos 3 dias</div>
+          <div style="font-size:12.5px;color:#d0a8b8;line-height:1.5">Ele se cadastra pelo seu link</div>
         </div>
       </div>
       <div style="display:flex;gap:14px;align-items:flex-start">
@@ -1757,6 +1795,10 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   </div>
 </div>
 
+
+  </div>
+</div>
+
 <!-- EDITAR PERFIL -->
 <div class="screen" id="screen-edit-profile" style="background:#1a0810;min-height:100vh;">
   <div class="topbar">
@@ -1765,15 +1807,15 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="width:38px"></div>
   </div>
   <div style="padding:0 18px 24px">
-    <div class="my-profile-photo" style="height:180px;border-radius:16px;margin-bottom:16px">&#128100;
+    <div class="my-profile-photo" id="fotoEditPerfil" style="height:180px;border-radius:16px;margin-bottom:16px;cursor:pointer" onclick="document.getElementById('inputFotoPerfil').click()">&#128100;
       <div class="edit-overlay">&#9998;</div>
     </div>
 
     <div class="edit-section-title">Nome</div>
-    <input class="inp" value="Voce"/>
+    <input class="inp" id="editNome" value="Voce"/>
 
     <div class="edit-section-title">Sobre mim</div>
-    <textarea class="inp" rows="4" style="resize:none" placeholder="Conte um pouco sobre voce...">Gosto de boas conversas, viagens e descobrir lugares novos. Buscando uma conexao genuina.</textarea>
+    <textarea class="inp" id="editBio" rows="4" style="resize:none" placeholder="Conte um pouco sobre voce...">Gosto de boas conversas, viagens e descobrir lugares novos. Buscando uma conexao genuina.</textarea>
 
     <div class="edit-section-title">Prompts para te ajudar &#10024;</div>
     <div class="prompt-card">
@@ -1818,13 +1860,13 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div class="ls-chip" onclick="toggleLs(this)">&#127916; Cinema</div>
     </div>
 
-    <button class="btn btn-primary" style="margin-top:20px" onclick="goTo('myprofile')">Salvar alteracoes</button>
+    <button class="btn btn-primary" style="margin-top:20px" onclick="salvarEdicaoPerfil()">Salvar alteracoes</button>
   </div>
 </div>
 
 <!-- MEU PERFIL -->
 <div class="screen" id="screen-myprofile" style="background:#1a0810;min-height:100vh;">
-  <div class="my-profile-photo">&#128100;
+  <div class="my-profile-photo" style="cursor:pointer" onclick="document.getElementById('inputFotoPerfil').click()">&#128100;
     <div class="edit-overlay">&#9998;</div>
   </div>
   <div style="padding:14px 18px 8px">
@@ -1921,8 +1963,8 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div class="settings-item" onclick="goTo('edit-profile')"><div class="settings-label"><span class="settings-ic">&#128101;</span>Editar perfil</div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item"><div class="settings-label"><span class="settings-ic">&#128591;</span>Preferências de busca</div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item" onclick="goTo('safety')"><div class="settings-label"><span class="settings-ic">&#128737;</span>Central de Segurança</div><span style="color:#d0a8b8">&#8250;</span></div>
-  <div class="settings-item"><div class="settings-label"><span class="settings-ic">&#128274;</span>Privacidade</div><span style="color:#d0a8b8">&#8250;</span></div>
-  <div class="settings-item"><div class="settings-label"><span class="settings-ic">&#128276;</span>Notificações</div><span style="color:#d0a8b8">&#8250;</span></div>
+  <div class="settings-item" onclick="goTo('privacy-prefs')"><div class="settings-label"><span class="settings-ic">&#128274;</span>Privacidade</div><span style="color:#d0a8b8">&#8250;</span></div>
+  <div class="settings-item" onclick="goTo('notif-prefs')"><div class="settings-label"><span class="settings-ic">&#128276;</span>Notificações</div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item" onclick="goTo('indica')"><div class="settings-label"><span class="settings-ic">&#127873;</span>Indicar amigo — ganhe 7 dias grátis</div><span style="background:rgba(201,160,107,.2);border-radius:20px;padding:2px 8px;font-size:10px;color:#d4b87a;font-weight:700">GRÁTIS</span></div>
   <div class="settings-item" onclick="goTo('admin')"><div class="settings-label"><span class="settings-ic">&#128202;</span><span style="color:#d4b87a">Painel Admin</span></div><span style="background:rgba(212,131,154,.2);border-radius:20px;padding:2px 8px;font-size:10px;color:#f0a0b8;font-weight:700">ADMIN</span></div>
   <div class="settings-item" onclick="goTo('landing')"><div class="settings-label"><span class="settings-ic">&#127968;</span>Ver landing page</div><span style="color:#d0a8b8">&#8250;</span></div>
@@ -2316,6 +2358,9 @@ function goTo(name){
   if(name==='discover'){ setTimeout(initSwipeTouch, 150); carregarPerfis(); }
   if(name==='chats'){ carregarChats(); }
   if(name==='safety'){ carregarContatos(); carregarStatusSeguranca(); }
+  if(name==='indica'){ carregarEstatisticasIndicacao(); }
+  if(name==='notif-prefs'){ carregarPreferenciasNaTela('notif', {matches:'prefNotifMatches',mensagens:'prefNotifMensagens',curtidas:'prefNotifCurtidas',promo:'prefNotifPromo'}); }
+  if(name==='privacy-prefs'){ carregarPreferenciasNaTela('priv', {mostrarIdade:'prefPrivIdade',soVerificados:'prefPrivSoVerificados',incognito:'prefPrivIncognito'}); }
   if(name==='match') setTimeout(launchConfetti, 300);
 }
 
@@ -2442,7 +2487,7 @@ async function cadastrarUsuario(){
     const resp = await fetch(`${API_URL}/api/auth/cadastrar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome, email, senha, data_nascimento })
+      body: JSON.stringify({ nome, email, senha, data_nascimento, codigo_indicacao_usado: codigoIndicacaoUsado })
     });
     const dados = await resp.json();
     if (!resp.ok) {
@@ -2705,6 +2750,33 @@ async function enviarMensagemChat(){
   }
 }
 
+async function salvarEdicaoPerfil(){
+  const nome = document.getElementById('editNome').value.trim();
+  const bio = document.getElementById('editBio').value.trim();
+  if(!nome){ alert('O nome não pode ficar vazio.'); return; }
+  try{
+    const resp = await fetch(`${API_URL}/api/perfil/editar`, {
+      method:'PUT',
+      headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
+      body: JSON.stringify({ nome, bio })
+    });
+    const dados = await resp.json();
+    if(!resp.ok){ alert(dados.erro || 'Erro ao salvar.'); return; }
+    usuarioAtual = dados.usuario;
+    localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
+    showToastVinculo('Perfil atualizado!');
+    goTo('myprofile');
+  }catch(e){ alert('Erro de conexão.'); }
+}
+
+function atualizarFotoNaTela(fotoUrl){
+  document.querySelectorAll('.my-profile-photo').forEach(el=>{
+    el.style.backgroundImage = `url(${API_URL}${fotoUrl})`;
+    el.style.backgroundSize = 'cover';
+    el.style.backgroundPosition = 'center';
+  });
+}
+
 async function fotoPerfilSelecionada(event){
   const arquivo = event.target.files[0];
   const statusEl = document.getElementById('statusFotoPerfil');
@@ -2730,6 +2802,7 @@ async function fotoPerfilSelecionada(event){
       usuarioAtual.foto_url = dados.foto_url;
       localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
     }
+    atualizarFotoNaTela(dados.foto_url);
     statusEl.textContent = '✓ Enviada';
   } catch (e) {
     statusEl.textContent = 'Erro';
@@ -3086,6 +3159,76 @@ function toggleIncognito(el){
     showToastVinculo('Modo incognito ativado &mdash; voce nao aparece para outros'.replace('&mdash;','\u2014'));
   }else{
     showToastVinculo('Modo incognito desativado');
+  }
+}
+
+const defaultsNotif = { matches:true, mensagens:true, curtidas:true, promo:false };
+const defaultsPriv = { mostrarIdade:true, soVerificados:false, incognito:false };
+
+function obterPreferencias(categoria){
+  try{ return JSON.parse(localStorage.getItem('vinculo_prefs_'+categoria) || '{}'); }
+  catch(e){ return {}; }
+}
+
+function valorPreferencia(categoria, chave){
+  const prefs = obterPreferencias(categoria);
+  if(chave in prefs) return prefs[chave];
+  const defaults = categoria==='notif' ? defaultsNotif : defaultsPriv;
+  return defaults[chave];
+}
+
+function alternarPreferencia(el, categoria, chave){
+  const prefs = obterPreferencias(categoria);
+  const novoValor = !valorPreferencia(categoria, chave);
+  prefs[chave] = novoValor;
+  localStorage.setItem('vinculo_prefs_'+categoria, JSON.stringify(prefs));
+  el.classList.toggle('on', novoValor);
+}
+
+function carregarPreferenciasNaTela(categoria, mapeamento){
+  Object.keys(mapeamento).forEach(chave=>{
+    const el = document.getElementById(mapeamento[chave]);
+    if(el) el.classList.toggle('on', !!valorPreferencia(categoria, chave));
+  });
+}
+
+let codigoIndicacaoUsado = new URLSearchParams(window.location.search).get('ref') || null;
+
+function montarLinkIndicacao(){
+  if(!usuarioAtual || !usuarioAtual.codigo_indicacao) return `${API_URL}/prototipo`;
+  return `${API_URL}/prototipo?ref=${usuarioAtual.codigo_indicacao}`;
+}
+
+async function carregarEstatisticasIndicacao(){
+  const linkEl = document.getElementById('linkIndicacaoTexto');
+  if(linkEl) linkEl.textContent = montarLinkIndicacao().replace('https://','');
+  try{
+    const resp = await fetch(`${API_URL}/api/perfil/indicacoes`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
+    const dados = await resp.json();
+    const elIndicados = document.getElementById('statIndicados');
+    const elDias = document.getElementById('statDiasGanhos');
+    if(elIndicados) elIndicados.textContent = dados.total_indicados ?? 0;
+    if(elDias) elDias.textContent = dados.dias_premium_ganhos ?? 0;
+  }catch(e){}
+}
+
+function copiarLinkIndicacao(){
+  const link = montarLinkIndicacao();
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(link).then(()=>showToastVinculo('Link copiado!'));
+  } else {
+    prompt('Copie seu link:', link);
+  }
+}
+
+async function compartilharLinkIndicacao(){
+  const link = montarLinkIndicacao();
+  const texto = 'Vem pro Vínculo comigo! Um app de relacionamento pensado de verdade pra segurança das mulheres.';
+  if(navigator.share){
+    try{ await navigator.share({ title:'Vínculo', text: texto, url: link }); }
+    catch(e){ /* usuário cancelou o compartilhamento, tudo bem */ }
+  } else {
+    copiarLinkIndicacao();
   }
 }
 
