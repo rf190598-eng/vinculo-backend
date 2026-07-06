@@ -28,7 +28,11 @@ const Usuario = sequelize.define('Usuario', {
     type: DataTypes.STRING,
     allowNull: true
   },
-  objetivo: {
+ objetivo: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  signo: {
     type: DataTypes.STRING,
     allowNull: true
   },
