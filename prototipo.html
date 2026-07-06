@@ -517,7 +517,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div class="big-ic">&#9989;</div>
       <h3 class="serif" style="font-size:21px;margin-bottom:7px">Perfil verificado!</h3>
       <p style="color:#d8b0c4;font-size:12.5px;line-height:1.6;margin-bottom:18px">Sua identidade foi confirmada. Seu perfil recebeu o selo de verificacao, aumentando sua credibilidade com outros usuarios.</p>
-      <button class="btn btn-primary" onclick="goTo('discover')">Comecar a explorar</button>
+      <button class="btn btn-primary" onclick="goTo('edit-profile')">Continuar</button>
     </div>
   </div>
 </div>
@@ -1817,6 +1817,23 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div class="edit-section-title">Sobre mim</div>
     <textarea class="inp" id="editBio" rows="4" style="resize:none" placeholder="Conte um pouco sobre voce...">Gosto de boas conversas, viagens e descobrir lugares novos. Buscando uma conexao genuina.</textarea>
 
+    <div class="edit-section-title">Signo</div>
+    <select class="inp" id="editSigno">
+      <option value="">Prefiro não dizer</option>
+      <option value="aries">Áries</option>
+      <option value="touro">Touro</option>
+      <option value="gemeos">Gêmeos</option>
+      <option value="cancer">Câncer</option>
+      <option value="leao">Leão</option>
+      <option value="virgem">Virgem</option>
+      <option value="libra">Libra</option>
+      <option value="escorpiao">Escorpião</option>
+      <option value="sagitario">Sagitário</option>
+      <option value="capricornio">Capricórnio</option>
+      <option value="aquario">Aquário</option>
+      <option value="peixes">Peixes</option>
+    </select>
+
     <div class="edit-section-title">Prompts para te ajudar &#10024;</div>
     <div class="prompt-card">
       <div class="prompt-q">Meu fim de semana ideal e...</div>
@@ -2355,10 +2372,13 @@ function goTo(name){
   document.getElementById('bottomnav').style.display=noNav.includes(name)?'none':'flex';
   document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.s===name));
   window.scrollTo(0,0);
+  requestAnimationFrame(()=>window.scrollTo(0,0));
+  setTimeout(()=>window.scrollTo(0,0), 50);
   if(name==='discover'){ setTimeout(initSwipeTouch, 150); carregarPerfis(); }
   if(name==='chats'){ carregarChats(); }
   if(name==='safety'){ carregarContatos(); carregarStatusSeguranca(); }
   if(name==='indica'){ carregarEstatisticasIndicacao(); }
+  if((name==='myprofile' || name==='edit-profile') && usuarioAtual && usuarioAtual.foto_url){ atualizarFotoNaTela(usuarioAtual.foto_url); }
   if(name==='notif-prefs'){ carregarPreferenciasNaTela('notif', {matches:'prefNotifMatches',mensagens:'prefNotifMensagens',curtidas:'prefNotifCurtidas',promo:'prefNotifPromo'}); }
   if(name==='privacy-prefs'){ carregarPreferenciasNaTela('priv', {mostrarIdade:'prefPrivIdade',soVerificados:'prefPrivSoVerificados',incognito:'prefPrivIncognito'}); }
   if(name==='match') setTimeout(launchConfetti, 300);
@@ -2372,11 +2392,20 @@ let tokenAtual = localStorage.getItem('vinculo_token') || null;
 // Telas que um usuário NÃO verificado ainda pode acessar.
 // Qualquer outra tela exige verificado === true, senão volta pra tela de verificação.
 const telasSemVerificacaoObrigatoria = ['landing','auth','login','welcome','verify','verify2'];
+const telasSemPerfilCompletoObrigatorio = ['landing','auth','login','welcome','verify','verify2','edit-profile','myprofile'];
+
+function perfilIncompleto(){
+  return !usuarioAtual.bio || !usuarioAtual.foto_url;
+}
 
 const goToBase = goTo;
 goTo = function(name){
   if (usuarioAtual && usuarioAtual.verificado === false && !telasSemVerificacaoObrigatoria.includes(name)) {
     goToBase('verify');
+    return;
+  }
+  if (usuarioAtual && usuarioAtual.verificado === true && perfilIncompleto() && !telasSemPerfilCompletoObrigatorio.includes(name)) {
+    goToBase('edit-profile');
     return;
   }
   goToBase(name);
@@ -2753,12 +2782,13 @@ async function enviarMensagemChat(){
 async function salvarEdicaoPerfil(){
   const nome = document.getElementById('editNome').value.trim();
   const bio = document.getElementById('editBio').value.trim();
+  const signo = document.getElementById('editSigno').value;
   if(!nome){ alert('O nome não pode ficar vazio.'); return; }
   try{
     const resp = await fetch(`${API_URL}/api/perfil/editar`, {
       method:'PUT',
       headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
-      body: JSON.stringify({ nome, bio })
+      body: JSON.stringify({ nome, bio, signo })
     });
     const dados = await resp.json();
     if(!resp.ok){ alert(dados.erro || 'Erro ao salvar.'); return; }
@@ -2774,6 +2804,11 @@ function atualizarFotoNaTela(fotoUrl){
     el.style.backgroundImage = `url(${API_URL}${fotoUrl})`;
     el.style.backgroundSize = 'cover';
     el.style.backgroundPosition = 'center';
+    // Remove o emoji de silhueta (era só texto solto dentro da caixa),
+    // mas mantém os botões que ficam por cima (lápis, voltar, etc.)
+    Array.from(el.childNodes).forEach(node => {
+      if (node.nodeType === Node.TEXT_NODE) node.textContent = '';
+    });
   });
 }
 
