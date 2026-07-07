@@ -1182,51 +1182,15 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="width:38px"></div>
   </div>
   <div style="padding:0 18px">
-    <!-- Banner Premium -->
-    <div style="background:linear-gradient(135deg,rgba(212,131,154,.18),rgba(201,160,107,.1));border:1.5px solid rgba(212,131,154,.45);border-radius:18px;padding:18px 16px;text-align:center;margin-bottom:18px">
+    <div style="background:linear-gradient(135deg,rgba(212,131,154,.18),rgba(201,160,107,.1));border:1.5px solid rgba(212,131,154,.45);border-radius:18px;padding:18px 16px;text-align:center;margin-bottom:18px" id="likesBannerPremium">
       <div style="font-size:36px;margin-bottom:8px">&#128064;</div>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;margin-bottom:6px;color:#fdf6f2">7 pessoas curtiram você</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;margin-bottom:6px;color:#fdf6f2"><span id="likesContagem">0</span> pessoas curtiram você</div>
       <div style="color:#e0c0d0;font-size:13px;line-height:1.6;margin-bottom:8px">Assine o Premium para ver quem são, dar match e <b style="color:#f0a0b8">conversar diretamente.</b></div>
-      <div style="display:flex;justify-content:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-        <span style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:5px 11px;font-size:11px;color:#e0d0e8">&#128150; Ver curtidas</span>
-        <span style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:5px 11px;font-size:11px;color:#e0d0e8">&#128172; Chat ilimitado</span>
-        <span style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:5px 11px;font-size:11px;color:#e0d0e8">&#9889; Boost diário</span>
-      </div>
       <button class="btn btn-primary" style="max-width:290px;margin:0 auto;padding:14px;font-size:13.5px" onclick="goTo('assinatura')">&#128274; Desbloquear — a partir de R$9,90/semana</button>
     </div>
-    <!-- Grid com perfis borrados -->
     <div style="font-size:12px;font-weight:700;color:#d8b0c4;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Curtidas recentes</div>
-    <div class="likes-grid" style="margin-bottom:10px">
-      <div class="likes-blur-card">
-        <div class="likes-blur-photo">&#128100;</div>
-        <div class="likes-blur-overlay">
-          <div style="width:44px;height:44px;border-radius:50%;background:rgba(26,10,14,.8);border:2px solid #c9a06b;display:flex;align-items:center;justify-content:center;font-size:22px">&#128274;</div>
-          <div style="font-size:10px;color:#c9a06b;font-weight:700">Premium</div>
-        </div>
-      </div>
-      <div class="likes-blur-card">
-        <div class="likes-blur-photo" style="background:linear-gradient(160deg,#5a3060,#2b0f17)">&#128100;</div>
-        <div class="likes-blur-overlay">
-          <div style="width:44px;height:44px;border-radius:50%;background:rgba(26,10,14,.8);border:2px solid #d4839a;display:flex;align-items:center;justify-content:center;font-size:22px">&#128274;</div>
-          <div style="font-size:10px;color:#d4839a;font-weight:700">Premium</div>
-        </div>
-      </div>
-    </div>
-    <div class="likes-grid" style="margin-bottom:18px">
-      <div class="likes-blur-card">
-        <div class="likes-blur-photo" style="background:linear-gradient(160deg,#3a4a20,#1a2a0e)">&#128104;</div>
-        <div class="likes-blur-overlay">
-          <div style="width:44px;height:44px;border-radius:50%;background:rgba(26,10,14,.8);border:2px solid #c9a06b;display:flex;align-items:center;justify-content:center;font-size:22px">&#128274;</div>
-          <div style="font-size:10px;color:#c9a06b;font-weight:700">Premium</div>
-        </div>
-      </div>
-      <div class="likes-blur-card" style="background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.1);border-radius:18px;display:flex;align-items:center;justify-content:center;height:180px">
-        <div style="text-align:center;padding:16px">
-          <div style="font-size:28px;margin-bottom:6px">&#10067;</div>
-          <div style="font-size:11px;color:#a08090;line-height:1.4">Novos perfis<br>aparecem todo dia</div>
-        </div>
-      </div>
-    </div>
+    <div id="likesGridReal"></div>
+    <div id="likesVazio" style="display:none;text-align:center;padding:30px 10px;color:#a07080;font-size:12.5px">Ninguém curtiu você ainda. Continue no Descobrir!</div>
     <!-- Dica gratuita -->
     <div style="background:rgba(109,204,109,.06);border:1px solid rgba(109,204,109,.2);border-radius:12px;padding:12px 14px;font-size:12px;color:#d8b0c4;line-height:1.5">
       &#128161; <b style="color:#6dcc6d">Dica grátis:</b> Continue explorando normalmente — quando você e alguém se curtirem mutuamente, é um Vínculo e a conversa abre automaticamente.
@@ -1245,7 +1209,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <!-- Contador de curtidas — gatilho emocional principal -->
     <div style="background:rgba(212,131,154,.12);border:1.5px solid rgba(212,131,154,.35);border-radius:20px;padding:14px 20px;margin-bottom:18px;position:relative">
       <div style="font-size:11px;font-weight:700;color:#f0a0b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">&#128064; Aguardando você agora</div>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:52px;font-weight:700;line-height:1;color:#fdf6f2">7</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:52px;font-weight:700;line-height:1;color:#fdf6f2" id="assinaturaContagemCurtidas">0</div>
       <div style="font-size:14px;color:#e0c0d0;margin-top:4px;font-weight:600">pessoas já curtiram seu perfil</div>
       <div style="font-size:11.5px;color:#f0a0b8;margin-top:6px">&#128274; Desbloqueie para ver quem são</div>
     </div>
@@ -1971,7 +1935,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div class="settings-item" onclick="goTo('privacy-prefs')"><div class="settings-label"><span class="settings-ic">&#128274;</span>Privacidade</div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item" onclick="goTo('notif-prefs')"><div class="settings-label"><span class="settings-ic">&#128276;</span>Notificações</div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item" onclick="goTo('indica')"><div class="settings-label"><span class="settings-ic">&#127873;</span>Indicar amigo — ganhe 7 dias grátis</div><span style="background:rgba(201,160,107,.2);border-radius:20px;padding:2px 8px;font-size:10px;color:#d4b87a;font-weight:700">GRÁTIS</span></div>
-  <div class="settings-item" onclick="goTo('admin')"><div class="settings-label"><span class="settings-ic">&#128202;</span><span style="color:#d4b87a">Painel Admin</span></div><span style="background:rgba(212,131,154,.2);border-radius:20px;padding:2px 8px;font-size:10px;color:#f0a0b8;font-weight:700">ADMIN</span></div>
+  <div class="settings-item" id="menuPainelAdmin" onclick="goTo('admin')"><div class="settings-label"><span class="settings-ic">&#128202;</span><span style="color:#d4b87a">Painel Admin</span></div><span style="background:rgba(212,131,154,.2);border-radius:20px;padding:2px 8px;font-size:10px;color:#f0a0b8;font-weight:700">ADMIN</span></div>
   <div class="settings-item" onclick="goTo('landing')"><div class="settings-label"><span class="settings-ic">&#127968;</span>Ver landing page</div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item" onclick="sairDaConta()"><div class="settings-label"><span class="settings-ic">&#128682;</span><span style="color:#e8909e">Sair da conta</span></div></div>
 </div>
@@ -2366,7 +2330,17 @@ function goTo(name){
   if(name==='chats'){ carregarChats(); }
   if(name==='safety'){ carregarContatos(); carregarStatusSeguranca(); }
   if(name==='indica'){ carregarEstatisticasIndicacao(); }
+  if(name==='likes'){ carregarCurtidasRecebidas(); }
+  if(name==='assinatura'){
+    fetch(`${API_URL}/api/swipe/curtidas-recebidas`, { headers:{'Authorization':`Bearer ${tokenAtual}`} })
+      .then(r=>r.json()).then(d=>{ const el=document.getElementById('assinaturaContagemCurtidas'); if(el) el.textContent = d.total||0; })
+      .catch(()=>{});
+  }
   if((name==='myprofile' || name==='edit-profile') && usuarioAtual && usuarioAtual.foto_url){ atualizarFotoNaTela(usuarioAtual.foto_url); }
+  if(name==='myprofile'){
+    const menuAdmin = document.getElementById('menuPainelAdmin');
+    if(menuAdmin) menuAdmin.style.display = (usuarioAtual && usuarioAtual.email === 'rf190598@gmail.com') ? 'flex' : 'none';
+  }
   if(name==='notif-prefs'){ carregarPreferenciasNaTela('notif', {matches:'prefNotifMatches',mensagens:'prefNotifMensagens',curtidas:'prefNotifCurtidas',promo:'prefNotifPromo'}); }
   if(name==='privacy-prefs'){ carregarPreferenciasNaTela('priv', {mostrarIdade:'prefPrivIdade',soVerificados:'prefPrivSoVerificados',incognito:'prefPrivIncognito'}); }
   if(name==='match') setTimeout(launchConfetti, 300);
@@ -2388,6 +2362,11 @@ function perfilIncompleto(){
 
 const goToBase = goTo;
 goTo = function(name){
+  if (name === 'admin' && (!usuarioAtual || usuarioAtual.email !== 'rf190598@gmail.com')) {
+    goToBase('myprofile');
+    showToastVinculo('Acesso restrito.');
+    return;
+  }
   if (usuarioAtual && usuarioAtual.verificado === false && !telasSemVerificacaoObrigatoria.includes(name)) {
     goToBase('verify');
     return;
@@ -2675,6 +2654,68 @@ async function selfieSelecionada(event){
 
 let perfilCard1Data = null;
 let perfilCard2Data = null;
+
+async function carregarCurtidasRecebidas(){
+  const grid = document.getElementById('likesGridReal');
+  const vazio = document.getElementById('likesVazio');
+  const contagemEl = document.getElementById('likesContagem');
+  const bannerEl = document.getElementById('likesBannerPremium');
+  grid.innerHTML = '';
+  try{
+    const resp = await fetch(`${API_URL}/api/swipe/curtidas-recebidas`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
+    const dados = await resp.json();
+    const perfis = dados.perfis || [];
+    contagemEl.textContent = dados.total || 0;
+
+    if(perfis.length === 0){
+      vazio.style.display = 'block';
+      bannerEl.style.display = 'none';
+      return;
+    }
+    vazio.style.display = 'none';
+
+    const souPremium = usuarioAtual && usuarioAtual.premium;
+    bannerEl.style.display = souPremium ? 'none' : 'block';
+
+    grid.style.display = 'grid';
+    grid.style.gridTemplateColumns = '1fr 1fr';
+    grid.style.gap = '10px';
+
+    perfis.forEach(p=>{
+      const card = document.createElement('div');
+      const idade = p.data_nascimento ? calcularIdade(p.data_nascimento) : '';
+      if(souPremium){
+        card.style.cssText = 'border-radius:16px;overflow:hidden;position:relative;height:180px;background:linear-gradient(160deg,#5c1a2e,#2b0f17);display:flex;align-items:flex-end;padding:10px;cursor:pointer';
+        if(p.foto_url){ card.style.backgroundImage = `url(${API_URL}${p.foto_url})`; card.style.backgroundSize='cover'; card.style.backgroundPosition='center'; }
+        card.innerHTML = `<div style="background:rgba(0,0,0,.5);border-radius:8px;padding:4px 8px;font-size:12px;color:#fff;font-weight:700">${p.nome}, ${idade}</div>`;
+        card.onclick = () => curtirDeVolta(p.id, card);
+      } else {
+        card.className = 'likes-blur-card';
+        card.innerHTML = `<div class="likes-blur-photo">&#128100;</div><div class="likes-blur-overlay"><div style="width:44px;height:44px;border-radius:50%;background:rgba(26,10,14,.8);border:2px solid #c9a06b;display:flex;align-items:center;justify-content:center;font-size:22px">&#128274;</div><div style="font-size:10px;color:#c9a06b;font-weight:700">Premium</div></div>`;
+      }
+      grid.appendChild(card);
+    });
+  } catch(e){
+    vazio.style.display = 'block';
+  }
+}
+
+async function curtirDeVolta(alvoId, cardEl){
+  try{
+    const resp = await fetch(`${API_URL}/api/swipe/dar`, {
+      method:'POST',
+      headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
+      body: JSON.stringify({ alvo_id: alvoId, tipo: 'like' })
+    });
+    const dados = await resp.json();
+    if(dados.match){
+      goTo('match');
+    } else {
+      cardEl.style.opacity = '0.3';
+      showToastVinculo('Curtida enviada!');
+    }
+  } catch(e){ alert('Erro ao curtir.'); }
+}
 
 let planoSelecionado = 'mensal';
 let matchAtual = null;
