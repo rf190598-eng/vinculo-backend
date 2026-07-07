@@ -1161,7 +1161,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
         <span style="font-size:20px">&#128274;</span>
         <div style="flex:1"><div style="font-size:13px;font-weight:700">Modo incognito</div><div style="font-size:12px;color:#d0b0c8">Navegue sem aparecer para ninguem</div></div>
-        <div class="switch" id="incognitoSwitch" onclick="toggleIncognito(this)"></div>
+        <div class="switch" id="incognitoSwitch" onclick="alternarPreferencia(this,'priv','incognito')"></div>
       </div>
     </div>
     <div style="background:linear-gradient(135deg,rgba(212,131,154,.12),rgba(201,160,107,.08));border:1px solid rgba(201,160,107,.3);border-radius:14px;padding:16px;text-align:center;margin-bottom:12px">
@@ -1169,7 +1169,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:#c9a06b">R$ 29,90/mes</div>
       <div style="font-size:11px;color:#d8b0c4;margin-top:2px">Cancele quando quiser</div>
     </div>
-    <button class="btn btn-primary" onclick="openModal('thanks')">Assinar Premium</button>
+    <button class="btn btn-primary" onclick="goTo('assinatura')">Assinar Premium</button>
     <div style="text-align:center;color:#a08090;font-size:12px;margin-top:12px;padding-bottom:10px">Cobranca via Google Pay ou App Store</div>
   </div>
 </div>
@@ -2331,6 +2331,10 @@ function goTo(name){
   if(name==='safety'){ carregarContatos(); carregarStatusSeguranca(); }
   if(name==='indica'){ carregarEstatisticasIndicacao(); }
   if(name==='likes'){ carregarCurtidasRecebidas(); }
+  if(name==='premium'){
+    const sw = document.getElementById('incognitoSwitch');
+    if(sw) sw.classList.toggle('on', !!valorPreferencia('priv','incognito'));
+  }
   if(name==='assinatura'){
     fetch(`${API_URL}/api/swipe/curtidas-recebidas`, { headers:{'Authorization':`Bearer ${tokenAtual}`} })
       .then(r=>r.json()).then(d=>{ const el=document.getElementById('assinaturaContagemCurtidas'); if(el) el.textContent = d.total||0; })
