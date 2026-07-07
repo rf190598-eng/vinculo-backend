@@ -1324,7 +1324,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div class="topbar">
     <div class="icon-btn" onclick="goTo('discover')">&#8592;</div>
     <div class="logo serif">Eventos em <span>SJRP</span></div>
-    <div class="icon-btn" id="btnCriarEvento" style="display:none" onclick="abrirFormularioEvento()">&#43;</div>
+    <div class="icon-btn" id="btnCriarEvento" style="display:none" onclick="openModal('criar-evento')">&#43;</div>
   </div>
   <div style="padding:0 18px 24px">
 
@@ -1921,6 +1921,25 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 </div>
 
 <!-- MODAIS -->
+<div class="overlay" id="overlay-criar-evento" onclick="if(event.target===this)closeModal('criar-evento')">
+  <div class="modal modal-center">
+    <div class="modal-handle"></div>
+    <h3 class="serif" style="margin-bottom:14px">Criar evento</h3>
+    <input class="inp" id="novoEventoNome" placeholder="Nome do evento"/>
+    <input class="inp" id="novoEventoLocal" placeholder="Local"/>
+    <div style="display:flex;gap:8px">
+      <input class="inp" type="date" id="novoEventoData" style="flex:1"/>
+      <input class="inp" type="time" id="novoEventoHora" style="flex:1"/>
+    </div>
+    <input class="inp" id="novoEventoPreco" placeholder="Preço (ex: Gratis, R$ 20)" value="Gratis"/>
+    <input class="inp" id="novoEventoEmoji" placeholder="Emoji (ex: 🎉)" value="🎉"/>
+    <textarea class="inp" id="novoEventoDescricao" rows="2" style="resize:none" placeholder="Descrição (opcional)"></textarea>
+    <div id="criarEventoErro" style="color:#ff8fa3;font-size:12.5px;margin:-6px 0 8px;min-height:14px"></div>
+    <button class="btn btn-primary" onclick="criarEventoSubmit()">Criar evento</button>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal('criar-evento')">Cancelar</button>
+  </div>
+</div>
+
 <div class="overlay" id="overlay-panic" onclick="if(event.target===this && panicStage==='sent')closeModal('panic')">
   <div class="modal modal-center" id="panicModalContent">
     <div class="modal-handle"></div>
@@ -2731,17 +2750,22 @@ async function toggleConfirmarEvento(eventoId, btnEl){
   } catch(e){ alert('Erro ao confirmar presença.'); }
 }
 
-async function abrirFormularioEvento(){
-  const nome = prompt('Nome do evento:');
-  if(!nome) return;
-  const local = prompt('Local:');
-  if(!local) return;
-  const dataTexto = prompt('Data e hora (formato: AAAA-MM-DD HH:MM), ex: 2026-07-15 20:00:');
-  if(!dataTexto) return;
-  const data_hora = dataTexto.replace(' ', 'T') + ':00';
-  const preco = prompt('Preço (ex: Gratis, R$ 20):', 'Gratis') || 'Gratis';
-  const emoji = prompt('Emoji do evento (ex: 🎉 🎸 ☕):', '🎉') || '🎉';
-  const descricao = prompt('Descrição (opcional):') || '';
+async function criarEventoSubmit(){
+  const nome = document.getElementById('novoEventoNome').value.trim();
+  const local = document.getElementById('novoEventoLocal').value.trim();
+  const data = document.getElementById('novoEventoData').value;
+  const hora = document.getElementById('novoEventoHora').value;
+  const preco = document.getElementById('novoEventoPreco').value.trim() || 'Gratis';
+  const emoji = document.getElementById('novoEventoEmoji').value.trim() || '🎉';
+  const descricao = document.getElementById('novoEventoDescricao').value.trim();
+  const erroEl = document.getElementById('criarEventoErro');
+  erroEl.textContent = '';
+
+  if(!nome || !local || !data || !hora){
+    erroEl.textContent = 'Preenche nome, local, data e hora.';
+    return;
+  }
+  const data_hora = `${data}T${hora}:00`;
 
   try{
     const resp = await fetch(`${API_URL}/api/eventos`, {
@@ -2750,10 +2774,11 @@ async function abrirFormularioEvento(){
       body: JSON.stringify({ nome, local, data_hora, preco, emoji, descricao })
     });
     const dados = await resp.json();
-    if(!resp.ok){ alert(dados.erro || 'Erro ao criar evento.'); return; }
+    if(!resp.ok){ erroEl.textContent = dados.erro || 'Erro ao criar evento.'; return; }
+    closeModal('criar-evento');
     showToastVinculo('Evento criado!');
     carregarEventos();
-  } catch(e){ alert('Erro de conexão.'); }
+  } catch(e){ erroEl.textContent = 'Erro de conexão.'; }
 }
 
 async function carregarChats(){
