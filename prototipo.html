@@ -1324,70 +1324,17 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div class="topbar">
     <div class="icon-btn" onclick="goTo('discover')">&#8592;</div>
     <div class="logo serif">Eventos em <span>SJRP</span></div>
-    <div class="icon-btn">&#128269;</div>
+    <div class="icon-btn" id="btnCriarEvento" style="display:none" onclick="abrirFormularioEvento()">&#43;</div>
   </div>
   <div style="padding:0 18px 24px">
 
-    <!-- Banner destaque -->
-    <div style="background:linear-gradient(135deg,#5c1a2e,#3a0f20);border-radius:18px;padding:18px;margin-bottom:16px;position:relative;overflow:hidden">
-      <div style="position:absolute;top:-20px;right:-20px;font-size:80px;opacity:.15">&#127881;</div>
-      <div style="font-size:10px;font-weight:800;color:#f0a0b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">&#128293; Em alta esta semana</div>
-      <div style="font-size:20px;font-weight:800;color:#fdf6f2;margin-bottom:4px">Festa Latina — Bar do Centro</div>
-      <div style="font-size:13px;color:#e0c0d0;margin-bottom:10px">Sábado, 28 Jun · 22h · Av. Bady Bassitt</div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <div style="display:flex">
-          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#7a2a4a,#4a1428);border:2px solid #1a0810;display:flex;align-items:center;justify-content:center;font-size:13px;margin-right:-8px">&#128100;</div>
-          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3a4a20,#1a2010);border:2px solid #1a0810;display:flex;align-items:center;justify-content:center;font-size:13px;margin-right:-8px">&#128104;</div>
-          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#5a2060,#2a1030);border:2px solid #1a0810;display:flex;align-items:center;justify-content:center;font-size:13px">&#128100;</div>
-        </div>
-        <div style="font-size:12px;color:#d0a8b8"><b style="color:#fdf6f2">23 pessoas</b> do Vínculo confirmadas</div>
-      </div>
-      <button class="btn btn-primary" style="padding:12px;font-size:13px" onclick="openModal('evento-confirmar')">&#10003; Marcar presença</button>
+    <div id="listaEventosReal"></div>
+
+    <div id="eventosVazio" style="display:none;text-align:center;padding:40px 20px;color:#a07080">
+      <div style="font-size:40px;margin-bottom:10px">&#127881;</div>
+      <div style="font-size:13px;line-height:1.6">Nenhum evento marcado ainda. Fica de olho, em breve tem novidade!</div>
     </div>
 
-    <!-- Lista de eventos -->
-    <div style="font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">Próximos eventos</div>
-
-    <!-- Evento 1 -->
-    <div onclick="openModal('evento-confirmar')" style="display:flex;gap:14px;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:16px;padding:14px;margin-bottom:10px;cursor:pointer">
-      <div style="width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#3a1a50,#1a0830);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">&#127926;</div>
-      <div style="flex:1">
-        <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:3px">Show Sertanejo — Espaço Eventos</div>
-        <div style="font-size:12px;color:#d0a8b8;margin-bottom:6px">Sex, 27 Jun · 21h · Zona Norte</div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="background:rgba(109,204,109,.12);border:1px solid rgba(109,204,109,.3);border-radius:20px;padding:3px 10px;font-size:11px;color:#6dcc6d;font-weight:600">&#128100; 15 confirmados</span>
-          <span style="background:rgba(201,160,107,.1);border:1px solid rgba(201,160,107,.3);border-radius:20px;padding:3px 10px;font-size:11px;color:#d4b87a;font-weight:600">Grátis</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Evento 2 -->
-    <div onclick="openModal('evento-confirmar')" style="display:flex;gap:14px;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:16px;padding:14px;margin-bottom:10px;cursor:pointer">
-      <div style="width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#1a3a1a,#0a1a0a);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">&#9749;</div>
-      <div style="flex:1">
-        <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:3px">Café & Conexões — Coworking Centro</div>
-        <div style="font-size:12px;color:#d0a8b8;margin-bottom:6px">Dom, 29 Jun · 10h · Centro</div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="background:rgba(109,204,109,.12);border:1px solid rgba(109,204,109,.3);border-radius:20px;padding:3px 10px;font-size:11px;color:#6dcc6d;font-weight:600">&#128100; 8 confirmados</span>
-          <span style="background:rgba(212,131,154,.1);border:1px solid rgba(212,131,154,.3);border-radius:20px;padding:3px 10px;font-size:11px;color:#f0a0b8;font-weight:600">R$ 15</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Evento 3 -->
-    <div onclick="openModal('evento-confirmar')" style="display:flex;gap:14px;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:16px;padding:14px;margin-bottom:10px;cursor:pointer">
-      <div style="width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#3a2a10,#1a1408);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">&#127939;</div>
-      <div style="flex:1">
-        <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:3px">Trilha do Parque Bosque — Grupo single</div>
-        <div style="font-size:12px;color:#d0a8b8;margin-bottom:6px">Sáb, 5 Jul · 7h · Parque da Cidadania</div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="background:rgba(109,204,109,.12);border:1px solid rgba(109,204,109,.3);border-radius:20px;padding:3px 10px;font-size:11px;color:#6dcc6d;font-weight:600">&#128100; 31 confirmados</span>
-          <span style="background:rgba(201,160,107,.1);border:1px solid rgba(201,160,107,.3);border-radius:20px;padding:3px 10px;font-size:11px;color:#d4b87a;font-weight:600">Grátis</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- CTA parceria -->
     <div style="background:rgba(255,255,255,.04);border:1.5px dashed rgba(255,255,255,.15);border-radius:16px;padding:16px;text-align:center;margin-top:8px">
       <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:4px">&#127970; Você tem um espaço ou evento?</div>
       <div style="font-size:12.5px;color:#d0a8b8;margin-bottom:12px;line-height:1.5">Anuncie para milhares de solteiros de São José do Rio Preto</div>
@@ -2331,6 +2278,7 @@ function goTo(name){
   if(name==='safety'){ carregarContatos(); carregarStatusSeguranca(); }
   if(name==='indica'){ carregarEstatisticasIndicacao(); }
   if(name==='likes'){ carregarCurtidasRecebidas(); }
+  if(name==='eventos'){ carregarEventos(); }
   if(name==='premium'){
     const sw = document.getElementById('incognitoSwitch');
     if(sw) sw.classList.toggle('on', !!valorPreferencia('priv','incognito'));
@@ -2723,6 +2671,90 @@ async function curtirDeVolta(alvoId, cardEl){
 
 let planoSelecionado = 'mensal';
 let matchAtual = null;
+
+async function carregarEventos(){
+  const lista = document.getElementById('listaEventosReal');
+  const vazio = document.getElementById('eventosVazio');
+  const btnCriar = document.getElementById('btnCriarEvento');
+  if(btnCriar) btnCriar.style.display = (usuarioAtual && usuarioAtual.email === 'rf190598@gmail.com') ? 'flex' : 'none';
+  lista.innerHTML = '';
+  try{
+    const resp = await fetch(`${API_URL}/api/eventos`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
+    const dados = await resp.json();
+    const eventos = dados.eventos || [];
+    if(eventos.length === 0){
+      vazio.style.display = 'block';
+      return;
+    }
+    vazio.style.display = 'none';
+    eventos.forEach(ev=>{
+      const data = new Date(ev.data_hora);
+      const dataFormatada = data.toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit', month:'short'}) + ' · ' + data.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      const card = document.createElement('div');
+      card.style.cssText = 'display:flex;gap:14px;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:16px;padding:14px;margin-bottom:10px';
+      card.innerHTML = `
+        <div style="width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#3a1a50,#1a0830);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">${ev.emoji||'🎉'}</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:3px">${ev.nome}</div>
+          <div style="font-size:12px;color:#d0a8b8;margin-bottom:6px">${dataFormatada} · ${ev.local}</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="background:rgba(109,204,109,.12);border:1px solid rgba(109,204,109,.3);border-radius:20px;padding:3px 10px;font-size:11px;color:#6dcc6d;font-weight:600">&#128100; ${ev.confirmados} confirmados</span>
+            <span style="background:rgba(201,160,107,.1);border:1px solid rgba(201,160,107,.3);border-radius:20px;padding:3px 10px;font-size:11px;color:#d4b87a;font-weight:600">${ev.preco}</span>
+          </div>
+          <button style="margin-top:8px;width:100%;padding:9px;border-radius:8px;border:none;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit;${ev.eu_confirmei?'background:rgba(109,204,109,.2);color:#6dcc6d;border:1px solid rgba(109,204,109,.4)':'background:linear-gradient(135deg,#d4839a,#c9a06b);color:#1a0508'}" onclick="toggleConfirmarEvento('${ev.id}', this)">${ev.eu_confirmei ? '✓ Presença confirmada' : 'Confirmar presença'}</button>
+        </div>`;
+      lista.appendChild(card);
+    });
+  } catch(e){
+    vazio.style.display = 'block';
+  }
+}
+
+async function toggleConfirmarEvento(eventoId, btnEl){
+  try{
+    const resp = await fetch(`${API_URL}/api/eventos/${eventoId}/confirmar`, {
+      method:'POST',
+      headers: {'Authorization':`Bearer ${tokenAtual}`}
+    });
+    const dados = await resp.json();
+    if(dados.confirmado){
+      btnEl.textContent = '✓ Presença confirmada';
+      btnEl.style.background = 'rgba(109,204,109,.2)';
+      btnEl.style.color = '#6dcc6d';
+      btnEl.style.border = '1px solid rgba(109,204,109,.4)';
+    } else {
+      btnEl.textContent = 'Confirmar presença';
+      btnEl.style.background = 'linear-gradient(135deg,#d4839a,#c9a06b)';
+      btnEl.style.color = '#1a0508';
+      btnEl.style.border = 'none';
+    }
+  } catch(e){ alert('Erro ao confirmar presença.'); }
+}
+
+async function abrirFormularioEvento(){
+  const nome = prompt('Nome do evento:');
+  if(!nome) return;
+  const local = prompt('Local:');
+  if(!local) return;
+  const dataTexto = prompt('Data e hora (formato: AAAA-MM-DD HH:MM), ex: 2026-07-15 20:00:');
+  if(!dataTexto) return;
+  const data_hora = dataTexto.replace(' ', 'T') + ':00';
+  const preco = prompt('Preço (ex: Gratis, R$ 20):', 'Gratis') || 'Gratis';
+  const emoji = prompt('Emoji do evento (ex: 🎉 🎸 ☕):', '🎉') || '🎉';
+  const descricao = prompt('Descrição (opcional):') || '';
+
+  try{
+    const resp = await fetch(`${API_URL}/api/eventos`, {
+      method:'POST',
+      headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
+      body: JSON.stringify({ nome, local, data_hora, preco, emoji, descricao })
+    });
+    const dados = await resp.json();
+    if(!resp.ok){ alert(dados.erro || 'Erro ao criar evento.'); return; }
+    showToastVinculo('Evento criado!');
+    carregarEventos();
+  } catch(e){ alert('Erro de conexão.'); }
+}
 
 async function carregarChats(){
   const lista = document.getElementById('listaChats');
