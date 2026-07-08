@@ -1585,22 +1585,22 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 
     <!-- Informações do negócio -->
     <div style="font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Informações do espaço</div>
-    <input class="inp" placeholder="Nome do espaço ou evento *" style="margin-bottom:10px"/>
-    <input class="inp" placeholder="Endereço completo *" style="margin-bottom:10px"/>
-    <input class="inp" placeholder="Bairro em São José do Rio Preto *" style="margin-bottom:10px"/>
-    <input class="inp" placeholder="Telefone / WhatsApp *" style="margin-bottom:10px"/>
-    <input class="inp" placeholder="Instagram (opcional)" style="margin-bottom:10px"/>
-    <textarea class="inp" placeholder="Descrição do espaço ou evento — o que torna ele especial para quem quer se conectar?" style="min-height:90px;resize:none;margin-bottom:18px"></textarea>
+    <input class="inp" id="parceiroNome" placeholder="Nome do espaço ou evento *" style="margin-bottom:10px"/>
+    <input class="inp" id="parceiroEndereco" placeholder="Endereço completo *" style="margin-bottom:10px"/>
+    <input class="inp" id="parceiroBairro" placeholder="Bairro em São José do Rio Preto *" style="margin-bottom:10px"/>
+    <input class="inp" id="parceiroTelefone" placeholder="Telefone / WhatsApp *" style="margin-bottom:10px"/>
+    <input class="inp" id="parceiroInstagram" placeholder="Instagram (opcional)" style="margin-bottom:10px"/>
+    <textarea class="inp" id="parceiroDescricao" placeholder="Descrição do espaço ou evento — o que torna ele especial para quem quer se conectar?" style="min-height:90px;resize:none;margin-bottom:18px"></textarea>
 
     <!-- Detalhes do evento -->
     <div style="font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Detalhes do evento / funcionamento</div>
-    <input class="inp" placeholder="Data ou dias da semana que funciona *" style="margin-bottom:10px"/>
-    <input class="inp" placeholder="Horário de funcionamento *" style="margin-bottom:10px"/>
-    <input class="inp" placeholder="Valor médio da entrada ou consumação" style="margin-bottom:10px"/>
+    <input class="inp" id="parceiroFuncionamento" placeholder="Data ou dias da semana que funciona *" style="margin-bottom:10px"/>
+    <input class="inp" id="parceiroHorario" placeholder="Horário de funcionamento *" style="margin-bottom:10px"/>
+    <input class="inp" id="parceiroValorEntrada" placeholder="Valor médio da entrada ou consumação" style="margin-bottom:10px"/>
 
     <!-- Foto do espaço -->
     <div style="font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Foto do espaço ou evento</div>
-    <div onclick="showToast('Em um app real, você escolheria a foto da galeria aqui &#128247;')" style="background:rgba(255,255,255,.05);border:2px dashed rgba(255,255,255,.2);border-radius:16px;padding:28px;text-align:center;cursor:pointer;margin-bottom:18px">
+    <div onclick="showToastVinculo('Envio de foto por aqui ainda não está pronto — pode mandar por WhatsApp quando entrarmos em contato!')" style="background:rgba(255,255,255,.05);border:2px dashed rgba(255,255,255,.2);border-radius:16px;padding:28px;text-align:center;cursor:pointer;margin-bottom:18px">
       <div style="font-size:36px;margin-bottom:8px">&#128247;</div>
       <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:4px">Adicionar foto</div>
       <div style="font-size:12px;color:#d0a8b8">JPG ou PNG · Recomendado 1080x1080px</div>
@@ -3536,6 +3536,9 @@ document.querySelectorAll('.filter-chip').forEach(chip=>{
   });
 });
 
+let tipoNegocioEscolhido = null;
+let tipoAnuncioEscolhido = 'gratis';
+
 function selectTipo(el, tipo){
   document.querySelectorAll('#tipoNegocio > div').forEach(d=>{
     d.style.borderColor='rgba(255,255,255,.12)';
@@ -3543,6 +3546,7 @@ function selectTipo(el, tipo){
   });
   el.style.borderColor='#d4839a';
   el.style.background='rgba(212,131,154,.12)';
+  tipoNegocioEscolhido = tipo;
 }
 
 function selectAnuncio(el, tipo){
@@ -3552,11 +3556,44 @@ function selectAnuncio(el, tipo){
   });
   el.style.borderColor='#c9a06b';
   el.style.background='rgba(201,160,107,.1)';
+  tipoAnuncioEscolhido = tipo;
 }
 
-function enviarCadastroParceiro(){
-  showToast('&#10003; Cadastro enviado! Nossa equipe entrará em contato pelo WhatsApp em até 24h.');
-  setTimeout(()=>goTo('eventos'), 2500);
+async function enviarCadastroParceiro(){
+  const nome_espaco = document.getElementById('parceiroNome').value.trim();
+  const endereco = document.getElementById('parceiroEndereco').value.trim();
+  const bairro = document.getElementById('parceiroBairro').value.trim();
+  const telefone = document.getElementById('parceiroTelefone').value.trim();
+  const instagram = document.getElementById('parceiroInstagram').value.trim();
+  const descricao = document.getElementById('parceiroDescricao').value.trim();
+  const funcionamento = document.getElementById('parceiroFuncionamento').value.trim();
+  const horario = document.getElementById('parceiroHorario').value.trim();
+  const valor_entrada = document.getElementById('parceiroValorEntrada').value.trim();
+
+  if(!nome_espaco || !telefone){
+    showToastVinculo('Preenche pelo menos o nome do espaço e o telefone.');
+    return;
+  }
+
+  try{
+    const resp = await fetch(`${API_URL}/api/parceria`, {
+      method:'POST',
+      headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
+      body: JSON.stringify({
+        nome_espaco, tipo_negocio: tipoNegocioEscolhido, endereco, bairro, telefone, instagram,
+        descricao, funcionamento, horario, valor_entrada, tipo_anuncio: tipoAnuncioEscolhido
+      })
+    });
+    const dados = await resp.json();
+    if(!resp.ok){
+      showToastVinculo(dados.erro || 'Erro ao enviar cadastro.');
+      return;
+    }
+    showToastVinculo('✓ Cadastro enviado! Nossa equipe entrará em contato pelo WhatsApp em até 24h.');
+    setTimeout(()=>goTo('eventos'), 2500);
+  } catch(e){
+    showToastVinculo('Erro de conexão. Tenta de novo.');
+  }
 }
 
 let objetivoEscolhido = null;
