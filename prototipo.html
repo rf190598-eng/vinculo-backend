@@ -534,48 +534,19 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   </div>
   <!-- STORIES -->
   <div style="display:flex;gap:14px;padding:6px 18px 12px;overflow-x:auto;scrollbar-width:none" id="storiesBar">
-    <!-- Adicionar story próprio -->
-    <div style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;flex-shrink:0" onclick="openModal('add-story')">
-      <div style="width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.08);border:2px dashed rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:24px">&#43;</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;flex-shrink:0" onclick="selecionarTipoResposta('texto');openModal('pergunta-dia')">
+      <div id="meuStoryRing" style="width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.08);border:2px dashed rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:24px">&#43;</div>
       <div style="font-size:10px;color:#d0a8b8;font-weight:600">Seu story</div>
-    </div>
-    <!-- Story Camila — ativo -->
-    <div style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;flex-shrink:0" onclick="openModal('view-story')">
-      <div style="width:58px;height:58px;border-radius:50%;padding:2.5px;background:linear-gradient(135deg,#f0a0b8,#c9a06b,#e0607a)">
-        <div style="width:100%;height:100%;border-radius:50%;background:linear-gradient(160deg,#7a2a4a,#4a1428);display:flex;align-items:center;justify-content:center;font-size:26px;border:2px solid #1a0810">&#128100;</div>
-      </div>
-      <div style="font-size:10px;color:#fdf6f2;font-weight:600">Camila</div>
-    </div>
-    <!-- Story Rafael -->
-    <div style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;flex-shrink:0" onclick="openModal('view-story')">
-      <div style="width:58px;height:58px;border-radius:50%;padding:2.5px;background:linear-gradient(135deg,#6dcc6d,#c9a06b)">
-        <div style="width:100%;height:100%;border-radius:50%;background:linear-gradient(160deg,#3a4a20,#1a2010);display:flex;align-items:center;justify-content:center;font-size:26px;border:2px solid #1a0810">&#128104;</div>
-      </div>
-      <div style="font-size:10px;color:#fdf6f2;font-weight:600">Rafael</div>
-    </div>
-    <!-- Story Julia — visto -->
-    <div style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;flex-shrink:0" onclick="openModal('view-story')">
-      <div style="width:58px;height:58px;border-radius:50%;padding:2.5px;background:rgba(255,255,255,.2)">
-        <div style="width:100%;height:100%;border-radius:50%;background:linear-gradient(160deg,#5a2060,#2a1030);display:flex;align-items:center;justify-content:center;font-size:26px;border:2px solid #1a0810">&#128100;</div>
-      </div>
-      <div style="font-size:10px;color:#9a6070;font-weight:600">Julia</div>
-    </div>
-    <!-- Story Ana -->
-    <div style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;flex-shrink:0" onclick="openModal('view-story')">
-      <div style="width:58px;height:58px;border-radius:50%;padding:2.5px;background:linear-gradient(135deg,#d4839a,#7a1f3d)">
-        <div style="width:100%;height:100%;border-radius:50%;background:linear-gradient(160deg,#6a1a3a,#3a0f20);display:flex;align-items:center;justify-content:center;font-size:26px;border:2px solid #1a0810">&#128100;</div>
-      </div>
-      <div style="font-size:10px;color:#fdf6f2;font-weight:600">Ana</div>
     </div>
   </div>
 
   <!-- PERGUNTA DO DIA -->
   <div style="margin:0 18px 10px;background:linear-gradient(135deg,rgba(201,160,107,.12),rgba(212,131,154,.08));border:1.5px solid rgba(201,160,107,.3);border-radius:14px;padding:12px 14px">
     <div style="font-size:10px;font-weight:800;color:#d4b87a;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">&#127775; Pergunta do dia</div>
-    <div style="font-size:13.5px;font-weight:700;color:#fdf6f2;margin-bottom:8px">"Qual foi o lugar mais bonito que você já visitou?"</div>
-    <div style="display:flex;gap:8px">
-      <input style="flex:1;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:10px;padding:8px 12px;font-size:13px;color:#fdf6f2;outline:none;font-family:inherit" placeholder="Sua resposta aparece no seu perfil..." readonly onclick="openModal('pergunta-dia')"/>
-      <button style="background:linear-gradient(135deg,#e0607a,#c9a06b);border:none;border-radius:10px;padding:8px 14px;color:#fff;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap" onclick="openModal('pergunta-dia')">Responder</button>
+    <div style="font-size:13.5px;font-weight:700;color:#fdf6f2;margin-bottom:8px" id="perguntaDoDiaTexto">Carregando...</div>
+    <div style="display:flex;gap:8px" id="perguntaDoDiaAcao">
+      <input style="flex:1;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:10px;padding:8px 12px;font-size:13px;color:#fdf6f2;outline:none;font-family:inherit" placeholder="Sua resposta aparece no seu perfil..." readonly onclick="selecionarTipoResposta('texto');openModal('pergunta-dia')"/>
+      <button style="background:linear-gradient(135deg,#e0607a,#c9a06b);border:none;border-radius:10px;padding:8px 14px;color:#fff;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap" onclick="selecionarTipoResposta('texto');openModal('pergunta-dia')">Responder</button>
     </div>
   </div>
 
@@ -1835,7 +1806,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <div style="flex:1;font-size:12.5px;color:#fdf6f2">Escrever sua bio</div>
         <span style="font-size:11px;color:#d4b87a;font-weight:700">+15%</span>
       </div>
-      <div onclick="openModal('pergunta-dia')" style="display:flex;align-items:center;gap:10px;background:rgba(109,204,109,.06);border:1px solid rgba(109,204,109,.2);border-radius:10px;padding:9px 12px;cursor:pointer">
+      <div onclick="selecionarTipoResposta('texto');openModal('pergunta-dia')" style="display:flex;align-items:center;gap:10px;background:rgba(109,204,109,.06);border:1px solid rgba(109,204,109,.2);border-radius:10px;padding:9px 12px;cursor:pointer">
         <span style="font-size:16px">🌟</span>
         <div style="flex:1;font-size:12.5px;color:#fdf6f2">Responder pergunta do dia</div>
         <span style="font-size:11px;color:#6dcc6d;font-weight:700">+10%</span>
@@ -2128,16 +2099,16 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="position:absolute;top:42px;left:0;right:0;z-index:10;display:flex;align-items:center;gap:10px;padding:0 14px">
       <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7a2a4a,#4a1428);display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid rgba(255,255,255,.4)">&#128100;</div>
       <div>
-        <div style="font-size:13.5px;font-weight:700;color:#fdf6f2">Camila</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.7)">há 2 horas · São José do Rio Preto</div>
+        <div style="font-size:13.5px;font-weight:700;color:#fdf6f2" id="viewStoryNome">—</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7)" id="viewStoryPergunta">Pergunta do dia</div>
       </div>
       <div onclick="closeModal('view-story')" style="margin-left:auto;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff">&#10005;</div>
     </div>
-    <!-- Foto do story -->
-    <div style="flex:1;background:linear-gradient(160deg,#8a2a4a,#4a1428,#1a0810);display:flex;align-items:center;justify-content:center;font-size:80px">&#127807;</div>
-    <!-- Texto do story -->
+    <!-- Conteúdo do story -->
+    <div id="viewStoryConteudoWrap" style="flex:1;background:linear-gradient(160deg,#8a2a4a,#4a1428,#1a0810);display:flex;align-items:center;justify-content:center;font-size:80px;overflow:hidden"></div>
+    <!-- Texto do story (quando o tipo é foto/vídeo, mostra a pergunta como legenda) -->
     <div style="position:absolute;bottom:80px;left:0;right:0;padding:0 18px;text-align:center">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:#fdf6f2;text-shadow:0 2px 12px rgba(0,0,0,.8)">"Dia perfeito no Parque da Cidadania &#127807;"</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:#fdf6f2;text-shadow:0 2px 12px rgba(0,0,0,.8)" id="viewStoryTexto"></div>
     </div>
     <!-- Reações -->
     <div style="padding:14px 18px;background:rgba(0,0,0,.6);display:flex;gap:10px;align-items:center">
@@ -2168,10 +2139,27 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div class="modal">
     <div class="modal-handle"></div>
     <div style="font-size:11px;font-weight:800;color:#d4b87a;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">&#127775; Pergunta do dia</div>
-    <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:#fdf6f2;margin-bottom:16px">"Qual foi o lugar mais bonito que você já visitou?"</div>
-    <textarea style="width:100%;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:12px;padding:14px;font-size:14px;color:#fdf6f2;outline:none;font-family:inherit;resize:none;min-height:100px" placeholder="Escreva sua resposta... ela aparecerá no seu perfil por 24h"></textarea>
+    <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:#fdf6f2;margin-bottom:16px" id="perguntaDoDiaModalTexto">Carregando...</div>
+
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button id="tipoRespTexto" onclick="selecionarTipoResposta('texto')" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid #d4839a;background:rgba(212,131,154,.15);color:#fdf6f2;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit">&#9997; Texto</button>
+      <button id="tipoRespFoto" onclick="selecionarTipoResposta('foto')" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fdf6f2;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit">&#128247; Foto</button>
+      <button id="tipoRespVideo" onclick="selecionarTipoResposta('video')" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fdf6f2;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit">&#127909; Vídeo</button>
+    </div>
+
+    <textarea id="respostaTextoArea" style="width:100%;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:12px;padding:14px;font-size:14px;color:#fdf6f2;outline:none;font-family:inherit;resize:none;min-height:100px" placeholder="Escreva sua resposta... ela aparecerá no seu perfil por 24h"></textarea>
+
+    <div id="respostaEscolherArea" onclick="document.getElementById('respostaArquivoInput').click()" style="display:none;text-align:center;padding:24px;background:rgba(255,255,255,.05);border:2px dashed rgba(255,255,255,.2);border-radius:12px;cursor:pointer;margin-bottom:6px">
+      <div style="font-size:28px;margin-bottom:6px" id="respostaEscolherIcone">&#128247;</div>
+      <div style="font-size:12.5px;color:#d0a8b8">Toque para escolher</div>
+    </div>
+
+    <input type="file" id="respostaArquivoInput" accept="image/*" style="display:none" onchange="arquivoRespostaSelecionado(event)"/>
+    <div id="respostaArquivoPreview" style="display:none;text-align:center;color:#6dcc6d;font-size:13px;padding:20px;background:rgba(255,255,255,.05);border-radius:12px;margin-bottom:6px">Arquivo selecionado ✓</div>
+
+    <div id="perguntaDoDiaErro" style="color:#ff8fa3;font-size:12.5px;margin:8px 0 0;min-height:14px"></div>
     <div style="font-size:11.5px;color:#d0a8b8;margin:8px 0 14px;line-height:1.5">&#128161; Quem responde aparece em destaque no Descobrir por 24 horas.</div>
-    <button class="btn btn-primary" onclick="closeModal('pergunta-dia')">Publicar resposta</button>
+    <button class="btn btn-primary" onclick="publicarRespostaPergunta()">Publicar resposta</button>
     <button class="btn btn-ghost" onclick="closeModal('pergunta-dia')">Cancelar</button>
   </div>
 </div>
@@ -2301,7 +2289,7 @@ function goTo(name){
   window.scrollTo(0,0);
   requestAnimationFrame(()=>window.scrollTo(0,0));
   setTimeout(()=>window.scrollTo(0,0), 50);
-  if(name==='discover'){ setTimeout(initSwipeTouch, 150); carregarPerfis(); }
+  if(name==='discover'){ setTimeout(initSwipeTouch, 150); carregarPerfis(); carregarPerguntaDoDia(); carregarStoriesBar(); }
   if(name==='chats'){ carregarChats(); }
   if(name==='safety'){ carregarContatos(); carregarStatusSeguranca(); }
   if(name==='indica'){ carregarEstatisticasIndicacao(); }
@@ -3599,6 +3587,140 @@ function obterLocalizacaoAtual(){
       { timeout: 8000 }
     );
   });
+}
+
+let tipoRespostaEscolhido = 'texto';
+let arquivoRespostaSelecionadoVar = null;
+let feedStoriesCache = [];
+
+async function carregarPerguntaDoDia(){
+  try{
+    const resp = await fetch(`${API_URL}/api/status/pergunta-do-dia`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
+    const dados = await resp.json();
+    const textoFormatado = `"${dados.pergunta}"`;
+    const cardEl = document.getElementById('perguntaDoDiaTexto');
+    const modalEl = document.getElementById('perguntaDoDiaModalTexto');
+    if(cardEl) cardEl.textContent = dados.ja_respondi ? 'Você já respondeu a pergunta de hoje! ✓' : textoFormatado;
+    if(modalEl) modalEl.textContent = textoFormatado;
+
+    const ring = document.getElementById('meuStoryRing');
+    if(ring && dados.ja_respondi){
+      ring.style.background = 'linear-gradient(135deg,#f0a0b8,#c9a06b,#e0607a)';
+      ring.style.border = 'none';
+      ring.innerHTML = '<div style="width:100%;height:100%;border-radius:50%;background:linear-gradient(160deg,#7a2a4a,#4a1428);display:flex;align-items:center;justify-content:center;font-size:24px;border:2px solid #1a0810">&#9989;</div>';
+    }
+  } catch(e){}
+}
+
+function selecionarTipoResposta(tipo){
+  tipoRespostaEscolhido = tipo;
+  arquivoRespostaSelecionadoVar = null;
+  document.getElementById('respostaArquivoPreview').style.display = 'none';
+  ['texto','foto','video'].forEach(t=>{
+    const btn = document.getElementById('tipoResp'+t.charAt(0).toUpperCase()+t.slice(1));
+    if(t===tipo){ btn.style.borderColor='#d4839a'; btn.style.background='rgba(212,131,154,.15)'; }
+    else { btn.style.borderColor='rgba(255,255,255,.15)'; btn.style.background='rgba(255,255,255,.05)'; }
+  });
+
+  const textoArea = document.getElementById('respostaTextoArea');
+  const escolherArea = document.getElementById('respostaEscolherArea');
+  const input = document.getElementById('respostaArquivoInput');
+  if(tipo === 'texto'){
+    textoArea.style.display = 'block';
+    escolherArea.style.display = 'none';
+  } else {
+    textoArea.style.display = 'none';
+    escolherArea.style.display = 'block';
+    document.getElementById('respostaEscolherIcone').textContent = tipo === 'foto' ? '📷' : '🎥';
+    input.accept = tipo === 'foto' ? 'image/*' : 'video/*';
+  }
+}
+
+function arquivoRespostaSelecionado(event){
+  arquivoRespostaSelecionadoVar = event.target.files[0];
+  if(arquivoRespostaSelecionadoVar){
+    document.getElementById('respostaArquivoPreview').style.display = 'block';
+  }
+}
+
+async function publicarRespostaPergunta(){
+  const erroEl = document.getElementById('perguntaDoDiaErro');
+  erroEl.textContent = '';
+
+  const formData = new FormData();
+  formData.append('tipo', tipoRespostaEscolhido);
+
+  if(tipoRespostaEscolhido === 'texto'){
+    const texto = document.getElementById('respostaTextoArea').value.trim();
+    if(!texto){ erroEl.textContent = 'Escreve sua resposta.'; return; }
+    formData.append('conteudo_texto', texto);
+  } else {
+    if(!arquivoRespostaSelecionadoVar){ erroEl.textContent = 'Escolhe um arquivo.'; return; }
+    formData.append('arquivo', arquivoRespostaSelecionadoVar);
+  }
+
+  try{
+    const resp = await fetch(`${API_URL}/api/status`, {
+      method:'POST',
+      headers: {'Authorization':`Bearer ${tokenAtual}`},
+      body: formData
+    });
+    const dados = await resp.json();
+    if(!resp.ok){ erroEl.textContent = dados.erro || 'Erro ao publicar.'; return; }
+    closeModal('pergunta-dia');
+    showToastVinculo('Resposta publicada! ✨');
+    carregarPerguntaDoDia();
+    carregarStoriesBar();
+  } catch(e){ erroEl.textContent = 'Erro de conexão.'; }
+}
+
+async function carregarStoriesBar(){
+  const bar = document.getElementById('storiesBar');
+  document.querySelectorAll('.story-item-real').forEach(el=>el.remove());
+  try{
+    const resp = await fetch(`${API_URL}/api/status/feed`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
+    const dados = await resp.json();
+    feedStoriesCache = dados.feed || [];
+    feedStoriesCache.forEach((item, i)=>{
+      const div = document.createElement('div');
+      div.className = 'story-item-real';
+      div.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;flex-shrink:0';
+      div.onclick = () => verStoryReal(i);
+      const icone = item.tipo === 'video' ? '&#127909;' : (item.tipo === 'foto' ? '&#128247;' : '&#9997;');
+      div.innerHTML = `
+        <div style="width:58px;height:58px;border-radius:50%;padding:2.5px;background:linear-gradient(135deg,#f0a0b8,#c9a06b,#e0607a)">
+          <div style="width:100%;height:100%;border-radius:50%;background:linear-gradient(160deg,#7a2a4a,#4a1428);display:flex;align-items:center;justify-content:center;font-size:22px;border:2px solid #1a0810">${icone}</div>
+        </div>
+        <div style="font-size:10px;color:#fdf6f2;font-weight:600">${item.usuario.nome}</div>`;
+      bar.appendChild(div);
+    });
+  } catch(e){}
+}
+
+function verStoryReal(indice){
+  const item = feedStoriesCache[indice];
+  if(!item) return;
+  document.getElementById('viewStoryNome').textContent = item.usuario.nome;
+  document.getElementById('viewStoryPergunta').textContent = item.pergunta_texto;
+  const wrap = document.getElementById('viewStoryConteudoWrap');
+  const textoEl = document.getElementById('viewStoryTexto');
+  wrap.innerHTML = '';
+  wrap.style.backgroundImage = '';
+
+  if(item.tipo === 'foto'){
+    wrap.style.backgroundImage = `url(${API_URL}${item.media_url})`;
+    wrap.style.backgroundSize = 'cover';
+    wrap.style.backgroundPosition = 'center';
+    textoEl.textContent = '';
+  } else if(item.tipo === 'video'){
+    wrap.innerHTML = `<video src="${API_URL}${item.media_url}" style="width:100%;height:100%;object-fit:cover" controls autoplay></video>`;
+    textoEl.textContent = '';
+  } else {
+    wrap.style.background = 'linear-gradient(160deg,#7a2a4a,#4a1428,#1a0810)';
+    wrap.innerHTML = '';
+    textoEl.textContent = `"${item.conteudo_texto}"`;
+  }
+  openModal('view-story');
 }
 
 let sessaoSegurancaAtiva = null;
