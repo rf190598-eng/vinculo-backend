@@ -1,6 +1,7 @@
 const Swipe = require('../models/Swipe');
 const Match = require('../models/Match');
 const Usuario = require('../models/Usuario');
+const Notificacao = require('../models/Notificacao');
 
 const darSwipe = async (req, res) => {
   try {
@@ -13,6 +14,7 @@ const darSwipe = async (req, res) => {
       return res.status(400).json({ erro: 'Você já avaliou esse perfil' });
     }
     await Swipe.create({ usuario_id, alvo_id, tipo });
+
     let match = null;
     if (tipo === 'like' || tipo === 'superlike') {
       const swipeReciproco = await Swipe.findOne({
@@ -27,8 +29,28 @@ const darSwipe = async (req, res) => {
           usuario1_id: usuario_id,
           usuario2_id: alvo_id
         });
+
+        const usuarioAtual = await Usuario.findByPk(usuario_id);
+        const usuarioAlvo = await Usuario.findByPk(alvo_id);
+        await Notificacao.create({
+          usuario_id: usuario_id,
+          tipo: 'match',
+          texto: `Você deu um Vínculo com ${usuarioAlvo.nome}!`
+        });
+        await Notificacao.create({
+          usuario_id: alvo_id,
+          tipo: 'match',
+          texto: `Você deu um Vínculo com ${usuarioAtual.nome}!`
+        });
+      } else {
+        await Notificacao.create({
+          usuario_id: alvo_id,
+          tipo: 'curtida',
+          texto: 'Alguém curtiu seu perfil! Assine o Premium pra ver quem é.'
+        });
       }
     }
+
     if (match) {
       return res.json({
         mensagem: 'É um Vínculo!',
@@ -73,6 +95,7 @@ const listarMatches = async (req, res) => {
   try {
     const usuario_id = req.usuarioId;
     const { Op } = require('sequelize');
+    const Mensagem = require('../models/Mensagem');
     const matches = await Match.findAll({
       where: {
         [Op.or]: [
@@ -88,10 +111,12 @@ const listarMatches = async (req, res) => {
       const outroUsuario = await Usuario.findByPk(outroId, {
         attributes: ['id', 'nome', 'foto_url', 'verificado', 'data_nascimento']
       });
+      const totalMensagens = await Mensagem.count({ where: { match_id: match.id } });
       return {
         id: match.id,
         criado_em: match.createdAt,
-        outro_usuario: outroUsuario
+        outro_usuario: outroUsuario,
+        sem_mensagens: totalMensagens === 0
       };
     }));
 
