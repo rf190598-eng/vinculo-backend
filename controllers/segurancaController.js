@@ -2,6 +2,7 @@ const ContatoConfianca = require('../models/ContatoConfianca');
 const AlertaSeguranca = require('../models/AlertaSeguranca');
 const SessaoSeguranca = require('../models/SessaoSeguranca');
 const Usuario = require('../models/Usuario');
+const AvaliacaoEncontro = require('../models/AvaliacaoEncontro');
 
 // Monta as mensagens que SERIAM enviadas por WhatsApp para cada contato.
 // Por enquanto é simulado - não envia de verdade, só registra e devolve pro app mostrar.
@@ -22,6 +23,8 @@ function montarMensagens(usuario, contatos, tipo, latitude, longitude) {
     enviado_simulado: true
   }));
 }
+
+// ===== CONTATOS DE CONFIANÇA =====
 
 const listarContatos = async (req, res) => {
   try {
@@ -57,6 +60,8 @@ const removerContato = async (req, res) => {
   }
 };
 
+// ===== BOTÃO DE PÂNICO =====
+
 const dispararPanico = async (req, res) => {
   try {
     const { latitude, longitude } = req.body;
@@ -82,6 +87,8 @@ const dispararPanico = async (req, res) => {
     res.status(500).json({ erro: 'Erro ao disparar alerta: ' + erro.message });
   }
 };
+
+// ===== SESSÃO DE SEGURANÇA (encontro / check-in) =====
 
 const iniciarSessao = async (req, res) => {
   try {
@@ -147,6 +154,7 @@ const statusSessao = async (req, res) => {
   }
 };
 
+// Chamada periodicamente pelo servidor (não pelo app) para checar check-ins vencidos
 const verificarCheckinsVencidos = async () => {
   try {
     const agora = new Date();
@@ -168,8 +176,7 @@ const verificarCheckinsVencidos = async () => {
         });
         console.log(`Alerta automatico disparado para usuario ${sessao.usuario_id}`);
       }
-     sessao.alerta_disparado = true;
-      sessao.ativa = false;
+      sessao.alerta_disparado = true;
       await sessao.save();
     }
   } catch (erro) {
@@ -177,9 +184,44 @@ const verificarCheckinsVencidos = async () => {
   }
 };
 
+
+const listarSessoesParaAvaliar = async (req, res) => {
+  try {
+    const sessoesEncerradas = await SessaoSeguranca.findAll({
+      where: { usuario_id: req.usuarioId, ativa: false }
+    });
+    const pendentes = [];
+    for (const sessao of sessoesEncerradas) {
+      const jaAvaliou = await AvaliacaoEncontro.findOne({
+        where: { sessao_seguranca_id: sessao.id, usuario_id: req.usuarioId }
+      });
+      if (!jaAvaliou) pendentes.push({ id: sessao.id, criado_em: sessao.createdAt });
+    }
+    res.json({ pendentes });
+  } catch (erro) {
+    res.status(500).json({ erro: 'Erro ao listar sessões: ' + erro.message });
+  }
+};
+
+const criarAvaliacaoEncontro = async (req, res) => {
+  try {
+    const { sessao_seguranca_id, nota, comentario } = req.body;
+    const sessao = await SessaoSeguranca.findOne({ where: { id: sessao_seguranca_id, usuario_id: req.usuarioId } });
+    if (!sessao) return res.status(404).json({ erro: 'Check-in não encontrado' });
+
+    const avaliacao = await AvaliacaoEncontro.create({
+      sessao_seguranca_id, usuario_id: req.usuarioId, nota, comentario
+    });
+    res.status(201).json({ mensagem: 'Avaliação registrada!', avaliacao });
+  } catch (erro) {
+    res.status(500).json({ erro: 'Erro ao avaliar: ' + erro.message });
+  }
+};
+
 module.exports = {
   listarContatos, criarContato, removerContato,
   dispararPanico,
   iniciarSessao, atualizarLocalizacaoSessao, confirmarRetornoSeguro, statusSessao,
-  verificarCheckinsVencidos
+  verificarCheckinsVencidos,
+  listarSessoesParaAvaliar, criarAvaliacaoEncontro
 };
