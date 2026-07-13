@@ -18,6 +18,9 @@ const DuplaAvaliacao = require('./models/DuplaAvaliacao');
 const DuplaMatch = require('./models/DuplaMatch');
 const MensagemDupla = require('./models/MensagemDupla');
 const StatusResposta = require('./models/StatusResposta');
+const VisualizacaoPerfil = require('./models/VisualizacaoPerfil');
+const Notificacao = require('./models/Notificacao');
+const AvaliacaoEncontro = require('./models/AvaliacaoEncontro');
 const authRoutes = require('./routes/auth');
 const swipeRoutes = require('./routes/swipe');
 const chatRoutes = require('./routes/chat');
@@ -28,6 +31,7 @@ const eventosRoutes = require('./routes/eventos');
 const parceriaRoutes = require('./routes/parceria');
 const duplaRoutes = require('./routes/dupla');
 const statusRoutes = require('./routes/status');
+const estatisticasRoutes = require('./routes/estatisticas');
 const { verificarCheckinsVencidos } = require('./controllers/segurancaController');
 
 const app = express();
@@ -61,6 +65,7 @@ app.use('/api/eventos', eventosRoutes);
 app.use('/api/parceria', parceriaRoutes);
 app.use('/api/dupla', duplaRoutes);
 app.use('/api/status', statusRoutes);
+app.use('/api/estatisticas', estatisticasRoutes);
 
 const iniciar = async () => {
   await conectarBanco();
