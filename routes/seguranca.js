@@ -3,7 +3,8 @@ const router = express.Router();
 const {
   listarContatos, criarContato, removerContato,
   dispararPanico,
-  iniciarSessao, atualizarLocalizacaoSessao, confirmarRetornoSeguro, statusSessao
+  iniciarSessao, atualizarLocalizacaoSessao, confirmarRetornoSeguro, statusSessao,
+  listarSessoesParaAvaliar, criarAvaliacaoEncontro
 } = require('../controllers/segurancaController');
 const { autenticar } = require('../controllers/authMiddleware');
 
@@ -17,5 +18,8 @@ router.post('/sessao/iniciar', autenticar, iniciarSessao);
 router.put('/sessao/localizacao', autenticar, atualizarLocalizacaoSessao);
 router.post('/sessao/confirmar', autenticar, confirmarRetornoSeguro);
 router.get('/sessao/status', autenticar, statusSessao);
+
+router.get('/avaliacoes/pendentes', autenticar, listarSessoesParaAvaliar);
+router.post('/avaliacoes', autenticar, criarAvaliacaoEncontro);
 
 module.exports = router;
