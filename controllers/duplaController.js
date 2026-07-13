@@ -3,6 +3,7 @@ const DuplaAvaliacao = require('../models/DuplaAvaliacao');
 const DuplaMatch = require('../models/DuplaMatch');
 const MensagemDupla = require('../models/MensagemDupla');
 const Usuario = require('../models/Usuario');
+const Notificacao = require('../models/Notificacao');
 
 async function getMinhaDupla(usuarioId) {
   const { Op } = require('sequelize');
@@ -17,6 +18,8 @@ async function getMinhaDupla(usuarioId) {
 function outroMembro(dupla, usuarioId) {
   return dupla.usuario1_id === usuarioId ? dupla.usuario2_id : dupla.usuario1_id;
 }
+
+// ===== FORMAÇÃO DA DUPLA =====
 
 const convidarParaDupla = async (req, res) => {
   try {
@@ -137,6 +140,8 @@ const editarBioDupla = async (req, res) => {
   }
 };
 
+// ===== SWIPE ENTRE DUPLAS =====
+
 const listarDuplasParaAvaliar = async (req, res) => {
   try {
     const { Op } = require('sequelize');
@@ -205,6 +210,14 @@ const avaliarDupla = async (req, res) => {
             });
             if (!matchExiste) {
               await DuplaMatch.create({ dupla1_id: minhaDupla.id, dupla2_id: avaliado_dupla_id });
+              const membrosEnvolvidos = [minhaDupla.usuario1_id, minhaDupla.usuario2_id, outraDupla.usuario1_id, outraDupla.usuario2_id];
+              for (const idMembro of membrosEnvolvidos) {
+                await Notificacao.create({
+                  usuario_id: idMembro,
+                  tipo: 'match_dupla',
+                  texto: 'Sua dupla deu um Vínculo com outra dupla!'
+                });
+              }
             }
             match = true;
           }
@@ -217,6 +230,8 @@ const avaliarDupla = async (req, res) => {
     res.status(500).json({ erro: 'Erro ao avaliar: ' + erro.message });
   }
 };
+
+// ===== MATCHES E CHAT DE DUPLA =====
 
 const listarDuplaMatches = async (req, res) => {
   try {
