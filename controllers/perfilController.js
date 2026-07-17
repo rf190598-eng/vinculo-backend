@@ -1,4 +1,5 @@
 const Usuario = require('../models/Usuario');
+const FotoPerfil = require('../models/FotoPerfil');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -138,4 +139,78 @@ const estatisticasIndicacao = async (req, res) => {
   }
 };
 
-module.exports = { editarPerfil, uploadFoto, upload, atualizarLocalizacao, uploadSelfieVerificacao, estatisticasIndicacao };
+const MAX_FOTOS_GALERIA = 7;
+
+const listarFotosGaleria = async (req, res) => {
+  try {
+    const fotos = await FotoPerfil.findAll({
+      where: { usuario_id: req.usuarioId },
+      order: [['ordem', 'ASC']]
+    });
+    res.json({ fotos, limite: MAX_FOTOS_GALERIA });
+  } catch (erro) {
+    res.status(500).json({ erro: 'Erro ao listar fotos: ' + erro.message });
+  }
+};
+
+const adicionarFotoGaleria = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ erro: 'Nenhuma foto enviada' });
+    }
+    const totalAtual = await FotoPerfil.count({ where: { usuario_id: req.usuarioId } });
+    if (totalAtual >= MAX_FOTOS_GALERIA) {
+      return res.status(400).json({ erro: `Você já tem o máximo de ${MAX_FOTOS_GALERIA} fotos` });
+    }
+
+    const url = '/uploads/' + req.file.filename;
+    const foto = await FotoPerfil.create({ usuario_id: req.usuarioId, url, ordem: totalAtual });
+
+    if (totalAtual === 0) {
+      await Usuario.update({ foto_url: url }, { where: { id: req.usuarioId } });
+    }
+
+    res.status(201).json({ mensagem: 'Foto adicionada!', foto, total: totalAtual + 1 });
+  } catch (erro) {
+    res.status(500).json({ erro: 'Erro ao adicionar foto: ' + erro.message });
+  }
+};
+
+const removerFotoGaleria = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const foto = await FotoPerfil.findOne({ where: { id, usuario_id: req.usuarioId } });
+    if (!foto) return res.status(404).json({ erro: 'Foto não encontrada' });
+
+    const eraOrdemZero = foto.ordem === 0;
+    await foto.destroy();
+
+    const restantes = await FotoPerfil.findAll({
+      where: { usuario_id: req.usuarioId },
+      order: [['ordem', 'ASC']]
+    });
+    for (let i = 0; i < restantes.length; i++) {
+      if (restantes[i].ordem !== i) {
+        restantes[i].ordem = i;
+        await restantes[i].save();
+      }
+    }
+
+    if (eraOrdemZero) {
+      const novaPrimeira = restantes[0];
+      await Usuario.update(
+        { foto_url: novaPrimeira ? novaPrimeira.url : null },
+        { where: { id: req.usuarioId } }
+      );
+    }
+
+    res.json({ mensagem: 'Foto removida!' });
+  } catch (erro) {
+    res.status(500).json({ erro: 'Erro ao remover foto: ' + erro.message });
+  }
+};
+
+module.exports = {
+  editarPerfil, uploadFoto, upload, atualizarLocalizacao, uploadSelfieVerificacao, estatisticasIndicacao,
+  listarFotosGaleria, adicionarFotoGaleria, removerFotoGaleria
+};
