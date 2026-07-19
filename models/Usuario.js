@@ -85,6 +85,54 @@ const Usuario = sequelize.define('Usuario', {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
+  altura: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  peso: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  cor_cabelo: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  pref_genero: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  pref_idade_min: {
+    type: DataTypes.INTEGER,
+    defaultValue: 18
+  },
+  pref_idade_max: {
+    type: DataTypes.INTEGER,
+    defaultValue: 99
+  },
+  pref_distancia_km: {
+    type: DataTypes.INTEGER,
+    defaultValue: 50
+  },
+  pref_altura_min: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  pref_altura_max: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  pref_peso_min: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  pref_peso_max: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  pref_cor_cabelo: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   ativo: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
