@@ -1585,6 +1585,11 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div class="edit-overlay">&#9998;</div>
     </div>
 
+    <div class="edit-section-title">Fotos do perfil (<span id="galeriaContagem">0</span>/7)</div>
+    <div style="font-size:12px;color:#d0a8b8;margin-bottom:10px;line-height:1.5">A primeira foto é a que aparece pra outras pessoas no Descobrir. Adicione pelo menos 7 pra ter mais chance de match.</div>
+    <div id="galeriaGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px"></div>
+    <input type="file" id="inputGaleriaFoto" accept="image/*" style="display:none" onchange="galeriaFotoSelecionada(event)"/>
+
     <div class="edit-section-title">Nome</div>
     <input class="inp" id="editNome" value="Voce"/>
 
@@ -2193,6 +2198,7 @@ function goTo(name){
       .catch(()=>{});
   }
   if((name==='myprofile' || name==='edit-profile') && usuarioAtual && usuarioAtual.foto_url){ atualizarFotoNaTela(usuarioAtual.foto_url); }
+  if(name==='edit-profile'){ carregarGaleria(); }
   if(name==='myprofile'){
     const menuAdmin = document.getElementById('menuPainelAdmin');
     if(menuAdmin) menuAdmin.style.display = (usuarioAtual && usuarioAtual.email === 'rf190598@gmail.com') ? 'flex' : 'none';
@@ -3019,6 +3025,85 @@ async function enviarMensagemChat(){
   }
 }
 
+const MAX_FOTOS_GALERIA = 7;
+
+async function carregarGaleria(){
+  const grid = document.getElementById('galeriaGrid');
+  const contagem = document.getElementById('galeriaContagem');
+  if(!grid) return;
+  try{
+    const resp = await fetch(`${API_URL}/api/perfil/galeria`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
+    const dados = await resp.json();
+    const fotos = dados.fotos || [];
+    contagem.textContent = fotos.length;
+    grid.innerHTML = '';
+
+    fotos.forEach((foto, i) => {
+      const item = document.createElement('div');
+      item.style.cssText = `position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background-image:url(${API_URL}${foto.url});background-size:cover;background-position:center`;
+      if(i === 0){
+        item.innerHTML = '<div style="position:absolute;top:4px;left:4px;background:rgba(212,131,154,.9);border-radius:6px;padding:2px 6px;font-size:9px;color:#fff;font-weight:700">PRINCIPAL</div>';
+      }
+      const btnRemover = document.createElement('div');
+      btnRemover.style.cssText = 'position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;cursor:pointer';
+      btnRemover.innerHTML = '&times;';
+      btnRemover.onclick = () => removerFotoGaleriaReal(foto.id);
+      item.appendChild(btnRemover);
+      grid.appendChild(item);
+    });
+
+    if(fotos.length < MAX_FOTOS_GALERIA){
+      const addBtn = document.createElement('div');
+      addBtn.style.cssText = 'aspect-ratio:1;border-radius:12px;border:2px dashed rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:24px;color:#d0a8b8;cursor:pointer';
+      addBtn.textContent = '+';
+      addBtn.onclick = () => document.getElementById('inputGaleriaFoto').click();
+      grid.appendChild(addBtn);
+    }
+  } catch(e){}
+}
+
+async function galeriaFotoSelecionada(event){
+  const arquivo = event.target.files[0];
+  if(!arquivo) return;
+  event.target.value = '';
+  try{
+    const formData = new FormData();
+    formData.append('foto', arquivo);
+    const resp = await fetch(`${API_URL}/api/perfil/galeria`, {
+      method:'POST',
+      headers: { 'Authorization': `Bearer ${tokenAtual}` },
+      body: formData
+    });
+    const dados = await resp.json();
+    if(!resp.ok){ showToastVinculo(dados.erro || 'Erro ao adicionar foto.'); return; }
+    if(dados.foto && dados.foto.ordem === 0 && usuarioAtual){
+      usuarioAtual.foto_url = dados.foto.url;
+      localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
+      atualizarFotoNaTela(dados.foto.url);
+    }
+    showToastVinculo('Foto adicionada!');
+    carregarGaleria();
+  } catch(e){ showToastVinculo('Erro de conexão.'); }
+}
+
+async function removerFotoGaleriaReal(fotoId){
+  if(!confirm('Remover essa foto?')) return;
+  try{
+    await fetch(`${API_URL}/api/perfil/galeria/${fotoId}`, {
+      method:'DELETE',
+      headers: { 'Authorization': `Bearer ${tokenAtual}` }
+    });
+    carregarGaleria();
+    try{
+      const resp = await fetch(`${API_URL}/api/auth/perfil`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
+      const dados = await resp.json();
+      usuarioAtual = dados;
+      localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
+      if(usuarioAtual.foto_url) atualizarFotoNaTela(usuarioAtual.foto_url);
+    } catch(e){}
+  } catch(e){ showToastVinculo('Erro ao remover foto.'); }
+}
+
 async function salvarEdicaoPerfil(){
   const nome = document.getElementById('editNome').value.trim();
   const bio = document.getElementById('editBio').value.trim();
@@ -3653,12 +3738,13 @@ function verStoryReal(indice){
   openModal('view-story');
 }
 
-function calcularCompletudePerfil(usuario){
+function calcularCompletudePerfil(usuario, totalFotos){
   const itens = [
-    { label: 'Escrever sua bio', feito: !!usuario.bio, peso: 25 },
-    { label: 'Adicionar foto de perfil', feito: !!usuario.foto_url, peso: 25 },
-    { label: 'Escolher seu signo', feito: !!usuario.signo, peso: 25 },
-    { label: 'Dizer o que você busca', feito: !!usuario.objetivo, peso: 25 }
+    { label: 'Escrever sua bio', feito: !!usuario.bio, peso: 20 },
+    { label: 'Adicionar foto de perfil', feito: !!usuario.foto_url, peso: 20 },
+    { label: 'Escolher seu signo', feito: !!usuario.signo, peso: 20 },
+    { label: 'Dizer o que você busca', feito: !!usuario.objetivo, peso: 20 },
+    { label: `Adicionar 7 fotos (tem ${totalFotos||0})`, feito: (totalFotos||0) >= 7, peso: 20 }
   ];
   const percentual = itens.reduce((soma, item) => soma + (item.feito ? item.peso : 0), 0);
   return { percentual, itens };
@@ -3671,7 +3757,14 @@ async function carregarMeuPerfil(){
   document.getElementById('meuPerfilIdade').textContent = idade;
   document.getElementById('meuPerfilBadgeVerificado').style.display = usuarioAtual.verificado ? 'flex' : 'none';
 
-  const { percentual, itens } = calcularCompletudePerfil(usuarioAtual);
+  let totalFotosAtual = 0;
+  try{
+    const respGaleria = await fetch(`${API_URL}/api/perfil/galeria`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
+    const dadosGaleria = await respGaleria.json();
+    totalFotosAtual = (dadosGaleria.fotos || []).length;
+  } catch(e){}
+
+  const { percentual, itens } = calcularCompletudePerfil(usuarioAtual, totalFotosAtual);
   document.getElementById('meuPerfilBadgePorcentagem').textContent = `${percentual}% do perfil completo`;
   document.getElementById('meuPerfilPorcentagemTexto').textContent = `${percentual}% completo`;
   document.getElementById('meuPerfilBarraProgresso').style.width = `${percentual}%`;
