@@ -31,7 +31,12 @@ const upload = multer({
 
 const editarPerfil = async (req, res) => {
   try {
-    const { nome, bio, genero, data_nascimento, cidade, objetivo, signo } = req.body;
+    const {
+      nome, bio, genero, data_nascimento, cidade, objetivo, signo,
+      altura, peso, cor_cabelo,
+      pref_genero, pref_idade_min, pref_idade_max, pref_distancia_km,
+      pref_altura_min, pref_altura_max, pref_peso_min, pref_peso_max, pref_cor_cabelo
+    } = req.body;
     const usuario_id = req.usuarioId;
     const dados = {};
     if (nome) dados.nome = nome;
@@ -41,6 +46,18 @@ const editarPerfil = async (req, res) => {
     if (cidade) dados.cidade = cidade;
     if (objetivo) dados.objetivo = objetivo;
     if (signo) dados.signo = signo;
+    if (altura !== undefined) dados.altura = altura || null;
+    if (peso !== undefined) dados.peso = peso || null;
+    if (cor_cabelo !== undefined) dados.cor_cabelo = cor_cabelo || null;
+    if (pref_genero !== undefined) dados.pref_genero = pref_genero || null;
+    if (pref_idade_min !== undefined) dados.pref_idade_min = pref_idade_min || 18;
+    if (pref_idade_max !== undefined) dados.pref_idade_max = pref_idade_max || 99;
+    if (pref_distancia_km !== undefined) dados.pref_distancia_km = pref_distancia_km || 50;
+    if (pref_altura_min !== undefined) dados.pref_altura_min = pref_altura_min || null;
+    if (pref_altura_max !== undefined) dados.pref_altura_max = pref_altura_max || null;
+    if (pref_peso_min !== undefined) dados.pref_peso_min = pref_peso_min || null;
+    if (pref_peso_max !== undefined) dados.pref_peso_max = pref_peso_max || null;
+    if (pref_cor_cabelo !== undefined) dados.pref_cor_cabelo = pref_cor_cabelo || null;
     await Usuario.update(dados, { where: { id: usuario_id } });
     const usuario = await Usuario.findByPk(usuario_id, {
       attributes: { exclude: ['senha', 'foto_verificacao'] }
