@@ -3,6 +3,26 @@ const Match = require('../models/Match');
 const Usuario = require('../models/Usuario');
 const Notificacao = require('../models/Notificacao');
 
+function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function calcularIdadeServidor(dataNascimento) {
+  if (!dataNascimento) return null;
+  const hoje = new Date();
+  const nasc = new Date(dataNascimento);
+  let idade = hoje.getFullYear() - nasc.getFullYear();
+  const aniversarioNaoChegou = (hoje.getMonth() < nasc.getMonth()) ||
+    (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate());
+  if (aniversarioNaoChegou) idade--;
+  return idade;
+}
+
 const darSwipe = async (req, res) => {
   try {
     const { alvo_id, tipo } = req.body;
@@ -70,6 +90,8 @@ const darSwipe = async (req, res) => {
 const listarPerfis = async (req, res) => {
   try {
     const usuario_id = req.usuarioId;
+    const eu = await Usuario.findByPk(usuario_id);
+
     const jaAvaliados = await Swipe.findAll({
       where: { usuario_id },
       attributes: ['alvo_id']
@@ -77,15 +99,48 @@ const listarPerfis = async (req, res) => {
     const idsAvaliados = jaAvaliados.map(s => s.alvo_id);
     idsAvaliados.push(usuario_id);
     const { Op } = require('sequelize');
-    const perfis = await Usuario.findAll({
-      where: {
-        id: { [Op.notIn]: idsAvaliados },
-        ativo: true
-      },
-      attributes: { exclude: ['senha', 'foto_verificacao'] },
-      limit: 10
+
+    const where = {
+      id: { [Op.notIn]: idsAvaliados },
+      ativo: true
+    };
+    if (eu.pref_genero && eu.pref_genero !== 'todos') {
+      where.genero = eu.pref_genero;
+    }
+
+    let candidatos = await Usuario.findAll({
+      where,
+      attributes: { exclude: ['senha', 'foto_verificacao'] }
     });
-    res.json({ perfis });
+
+    candidatos = candidatos.filter(c => {
+      const idade = calcularIdadeServidor(c.data_nascimento);
+      if (idade === null) return true;
+      if (eu.pref_idade_min && idade < eu.pref_idade_min) return false;
+      if (eu.pref_idade_max && idade > eu.pref_idade_max) return false;
+      return true;
+    });
+
+    if (eu.premium) {
+      candidatos = candidatos.filter(c => {
+        if (eu.pref_altura_min && c.altura && c.altura < eu.pref_altura_min) return false;
+        if (eu.pref_altura_max && c.altura && c.altura > eu.pref_altura_max) return false;
+        if (eu.pref_peso_min && c.peso && c.peso < eu.pref_peso_min) return false;
+        if (eu.pref_peso_max && c.peso && c.peso > eu.pref_peso_max) return false;
+        if (eu.pref_cor_cabelo && c.cor_cabelo && c.cor_cabelo !== eu.pref_cor_cabelo) return false;
+        return true;
+      });
+    }
+
+    if (eu.pref_distancia_km && eu.latitude && eu.longitude) {
+      candidatos = candidatos.filter(c => {
+        if (!c.latitude || !c.longitude) return true;
+        const dist = calcularDistanciaKm(eu.latitude, eu.longitude, c.latitude, c.longitude);
+        return dist <= eu.pref_distancia_km;
+      });
+    }
+
+    res.json({ perfis: candidatos.slice(0, 10) });
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao listar perfis: ' + erro.message });
   }
