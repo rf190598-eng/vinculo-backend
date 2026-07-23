@@ -1,3 +1,9 @@
+
+const Denuncia = require('./models/Denuncia');
+const Bloqueio = require('./models/Bloqueio');
+const recuperacaoSenhaRoutes = require('./routes/recuperacaoSenha');
+const denunciaRoutes = require('./routes/denuncia');
+const bloqueioRoutes = require('./routes/bloqueio');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -106,6 +112,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', recuperacaoSenhaRoutes);
 app.use('/api/swipe', swipeRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/perfil', perfilRoutes);
@@ -116,6 +123,8 @@ app.use('/api/parceria', parceriaRoutes);
 app.use('/api/dupla', duplaRoutes);
 app.use('/api/status', statusRoutes);
 app.use('/api/estatisticas', estatisticasRoutes);
+app.use('/api/denuncia', denunciaRoutes);
+app.use('/api/bloqueio', bloqueioRoutes);
 
 // ===== Rota não encontrada =====
 app.use((req, res) => {

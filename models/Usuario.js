@@ -1,6 +1,5 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../database');
-
 const Usuario = sequelize.define('Usuario', {
   id: {
     type: DataTypes.UUID,
@@ -136,10 +135,17 @@ const Usuario = sequelize.define('Usuario', {
   ativo: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  },
+  reset_token: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  reset_token_expira: {
+    type: DataTypes.DATE,
+    allowNull: true
   }
 }, {
   tableName: 'usuarios',
   timestamps: true
 });
-
 module.exports = Usuario;
