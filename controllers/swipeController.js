@@ -1,40 +1,72 @@
 const Swipe = require('../models/Swipe');
 const Match = require('../models/Match');
 const Usuario = require('../models/Usuario');
+const Notificacao = require('../models/Notificacao');
+
+function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function calcularIdadeServidor(dataNascimento) {
+  if (!dataNascimento) return null;
+  const hoje = new Date();
+  const nasc = new Date(dataNascimento);
+  let idade = hoje.getFullYear() - nasc.getFullYear();
+  const aniversarioNaoChegou = (hoje.getMonth() < nasc.getMonth()) ||
+    (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate());
+  if (aniversarioNaoChegou) idade--;
+  return idade;
+}
 
 const darSwipe = async (req, res) => {
   try {
     const { alvo_id, tipo } = req.body;
     const usuario_id = req.usuarioId;
-
-    // Verificar se já deu swipe nesse perfil
     const swipeExiste = await Swipe.findOne({
       where: { usuario_id, alvo_id }
     });
-
     if (swipeExiste) {
       return res.status(400).json({ erro: 'Você já avaliou esse perfil' });
     }
-
-    // Criar swipe
     await Swipe.create({ usuario_id, alvo_id, tipo });
 
-    // Verificar match (se tipo for like ou superlike)
     let match = null;
     if (tipo === 'like' || tipo === 'superlike') {
-      const swipeRecíproco = await Swipe.findOne({
+      const swipeReciproco = await Swipe.findOne({
         where: {
           usuario_id: alvo_id,
           alvo_id: usuario_id,
           tipo: ['like', 'superlike']
         }
       });
-
-      if (swipeRecíproco) {
-        // Criar match!
+      if (swipeReciproco) {
         match = await Match.create({
           usuario1_id: usuario_id,
           usuario2_id: alvo_id
+        });
+
+        const usuarioAtual = await Usuario.findByPk(usuario_id);
+        const usuarioAlvo = await Usuario.findByPk(alvo_id);
+        await Notificacao.create({
+          usuario_id: usuario_id,
+          tipo: 'match',
+          texto: `Você deu um Vínculo com ${usuarioAlvo.nome}!`
+        });
+        await Notificacao.create({
+          usuario_id: alvo_id,
+          tipo: 'match',
+          texto: `Você deu um Vínculo com ${usuarioAtual.nome}!`
+        });
+      } else {
+        await Notificacao.create({
+          usuario_id: alvo_id,
+          tipo: 'curtida',
+          texto: 'Alguém curtiu seu perfil! Assine o Premium pra ver quem é.'
         });
       }
     }
@@ -46,12 +78,10 @@ const darSwipe = async (req, res) => {
         match_id: match.id
       });
     }
-
     res.json({
       mensagem: 'Swipe registrado!',
       match: false
     });
-
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao dar swipe: ' + erro.message });
   }
@@ -60,29 +90,57 @@ const darSwipe = async (req, res) => {
 const listarPerfis = async (req, res) => {
   try {
     const usuario_id = req.usuarioId;
+    const eu = await Usuario.findByPk(usuario_id);
 
-    // Buscar IDs que já foram avaliados
     const jaAvaliados = await Swipe.findAll({
       where: { usuario_id },
       attributes: ['alvo_id']
     });
-
     const idsAvaliados = jaAvaliados.map(s => s.alvo_id);
-    idsAvaliados.push(usuario_id); // não mostrar o próprio perfil
-
-    // Buscar perfis disponíveis
+    idsAvaliados.push(usuario_id);
     const { Op } = require('sequelize');
-    const perfis = await Usuario.findAll({
-      where: {
-        id: { [Op.notIn]: idsAvaliados },
-        ativo: true
-      },
-      attributes: { exclude: ['senha'] },
-      limit: 10
+
+    const where = {
+      id: { [Op.notIn]: idsAvaliados },
+      ativo: true
+    };
+    if (eu.pref_genero && eu.pref_genero !== 'todos') {
+      where.genero = eu.pref_genero;
+    }
+
+    let candidatos = await Usuario.findAll({
+      where,
+      attributes: { exclude: ['senha', 'foto_verificacao'] }
     });
 
-    res.json({ perfis });
+    candidatos = candidatos.filter(c => {
+      const idade = calcularIdadeServidor(c.data_nascimento);
+      if (idade === null) return true;
+      if (eu.pref_idade_min && idade < eu.pref_idade_min) return false;
+      if (eu.pref_idade_max && idade > eu.pref_idade_max) return false;
+      return true;
+    });
 
+    if (eu.premium) {
+      candidatos = candidatos.filter(c => {
+        if (eu.pref_altura_min && c.altura && c.altura < eu.pref_altura_min) return false;
+        if (eu.pref_altura_max && c.altura && c.altura > eu.pref_altura_max) return false;
+        if (eu.pref_peso_min && c.peso && c.peso < eu.pref_peso_min) return false;
+        if (eu.pref_peso_max && c.peso && c.peso > eu.pref_peso_max) return false;
+        if (eu.pref_cor_cabelo && c.cor_cabelo && c.cor_cabelo !== eu.pref_cor_cabelo) return false;
+        return true;
+      });
+    }
+
+    if (eu.pref_distancia_km && eu.latitude && eu.longitude) {
+      candidatos = candidatos.filter(c => {
+        if (!c.latitude || !c.longitude) return true;
+        const dist = calcularDistanciaKm(eu.latitude, eu.longitude, c.latitude, c.longitude);
+        return dist <= eu.pref_distancia_km;
+      });
+    }
+
+    res.json({ perfis: candidatos.slice(0, 10) });
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao listar perfis: ' + erro.message });
   }
@@ -92,7 +150,7 @@ const listarMatches = async (req, res) => {
   try {
     const usuario_id = req.usuarioId;
     const { Op } = require('sequelize');
-
+    const Mensagem = require('../models/Mensagem');
     const matches = await Match.findAll({
       where: {
         [Op.or]: [
@@ -103,11 +161,53 @@ const listarMatches = async (req, res) => {
       }
     });
 
-    res.json({ matches });
+    const matchesComPerfil = await Promise.all(matches.map(async (match) => {
+      const outroId = match.usuario1_id === usuario_id ? match.usuario2_id : match.usuario1_id;
+      const outroUsuario = await Usuario.findByPk(outroId, {
+        attributes: ['id', 'nome', 'foto_url', 'verificado', 'data_nascimento']
+      });
+      const totalMensagens = await Mensagem.count({ where: { match_id: match.id } });
+      return {
+        id: match.id,
+        criado_em: match.createdAt,
+        outro_usuario: outroUsuario,
+        sem_mensagens: totalMensagens === 0
+      };
+    }));
 
+    res.json({ matches: matchesComPerfil });
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao listar matches: ' + erro.message });
   }
 };
 
-module.exports = { darSwipe, listarPerfis, listarMatches }; 
+const listarCurtidasRecebidas = async (req, res) => {
+  try {
+    const usuario_id = req.usuarioId;
+    const { Op } = require('sequelize');
+
+    const curtidasRecebidas = await Swipe.findAll({
+      where: { alvo_id: usuario_id, tipo: ['like', 'superlike'] }
+    });
+
+    const meusSwipes = await Swipe.findAll({
+      where: { usuario_id },
+      attributes: ['alvo_id']
+    });
+    const jaAvaliadosPorMim = meusSwipes.map(s => s.alvo_id);
+
+    const pendentes = curtidasRecebidas.filter(c => !jaAvaliadosPorMim.includes(c.usuario_id));
+
+    const idsPendentes = pendentes.map(p => p.usuario_id);
+    const perfis = await Usuario.findAll({
+      where: { id: { [Op.in]: idsPendentes } },
+      attributes: { exclude: ['senha', 'foto_verificacao'] }
+    });
+
+    res.json({ total: perfis.length, perfis });
+  } catch (erro) {
+    res.status(500).json({ erro: 'Erro ao listar curtidas: ' + erro.message });
+  }
+};
+
+module.exports = { darSwipe, listarPerfis, listarMatches, listarCurtidasRecebidas };
