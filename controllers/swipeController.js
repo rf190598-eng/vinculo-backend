@@ -2,6 +2,8 @@ const Swipe = require('../models/Swipe');
 const Match = require('../models/Match');
 const Usuario = require('../models/Usuario');
 const Notificacao = require('../models/Notificacao');
+const Bloqueio = require('../models/Bloqueio');
+const { Op } = require('sequelize');
 
 function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -23,10 +25,45 @@ function calcularIdadeServidor(dataNascimento) {
   return idade;
 }
 
+// Retorna a lista de IDs envolvidos em bloqueio com o usuário informado,
+// nos dois sentidos: quem ele bloqueou e quem o bloqueou.
+async function obterIdsBloqueados(usuario_id) {
+  const bloqueios = await Bloqueio.findAll({
+    where: {
+      [Op.or]: [
+        { usuario_id: usuario_id },
+        { bloqueado_id: usuario_id }
+      ]
+    }
+  });
+
+  const ids = new Set();
+  bloqueios.forEach((b) => {
+    if (b.usuario_id === usuario_id) ids.add(b.bloqueado_id);
+    else ids.add(b.usuario_id);
+  });
+
+  return Array.from(ids);
+}
+
 const darSwipe = async (req, res) => {
   try {
     const { alvo_id, tipo } = req.body;
     const usuario_id = req.usuarioId;
+
+    // Impede interação entre usuários bloqueados, em qualquer sentido
+    const bloqueioExiste = await Bloqueio.findOne({
+      where: {
+        [Op.or]: [
+          { usuario_id: usuario_id, bloqueado_id: alvo_id },
+          { usuario_id: alvo_id, bloqueado_id: usuario_id }
+        ]
+      }
+    });
+    if (bloqueioExiste) {
+      return res.status(403).json({ erro: 'Não é possível interagir com este perfil' });
+    }
+
     const swipeExiste = await Swipe.findOne({
       where: { usuario_id, alvo_id }
     });
@@ -98,7 +135,10 @@ const listarPerfis = async (req, res) => {
     });
     const idsAvaliados = jaAvaliados.map(s => s.alvo_id);
     idsAvaliados.push(usuario_id);
-    const { Op } = require('sequelize');
+
+    // Remove do feed qualquer usuário envolvido em bloqueio (nos dois sentidos)
+    const idsBloqueados = await obterIdsBloqueados(usuario_id);
+    idsBloqueados.forEach((id) => idsAvaliados.push(id));
 
     const where = {
       id: { [Op.notIn]: idsAvaliados },
@@ -149,7 +189,6 @@ const listarPerfis = async (req, res) => {
 const listarMatches = async (req, res) => {
   try {
     const usuario_id = req.usuarioId;
-    const { Op } = require('sequelize');
     const Mensagem = require('../models/Mensagem');
     const matches = await Match.findAll({
       where: {
@@ -184,7 +223,6 @@ const listarMatches = async (req, res) => {
 const listarCurtidasRecebidas = async (req, res) => {
   try {
     const usuario_id = req.usuarioId;
-    const { Op } = require('sequelize');
 
     const curtidasRecebidas = await Swipe.findAll({
       where: { alvo_id: usuario_id, tipo: ['like', 'superlike'] }
@@ -196,7 +234,12 @@ const listarCurtidasRecebidas = async (req, res) => {
     });
     const jaAvaliadosPorMim = meusSwipes.map(s => s.alvo_id);
 
-    const pendentes = curtidasRecebidas.filter(c => !jaAvaliadosPorMim.includes(c.usuario_id));
+    // Remove também quem está envolvido em bloqueio, nos dois sentidos
+    const idsBloqueados = await obterIdsBloqueados(usuario_id);
+
+    const pendentes = curtidasRecebidas.filter(c =>
+      !jaAvaliadosPorMim.includes(c.usuario_id) && !idsBloqueados.includes(c.usuario_id)
+    );
 
     const idsPendentes = pendentes.map(p => p.usuario_id);
     const perfis = await Usuario.findAll({
