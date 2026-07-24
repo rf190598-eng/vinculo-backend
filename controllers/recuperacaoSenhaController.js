@@ -1,9 +1,8 @@
 const crypto = require('crypto');
-const bcrypt = require('bcryptjs'); // se seu authController usa 'bcrypt' em vez de 'bcryptjs', troque aqui também
+const bcrypt = require('bcryptjs');
 const Usuario = require('../models/Usuario');
 const { enviarEmail } = require('../utils/email');
 
-// Passo 1: usuária pede recuperação, informando o e-mail
 const solicitarRecuperacao = async (req, res) => {
   try {
     const { email } = req.body;
@@ -48,7 +47,6 @@ const solicitarRecuperacao = async (req, res) => {
   }
 };
 
-// Passo 2: usuária clica no link, informa o token + nova senha
 const redefinirSenha = async (req, res) => {
   try {
     const { token, novaSenha } = req.body;

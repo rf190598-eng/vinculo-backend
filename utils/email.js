@@ -1,12 +1,6 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const transportador = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /**
  * Envia um e-mail simples em HTML.
@@ -15,12 +9,19 @@ const transportador = nodemailer.createTransport({
  * @param {string} html - corpo em HTML
  */
 const enviarEmail = async (para, assunto, html) => {
-  await transportador.sendMail({
-    from: `"Vínculo" <${process.env.EMAIL_USER}>`,
+  const { data, error } = await resend.emails.send({
+    from: 'Vínculo <onboarding@resend.dev>', // domínio de teste do Resend, funciona sem verificação
     to: para,
     subject: assunto,
     html
   });
+
+  if (error) {
+    console.error('Erro ao enviar e-mail via Resend:', error);
+    throw new Error('Falha ao enviar e-mail: ' + JSON.stringify(error));
+  }
+
+  return data;
 };
 
 module.exports = { enviarEmail };
