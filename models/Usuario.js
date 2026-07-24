@@ -143,6 +143,10 @@ const Usuario = sequelize.define('Usuario', {
   reset_token_expira: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  is_admin: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
 }, {
   tableName: 'usuarios',
