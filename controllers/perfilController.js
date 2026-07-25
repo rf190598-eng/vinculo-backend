@@ -3,6 +3,7 @@ const FotoPerfil = require('../models/FotoPerfil');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { compararRostos } = require('../utils/rekognition');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -89,6 +90,34 @@ const uploadSelfieVerificacao = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ erro: 'Nenhuma selfie enviada' });
     }
+
+    const usuarioAtual = await Usuario.findByPk(req.usuarioId);
+    if (!usuarioAtual.foto_url) {
+      // Apaga a selfie recebida já que não dá pra usar
+      fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ erro: 'Cadastre uma foto de perfil antes de fazer a verificação facial' });
+    }
+
+    const caminhoSelfie = req.file.path;
+    const caminhoFotoPerfil = path.join(__dirname, '..', usuarioAtual.foto_url.replace(/^\//, ''));
+
+    let resultadoComparacao;
+    try {
+      resultadoComparacao = await compararRostos(caminhoSelfie, caminhoFotoPerfil);
+    } catch (erroComparacao) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(503).json({ erro: 'Não foi possível concluir a verificação facial agora. Tente novamente em instantes: ' + erroComparacao.message });
+    }
+
+    if (!resultadoComparacao.bateu) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(400).json({
+        erro: 'Não foi possível confirmar que é a mesma pessoa da foto de perfil.',
+        motivo: resultadoComparacao.motivo,
+        similaridade: resultadoComparacao.similaridade
+      });
+    }
+
     const foto_verificacao = '/uploads/' + req.file.filename;
     await Usuario.update(
       { foto_verificacao, verificado: true },

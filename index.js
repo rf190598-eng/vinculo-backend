@@ -30,6 +30,7 @@ const VisualizacaoPerfil = require('./models/VisualizacaoPerfil');
 const Notificacao = require('./models/Notificacao');
 const AvaliacaoEncontro = require('./models/AvaliacaoEncontro');
 const FotoPerfil = require('./models/FotoPerfil');
+const UsoRekognition = require('./models/UsoRekognition');
 const authRoutes = require('./routes/auth');
 const swipeRoutes = require('./routes/swipe');
 const chatRoutes = require('./routes/chat');
