@@ -34,7 +34,7 @@ const editarPerfil = async (req, res) => {
   try {
     const {
       nome, bio, genero, data_nascimento, cidade, objetivo, signo,
-      altura, peso, cor_cabelo,
+      altura, peso, cor_cabelo, estilo_vida, interesses,
       pref_genero, pref_idade_min, pref_idade_max, pref_distancia_km,
       pref_altura_min, pref_altura_max, pref_peso_min, pref_peso_max, pref_cor_cabelo
     } = req.body;
@@ -47,6 +47,8 @@ const editarPerfil = async (req, res) => {
     if (cidade) dados.cidade = cidade;
     if (objetivo) dados.objetivo = objetivo;
     if (signo) dados.signo = signo;
+    if (estilo_vida !== undefined) dados.estilo_vida = estilo_vida;
+    if (interesses !== undefined) dados.interesses = interesses;
     if (altura !== undefined) dados.altura = altura || null;
     if (peso !== undefined) dados.peso = peso || null;
     if (cor_cabelo !== undefined) dados.cor_cabelo = cor_cabelo || null;

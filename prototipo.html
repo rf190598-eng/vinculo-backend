@@ -329,6 +329,12 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <select class="inp" id="cadAno" style="margin:0;flex:1.2"><option value="">Ano</option></select>
     </div>
     <input class="inp" id="cadEmail" placeholder="E-mail"/>
+    <select class="inp" id="cadGenero">
+      <option value="">Seu gênero</option>
+      <option value="masculino">Homem</option>
+      <option value="feminino">Mulher</option>
+      <option value="nao-binario">Não-binário</option>
+    </select>
     <input class="inp" id="cadSenha" type="password" placeholder="Senha"/>
     <div id="cadErro" style="color:#ff8fa3;font-size:12.5px;margin:-6px 0 8px;min-height:14px"></div>
     <button class="btn btn-primary" id="btnCriarConta" onclick="cadastrarUsuario()">Criar conta</button>
@@ -351,8 +357,35 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <button class="btn btn-primary" id="btnEntrar" onclick="fazerLogin()">Entrar</button>
     <div class="divider">ou</div>
     <button class="btn btn-ghost" onclick="goTo('discover')">&#128247; Entrar com Google</button>
-    <div style="color:#d8b0c4;font-size:12.5px;margin-top:14px;cursor:pointer">Esqueci minha senha</div>
+    <div style="color:#d8b0c4;font-size:12.5px;margin-top:14px;cursor:pointer" onclick="goTo('esqueci-senha')">Esqueci minha senha</div>
     <div class="login-link" onclick="goTo('auth')" style="margin-top:8px">Não tenho conta — Criar conta</div>
+  </div>
+</div>
+
+<!-- ESQUECI MINHA SENHA -->
+<div class="screen" id="screen-esqueci-senha" style="background:#1a0810;min-height:100vh;">
+  <div style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:50px 28px 30px;background:radial-gradient(ellipse at 50% 0%,#7a1f3d 0%,#2b0f17 65%);text-align:center;">
+    <div class="auth-logo-wrap">&#128231;</div>
+    <div class="auth-title serif">Recuperar senha</div>
+    <div class="auth-sub">Digite seu e-mail e enviaremos<br>um link pra você criar uma nova senha</div>
+    <input class="inp" id="esqueciEmail" placeholder="E-mail"/>
+    <div id="esqueciMsg" style="color:#ff8fa3;font-size:12.5px;margin:-6px 0 8px;min-height:14px"></div>
+    <button class="btn btn-primary" id="btnEnviarRecuperacao" onclick="solicitarRecuperacaoSenha()">Enviar link</button>
+    <div class="login-link" onclick="goTo('login')" style="margin-top:16px">Voltar pro login</div>
+  </div>
+</div>
+
+<!-- REDEFINIR SENHA -->
+<div class="screen" id="screen-redefinir-senha" style="background:#1a0810;min-height:100vh;">
+  <div style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:50px 28px 30px;background:radial-gradient(ellipse at 50% 0%,#7a1f3d 0%,#2b0f17 65%);text-align:center;">
+    <div class="auth-logo-wrap">&#128274;</div>
+    <div class="auth-title serif">Criar nova senha</div>
+    <div class="auth-sub">Cole o código que você recebeu por e-mail<br>e escolha uma nova senha</div>
+    <input class="inp" id="redefinirToken" placeholder="Código recebido por e-mail"/>
+    <input class="inp" id="redefinirNovaSenha" type="password" placeholder="Nova senha"/>
+    <div id="redefinirMsg" style="color:#ff8fa3;font-size:12.5px;margin:-6px 0 8px;min-height:14px"></div>
+    <button class="btn btn-primary" id="btnRedefinirSenha" onclick="redefinirSenhaUsuario()">Salvar nova senha</button>
+    <div class="login-link" onclick="goTo('login')" style="margin-top:16px">Voltar pro login</div>
   </div>
 </div>
 
@@ -1596,6 +1629,14 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div class="edit-section-title">Sobre mim</div>
     <textarea class="inp" id="editBio" rows="4" style="resize:none" placeholder="Conte um pouco sobre voce...">Gosto de boas conversas, viagens e descobrir lugares novos. Buscando uma conexao genuina.</textarea>
 
+    <div class="edit-section-title">Gênero</div>
+    <select class="inp" id="editGenero">
+      <option value="">Não informado</option>
+      <option value="masculino">Homem</option>
+      <option value="feminino">Mulher</option>
+      <option value="nao-binario">Não-binário</option>
+    </select>
+
     <div class="edit-section-title">Signo</div>
     <select class="inp" id="editSigno">
       <option value="">Prefiro não dizer</option>
@@ -1624,36 +1665,36 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     </div>
 
     <div class="edit-section-title">Estilo de vida</div>
-    <div class="edit-lifestyle-grid">
-      <div class="ls-chip on" onclick="toggleLs(this)">&#128684; Nao fumo</div>
-      <div class="ls-chip" onclick="toggleLs(this)">&#128684; Fumo</div>
-      <div class="ls-chip on" onclick="toggleLs(this)">&#127866; Bebo socialmente</div>
-      <div class="ls-chip" onclick="toggleLs(this)">&#127866; Nao bebo</div>
-      <div class="ls-chip on" onclick="toggleLs(this)">&#127939; Pratico esportes</div>
-      <div class="ls-chip" onclick="toggleLs(this)">&#128021; Tenho pets</div>
-      <div class="ls-chip" onclick="toggleLs(this)">&#128141; Tenho filhos</div>
-      <div class="ls-chip" onclick="toggleLs(this)">&#9962; Pratico religiao</div>
+    <div class="edit-lifestyle-grid" id="grupoEstiloVida">
+      <div class="ls-chip on" data-valor="nao_fumo" onclick="toggleLs(this)">&#128684; Nao fumo</div>
+      <div class="ls-chip" data-valor="fumo" onclick="toggleLs(this)">&#128684; Fumo</div>
+      <div class="ls-chip on" data-valor="bebo_socialmente" onclick="toggleLs(this)">&#127866; Bebo socialmente</div>
+      <div class="ls-chip" data-valor="nao_bebo" onclick="toggleLs(this)">&#127866; Nao bebo</div>
+      <div class="ls-chip on" data-valor="pratico_esportes" onclick="toggleLs(this)">&#127939; Pratico esportes</div>
+      <div class="ls-chip" data-valor="tenho_pets" onclick="toggleLs(this)">&#128021; Tenho pets</div>
+      <div class="ls-chip" data-valor="tenho_filhos" onclick="toggleLs(this)">&#128141; Tenho filhos</div>
+      <div class="ls-chip" data-valor="pratico_religiao" onclick="toggleLs(this)">&#9962; Pratico religiao</div>
     </div>
 
     <div class="edit-section-title">O que voce busca</div>
-    <div class="edit-lifestyle-grid">
-      <div class="ls-chip on" onclick="toggleLsRadio(this)">&#128141; Relacionamento serio</div>
-      <div class="ls-chip" onclick="toggleLsRadio(this)">&#128107; Amizade</div>
-      <div class="ls-chip" onclick="toggleLsRadio(this)">&#128293; Algo casual</div>
-      <div class="ls-chip" onclick="toggleLsRadio(this)">&#129309; Networking</div>
+    <div class="edit-lifestyle-grid" id="grupoObjetivo">
+      <div class="ls-chip on" data-valor="relacionamento_serio" onclick="toggleLsRadio(this)">&#128141; Relacionamento serio</div>
+      <div class="ls-chip" data-valor="amizade" onclick="toggleLsRadio(this)">&#128107; Amizade</div>
+      <div class="ls-chip" data-valor="casual" onclick="toggleLsRadio(this)">&#128293; Algo casual</div>
+      <div class="ls-chip" data-valor="networking" onclick="toggleLsRadio(this)">&#129309; Networking</div>
     </div>
 
     <div class="edit-section-title">Interesses</div>
-    <div class="edit-lifestyle-grid">
-      <div class="ls-chip on" onclick="toggleLs(this)">&#127807; Natureza</div>
-      <div class="ls-chip on" onclick="toggleLs(this)">&#128218; Leitura</div>
-      <div class="ls-chip on" onclick="toggleLs(this)">&#9749; Cafe</div>
-      <div class="ls-chip" onclick="toggleLs(this)">&#127869; Gastronomia</div>
-      <div class="ls-chip" onclick="toggleLs(this)">&#127939; Trilhas</div>
-      <div class="ls-chip" onclick="toggleLs(this)">&#127926; Musica</div>
-      <div class="ls-chip" onclick="toggleLs(this)">&#9917; Esportes</div>
-      <div class="ls-chip" onclick="toggleLs(this)">&#9992; Viagens</div>
-      <div class="ls-chip" onclick="toggleLs(this)">&#127916; Cinema</div>
+    <div class="edit-lifestyle-grid" id="grupoInteresses">
+      <div class="ls-chip on" data-valor="natureza" onclick="toggleLs(this)">&#127807; Natureza</div>
+      <div class="ls-chip on" data-valor="leitura" onclick="toggleLs(this)">&#128218; Leitura</div>
+      <div class="ls-chip on" data-valor="cafe" onclick="toggleLs(this)">&#9749; Cafe</div>
+      <div class="ls-chip" data-valor="gastronomia" onclick="toggleLs(this)">&#127869; Gastronomia</div>
+      <div class="ls-chip" data-valor="trilhas" onclick="toggleLs(this)">&#127939; Trilhas</div>
+      <div class="ls-chip" data-valor="musica" onclick="toggleLs(this)">&#127926; Musica</div>
+      <div class="ls-chip" data-valor="esportes" onclick="toggleLs(this)">&#9917; Esportes</div>
+      <div class="ls-chip" data-valor="viagens" onclick="toggleLs(this)">&#9992; Viagens</div>
+      <div class="ls-chip" data-valor="cinema" onclick="toggleLs(this)">&#127916; Cinema</div>
     </div>
 
     <button class="btn btn-primary" style="margin-top:20px" onclick="salvarEdicaoPerfil()">Salvar alteracoes</button>
@@ -2161,7 +2202,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 </div>
 
 <script>
-const noNav=['landing','auth','login','welcome','onboarding','tour1','tour2','tour3','tour4','verify','verify2','match','profile-view','chatroom','compat','edit-profile','notifications','assinatura'];
+const noNav=['landing','auth','login','welcome','onboarding','tour1','tour2','tour3','tour4','verify','verify2','match','profile-view','chatroom','compat','edit-profile','notifications','assinatura','esqueci-senha','redefinir-senha'];
 let swipeCount=0, timerInterval=null, timerSec=0;
 let rewindUsedToday=false, lastSwipeDir=null, totalSwipes=0;
 let filaPerfis=[];
@@ -2187,6 +2228,7 @@ function goTo(name){
   if(name==='dupla-chats'){ carregarDuplaChats(); }
   if(name==='mutual'){ carregarMutualSemConversa(); }
   if(name==='admin'){ carregarPainelAdmin(); }
+  if(name==='edit-profile'){ preencherEdicaoPerfilComDadosSalvos(); }
   if(name==='notifications'){ carregarNotificacoesReais(); }
   if(name==='premium'){
     const sw = document.getElementById('incognitoSwitch');
@@ -2273,6 +2315,15 @@ document.addEventListener('DOMContentLoaded', preencherSeletoresData);
 
 document.addEventListener('DOMContentLoaded', verificarSessaoSalva);
 
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const tokenUrl = params.get('token');
+  if (tokenUrl) {
+    document.getElementById('redefinirToken').value = tokenUrl;
+    goTo('redefinir-senha');
+  }
+});
+
 function sairDaConta(){
   localStorage.removeItem('vinculo_token');
   localStorage.removeItem('vinculo_usuario');
@@ -2322,11 +2373,12 @@ async function cadastrarUsuario(){
   const mes = document.getElementById('cadMes').value;
   const ano = document.getElementById('cadAno').value;
   const email = document.getElementById('cadEmail').value.trim();
+  const genero = document.getElementById('cadGenero').value;
   const senha = document.getElementById('cadSenha').value;
   const erroEl = document.getElementById('cadErro');
   erroEl.textContent = '';
 
-  if (!nome || !dia || !mes || !ano || !email || !senha) {
+  if (!nome || !dia || !mes || !ano || !email || !genero || !senha) {
     erroEl.textContent = 'Preenche todos os campos pra continuar.';
     return;
   }
@@ -2346,7 +2398,7 @@ async function cadastrarUsuario(){
     const resp = await fetch(`${API_URL}/api/auth/cadastrar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome, email, senha, data_nascimento, codigo_indicacao_usado: codigoIndicacaoUsado })
+      body: JSON.stringify({ nome, email, senha, data_nascimento, genero, codigo_indicacao_usado: codigoIndicacaoUsado })
     });
     const dados = await resp.json();
     if (!resp.ok) {
@@ -2363,6 +2415,63 @@ async function cadastrarUsuario(){
   } finally {
     btn.disabled = false;
     btn.textContent = 'Criar conta';
+  }
+}
+
+async function solicitarRecuperacaoSenha(){
+  const email = document.getElementById('esqueciEmail').value.trim();
+  const msgEl = document.getElementById('esqueciMsg');
+  msgEl.style.color = '#ff8fa3';
+  msgEl.textContent = '';
+  if (!email) { msgEl.textContent = 'Informe seu e-mail.'; return; }
+
+  const btn = document.getElementById('btnEnviarRecuperacao');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  try {
+    const resp = await fetch(`${API_URL}/api/auth/esqueci-senha`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const dados = await resp.json();
+    msgEl.style.color = '#9fd8a8';
+    msgEl.textContent = dados.mensagem || 'Se este e-mail estiver cadastrado, você receberá um link em instantes.';
+  } catch (e) {
+    msgEl.textContent = 'Erro de conexão. Tenta de novo.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Enviar link';
+  }
+}
+
+async function redefinirSenhaUsuario(){
+  const token = document.getElementById('redefinirToken').value.trim();
+  const novaSenha = document.getElementById('redefinirNovaSenha').value;
+  const msgEl = document.getElementById('redefinirMsg');
+  msgEl.style.color = '#ff8fa3';
+  msgEl.textContent = '';
+  if (!token || !novaSenha) { msgEl.textContent = 'Preenche o código e a nova senha.'; return; }
+
+  const btn = document.getElementById('btnRedefinirSenha');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+  try {
+    const resp = await fetch(`${API_URL}/api/auth/redefinir-senha`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, novaSenha })
+    });
+    const dados = await resp.json();
+    if (!resp.ok) { msgEl.textContent = dados.erro || 'Não foi possível redefinir a senha.'; return; }
+    msgEl.style.color = '#9fd8a8';
+    msgEl.textContent = dados.mensagem || 'Senha redefinida! Você já pode entrar.';
+    setTimeout(() => goTo('login'), 1800);
+  } catch (e) {
+    msgEl.textContent = 'Erro de conexão. Tenta de novo.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Salvar nova senha';
   }
 }
 
@@ -3107,13 +3216,20 @@ async function removerFotoGaleriaReal(fotoId){
 async function salvarEdicaoPerfil(){
   const nome = document.getElementById('editNome').value.trim();
   const bio = document.getElementById('editBio').value.trim();
+  const genero = document.getElementById('editGenero').value;
   const signo = document.getElementById('editSigno').value;
+
+  const estilo_vida = Array.from(document.querySelectorAll('#grupoEstiloVida .ls-chip.on')).map(el => el.dataset.valor);
+  const interesses = Array.from(document.querySelectorAll('#grupoInteresses .ls-chip.on')).map(el => el.dataset.valor);
+  const objetivoChip = document.querySelector('#grupoObjetivo .ls-chip.on');
+  const objetivo = objetivoChip ? objetivoChip.dataset.valor : null;
+
   if(!nome){ alert('O nome não pode ficar vazio.'); return; }
   try{
     const resp = await fetch(`${API_URL}/api/perfil/editar`, {
       method:'PUT',
       headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
-      body: JSON.stringify({ nome, bio, signo })
+      body: JSON.stringify({ nome, bio, genero, signo, estilo_vida, interesses, objetivo })
     });
     const dados = await resp.json();
     if(!resp.ok){ alert(dados.erro || 'Erro ao salvar.'); return; }
@@ -3122,6 +3238,26 @@ async function salvarEdicaoPerfil(){
     showToastVinculo('Perfil atualizado!');
     goTo('myprofile');
   }catch(e){ alert('Erro de conexão.'); }
+}
+
+function preencherEdicaoPerfilComDadosSalvos(){
+  if (!usuarioAtual) return;
+  const generoEl = document.getElementById('editGenero');
+  if (generoEl) generoEl.value = usuarioAtual.genero || '';
+
+  const estiloSalvo = Array.isArray(usuarioAtual.estilo_vida) ? usuarioAtual.estilo_vida : [];
+  document.querySelectorAll('#grupoEstiloVida .ls-chip').forEach(el => {
+    el.classList.toggle('on', estiloSalvo.includes(el.dataset.valor));
+  });
+
+  const interessesSalvos = Array.isArray(usuarioAtual.interesses) ? usuarioAtual.interesses : [];
+  document.querySelectorAll('#grupoInteresses .ls-chip').forEach(el => {
+    el.classList.toggle('on', interessesSalvos.includes(el.dataset.valor));
+  });
+
+  document.querySelectorAll('#grupoObjetivo .ls-chip').forEach(el => {
+    el.classList.toggle('on', usuarioAtual.objetivo === el.dataset.valor);
+  });
 }
 
 function atualizarFotoNaTela(fotoUrl){

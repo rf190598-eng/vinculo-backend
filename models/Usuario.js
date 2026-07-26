@@ -31,6 +31,16 @@ const Usuario = sequelize.define('Usuario', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  estilo_vida: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: []
+  },
+  interesses: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: []
+  },
   signo: {
     type: DataTypes.STRING,
     allowNull: true
