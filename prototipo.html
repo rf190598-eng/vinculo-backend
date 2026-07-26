@@ -2243,7 +2243,7 @@ function goTo(name){
   if(name==='edit-profile'){ carregarGaleria(); }
   if(name==='myprofile'){
     const menuAdmin = document.getElementById('menuPainelAdmin');
-    if(menuAdmin) menuAdmin.style.display = (usuarioAtual && usuarioAtual.email === 'rf190598@gmail.com') ? 'flex' : 'none';
+    if(menuAdmin) menuAdmin.style.display = (usuarioAtual && usuarioAtual.is_admin) ? 'flex' : 'none';
     carregarMeuPerfil();
   }
   if(name==='notif-prefs'){ carregarPreferenciasNaTela('notif', {matches:'prefNotifMatches',mensagens:'prefNotifMensagens',curtidas:'prefNotifCurtidas',promo:'prefNotifPromo'}); }
@@ -2267,7 +2267,7 @@ function perfilIncompleto(){
 
 const goToBase = goTo;
 goTo = function(name){
-  if (name === 'admin' && (!usuarioAtual || usuarioAtual.email !== 'rf190598@gmail.com')) {
+  if (name === 'admin' && (!usuarioAtual || !usuarioAtual.is_admin)) {
     goToBase('myprofile');
     showToastVinculo('Acesso restrito.');
     return;
@@ -2700,7 +2700,7 @@ async function carregarEventos(){
   const lista = document.getElementById('listaEventosReal');
   const vazio = document.getElementById('eventosVazio');
   const btnCriar = document.getElementById('btnCriarEvento');
-  if(btnCriar) btnCriar.style.display = (usuarioAtual && usuarioAtual.email === 'rf190598@gmail.com') ? 'flex' : 'none';
+  if(btnCriar) btnCriar.style.display = (usuarioAtual && usuarioAtual.is_admin) ? 'flex' : 'none';
   lista.innerHTML = '';
   try{
     const resp = await fetch(`${API_URL}/api/eventos`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
@@ -2870,11 +2870,13 @@ async function responderConviteDupla(duplaId, aceitar){
 async function salvarBioDupla(){
   const bio_conjunta = document.getElementById('duplaBioTexto').value.trim();
   try{
-    await fetch(`${API_URL}/api/dupla/bio`, {
+    const resp = await fetch(`${API_URL}/api/dupla/bio`, {
       method:'PUT',
       headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
       body: JSON.stringify({ bio_conjunta })
     });
+    const dados = await resp.json();
+    if(!resp.ok){ alert(dados.erro || 'Erro ao salvar bio.'); return; }
     showToastVinculo('Bio da dupla salva!');
   } catch(e){ alert('Erro ao salvar bio.'); }
 }
@@ -3123,13 +3125,20 @@ async function enviarMensagemChat(){
   if(!conteudo || !matchAtual) return;
   input.value='';
   try{
-    await fetch(`${API_URL}/api/chat/enviar`, {
+    const resp = await fetch(`${API_URL}/api/chat/enviar`, {
       method:'POST',
       headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
       body: JSON.stringify({ match_id: matchAtual.id, conteudo })
     });
+    if(!resp.ok){
+      const dados = await resp.json().catch(()=>({}));
+      input.value = conteudo;
+      alert(dados.erro || 'Não foi possível enviar a mensagem.');
+      return;
+    }
     await carregarMensagens();
   } catch(e){
+    input.value = conteudo;
     alert('Erro ao enviar mensagem. Tenta de novo.');
   }
 }
