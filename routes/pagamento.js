@@ -1,12 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { criarPagamentoPix, webhook, verificarPremium, ativarPremiumTeste } = require('../controllers/pagamentoController');
+const { criarPagamentoPix, webhook, verificarPremium } = require('../controllers/pagamentoController');
 const { autenticar } = require('../controllers/authMiddleware');
 
 // Rotas protegidas
 router.post('/pix', autenticar, criarPagamentoPix);
 router.get('/status', autenticar, verificarPremium);
-router.post('/ativar-teste', autenticar, ativarPremiumTeste);
 
 // Webhook do Mercado Pago (público)
 router.post('/webhook', webhook);

@@ -53,7 +53,7 @@ const Usuario = sequelize.define('Usuario', {
   },
   premium: {
     type: DataTypes.BOOLEAN,
-    defaultValue: false
+    defaultValue: true
   },
   premium_ate: {
     type: DataTypes.DATE,
