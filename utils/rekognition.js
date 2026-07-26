@@ -1,5 +1,6 @@
 const { RekognitionClient, CompareFacesCommand } = require('@aws-sdk/client-rekognition');
 const fs = require('fs');
+const sharp = require('sharp');
 const UsoRekognition = require('../models/UsoRekognition');
 
 const client = new RekognitionClient({
@@ -44,6 +45,15 @@ const reservarCota = async () => {
 };
 
 /**
+ * Lê uma imagem do disco e devolve os bytes já com a rotação correta aplicada
+ * (fotos de celular costumam guardar a rotação como metadado EXIF em vez de
+ * girar os pixels de fato, o que confunde o Rekognition na hora de achar o rosto).
+ */
+const normalizarOrientacao = async (caminhoImagem) => {
+  return sharp(caminhoImagem).rotate().jpeg().toBuffer();
+};
+
+/**
  * Compara a selfie de verificação com a foto de perfil do usuário.
  * @param {string} caminhoSelfie - caminho local do arquivo da selfie recém-enviada
  * @param {string} caminhoFotoPerfil - caminho local da foto de perfil já cadastrada
@@ -61,8 +71,8 @@ const compararRostos = async (caminhoSelfie, caminhoFotoPerfil) => {
     throw new Error('Limite mensal de verificações faciais gratuitas atingido. Tente novamente no próximo mês ou aumente o limite.');
   }
 
-  const bytesSelfie = fs.readFileSync(caminhoSelfie);
-  const bytesFotoPerfil = fs.readFileSync(caminhoFotoPerfil);
+  const bytesSelfie = await normalizarOrientacao(caminhoSelfie);
+  const bytesFotoPerfil = await normalizarOrientacao(caminhoFotoPerfil);
 
   try {
     const comando = new CompareFacesCommand({
