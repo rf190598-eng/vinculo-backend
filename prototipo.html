@@ -1887,12 +1887,13 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <h3 class="serif">Denunciar perfil</h3>
         <p style="color:#d8b0c4;font-size:12.5px">Qual o motivo da denuncia?</p>
       </div>
-      <div class="report-reason" onclick="selectReportReason(this)">&#128247; Fotos falsas ou enganosas</div>
-      <div class="report-reason" onclick="selectReportReason(this)">&#128683; Comportamento inadequado</div>
-      <div class="report-reason" onclick="selectReportReason(this)">&#128683; Assedio ou ameaca</div>
-      <div class="report-reason" onclick="selectReportReason(this)">&#128683; Perfil falso / golpe</div>
-      <div class="report-reason" onclick="selectReportReason(this)">&#128683; Conteudo inapropriado</div>
-      <textarea class="inp" rows="2" placeholder="Detalhes adicionais (opcional)" style="resize:none;margin-top:10px"></textarea>
+      <div class="report-reason" data-motivo="perfil_falso" onclick="selectReportReason(this)">&#128247; Fotos falsas ou enganosas</div>
+      <div class="report-reason" data-motivo="outro" onclick="selectReportReason(this)">&#128683; Comportamento inadequado</div>
+      <div class="report-reason" data-motivo="assedio" onclick="selectReportReason(this)">&#128683; Assedio ou ameaca</div>
+      <div class="report-reason" data-motivo="golpe_financeiro" onclick="selectReportReason(this)">&#128683; Perfil falso / golpe</div>
+      <div class="report-reason" data-motivo="conteudo_impróprio" onclick="selectReportReason(this)">&#128683; Conteudo inapropriado</div>
+      <textarea class="inp" id="reportDetalhes" rows="2" placeholder="Detalhes adicionais (opcional)" style="resize:none;margin-top:10px"></textarea>
+      <div id="reportErro" style="color:#ff8fa3;font-size:12.5px;margin-top:6px;min-height:14px"></div>
       <button class="btn btn-danger" style="margin-top:14px" onclick="submitReport()">Enviar denuncia</button>
       <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('report')">Cancelar</button>
     </div>
@@ -2695,6 +2696,8 @@ async function curtirDeVolta(alvoId, nomeAlvo, cardEl){
 
 let planoSelecionado = 'mensal';
 let matchAtual = null;
+let perfilDenunciadoId = null;
+let motivoReportSelecionado = null;
 
 async function carregarEventos(){
   const lista = document.getElementById('listaEventosReal');
@@ -2884,7 +2887,9 @@ async function salvarBioDupla(){
 async function sairDaDuplaConfirm(){
   if(!confirm('Tem certeza que quer sair da dupla?')) return;
   try{
-    await fetch(`${API_URL}/api/dupla/sair`, { method:'POST', headers:{'Authorization':`Bearer ${tokenAtual}`} });
+    const resp = await fetch(`${API_URL}/api/dupla/sair`, { method:'POST', headers:{'Authorization':`Bearer ${tokenAtual}`} });
+    const dados = await resp.json().catch(()=>({}));
+    if(!resp.ok){ alert(dados.erro || 'Erro ao sair da dupla.'); return; }
     showToastVinculo('Você saiu da dupla.');
     carregarStatusDuplaTela();
   } catch(e){ alert('Erro ao sair da dupla.'); }
@@ -3000,13 +3005,22 @@ async function enviarMensagemDuplaChat(){
   if(!conteudo || !duplaMatchAtual) return;
   input.value = '';
   try{
-    await fetch(`${API_URL}/api/dupla/mensagem`, {
+    const resp = await fetch(`${API_URL}/api/dupla/mensagem`, {
       method:'POST',
       headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
       body: JSON.stringify({ dupla_match_id: duplaMatchAtual.id, conteudo })
     });
+    if(!resp.ok){
+      const dados = await resp.json().catch(()=>({}));
+      input.value = conteudo;
+      alert(dados.erro || 'Não foi possível enviar a mensagem.');
+      return;
+    }
     await carregarMensagensDuplaChat();
-  } catch(e){ alert('Erro ao enviar mensagem.'); }
+  } catch(e){
+    input.value = conteudo;
+    alert('Erro ao enviar mensagem.');
+  }
 }
 
 async function carregarMutualSemConversa(){
@@ -3318,6 +3332,7 @@ async function fotoPerfilSelecionada(event){
 function verPerfilCompleto(){
   if(!perfilCard1Data) return;
   const p = perfilCard1Data;
+  perfilDenunciadoId = p.id;
   registrarVisualizacaoPerfil(p.id);
   const idade = p.data_nascimento ? calcularIdade(p.data_nascimento) : '';
 
@@ -3610,11 +3625,35 @@ function confirmChecklist(){
 function selectReportReason(el){
   document.querySelectorAll('.report-reason').forEach(r=>r.classList.remove('on'));
   el.classList.add('on');
+  motivoReportSelecionado = el.dataset.motivo;
 }
 
-function submitReport(){
-  document.getElementById('reportFormView').style.display='none';
-  document.getElementById('reportSentView').style.display='block';
+async function submitReport(){
+  const erroEl = document.getElementById('reportErro');
+  erroEl.textContent = '';
+
+  if (!perfilDenunciadoId) {
+    erroEl.textContent = 'Abra o perfil da pessoa antes de denunciar.';
+    return;
+  }
+  if (!motivoReportSelecionado) {
+    erroEl.textContent = 'Escolhe o motivo da denúncia.';
+    return;
+  }
+
+  const descricao = document.getElementById('reportDetalhes').value.trim();
+  try{
+    const resp = await fetch(`${API_URL}/api/denuncia`, {
+      method:'POST',
+      headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
+      body: JSON.stringify({ denunciado_id: perfilDenunciadoId, motivo: motivoReportSelecionado, descricao })
+    });
+    const dados = await resp.json();
+    if(!resp.ok){ erroEl.textContent = dados.erro || 'Não foi possível enviar a denúncia.'; return; }
+    document.getElementById('reportFormView').style.display='none';
+    document.getElementById('reportSentView').style.display='block';
+    motivoReportSelecionado = null;
+  } catch(e){ erroEl.textContent = 'Erro de conexão. Tenta de novo.'; }
 }
 
 function doRewind(){
@@ -4508,6 +4547,9 @@ function closeModal(name){
       document.getElementById('reportFormView').style.display='block';
       document.getElementById('reportSentView').style.display='none';
       document.querySelectorAll('.report-reason').forEach(r=>r.classList.remove('on'));
+      document.getElementById('reportDetalhes').value = '';
+      document.getElementById('reportErro').textContent = '';
+      motivoReportSelecionado = null;
     },300);
   }
 }
