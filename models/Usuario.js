@@ -106,6 +106,11 @@ const Usuario = sequelize.define('Usuario', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  prompts: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: []
+  },
   pref_genero: {
     type: DataTypes.STRING,
     allowNull: true
