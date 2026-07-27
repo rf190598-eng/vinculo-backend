@@ -130,15 +130,19 @@ const uploadSelfieVerificacao = async (req, res) => {
     if (usuarioVerificado.indicado_por && !usuarioVerificado.bonus_indicacao_creditado) {
       const referenciador = await Usuario.findOne({ where: { codigo_indicacao: usuarioVerificado.indicado_por } });
       if (referenciador) {
-        const agora = new Date();
-        const baseAtual = (referenciador.premium && referenciador.premium_ate && new Date(referenciador.premium_ate) > agora)
-          ? new Date(referenciador.premium_ate)
-          : agora;
-        const novoPremiumAte = new Date(baseAtual.getTime() + 7 * 24 * 60 * 60 * 1000);
-        await Usuario.update(
-          { premium: true, premium_ate: novoPremiumAte },
-          { where: { id: referenciador.id } }
-        );
+        // Se o indicador já tem premium sem data de expiracao (fase gratuita atual),
+        // nao faz sentido "trocar" isso por um prazo de 7 dias - isso rebaixaria
+        // quem deveria estar sendo recompensado. Só estende quem já está num plano
+        // com data de expiração de verdade (fase paga).
+        if (referenciador.premium_ate) {
+          const agora = new Date();
+          const baseAtual = new Date(referenciador.premium_ate) > agora ? new Date(referenciador.premium_ate) : agora;
+          const novoPremiumAte = new Date(baseAtual.getTime() + 7 * 24 * 60 * 60 * 1000);
+          await Usuario.update(
+            { premium: true, premium_ate: novoPremiumAte },
+            { where: { id: referenciador.id } }
+          );
+        }
         await Usuario.update(
           { bonus_indicacao_creditado: true },
           { where: { id: usuarioVerificado.id } }

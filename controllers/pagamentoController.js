@@ -107,6 +107,9 @@ const verificarPremium = async (req, res) => {
           { where: { id: req.usuarioId } }
         );
       }
+    } else if (usuario.premium) {
+      // Premium sem data de expiracao = ilimitado (fase gratuita atual)
+      premium_ativo = true;
     }
 
     res.json({
