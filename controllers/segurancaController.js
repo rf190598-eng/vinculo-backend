@@ -92,7 +92,7 @@ const dispararPanico = async (req, res) => {
 
 const iniciarSessao = async (req, res) => {
   try {
-    const { minutos, latitude, longitude } = req.body;
+    const { minutos, latitude, longitude, com_usuario_id } = req.body;
     await SessaoSeguranca.update(
       { ativa: false },
       { where: { usuario_id: req.usuarioId, ativa: true } }
@@ -102,6 +102,7 @@ const iniciarSessao = async (req, res) => {
       : null;
     const sessao = await SessaoSeguranca.create({
       usuario_id: req.usuarioId,
+      com_usuario_id: com_usuario_id || null,
       ativa: true,
       prazo_confirmacao,
       ultima_lat: latitude,

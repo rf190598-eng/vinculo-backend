@@ -11,6 +11,10 @@ const SessaoSeguranca = sequelize.define('SessaoSeguranca', {
     type: DataTypes.UUID,
     allowNull: false
   },
+  com_usuario_id: {
+    type: DataTypes.UUID,
+    allowNull: true
+  },
   ativa: {
     type: DataTypes.BOOLEAN,
     defaultValue: true

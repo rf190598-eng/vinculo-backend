@@ -932,7 +932,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <textarea class="inp" rows="3" placeholder="Anotacoes pessoais sobre o encontro..." style="resize:none"></textarea>
     </div>
     <button class="btn btn-primary" onclick="goTo('chats')">Concluir</button>
-    <button class="btn btn-ghost" style="margin-top:10px;border-color:rgba(168,41,63,.3);color:#e8909e" onclick="openModal('report')">Denunciar comportamento</button>
+    <button class="btn btn-ghost" style="margin-top:10px;border-color:rgba(168,41,63,.3);color:#e8909e" onclick="abrirDenunciaDoEncontro()">Denunciar comportamento</button>
     <div style="height:20px"></div>
   </div>
 </div>
@@ -3622,6 +3622,13 @@ function confirmChecklist(){
   }
 }
 
+function abrirDenunciaDoEncontro(){
+  if (sessaoSegurancaAtiva && sessaoSegurancaAtiva.com_usuario_id) {
+    perfilDenunciadoId = sessaoSegurancaAtiva.com_usuario_id;
+  }
+  openModal('report');
+}
+
 function selectReportReason(el){
   document.querySelectorAll('.report-reason').forEach(r=>r.classList.remove('on'));
   el.classList.add('on');
@@ -4126,11 +4133,12 @@ async function iniciarSessaoSeguranca(){
   const horas = parseFloat(horasTexto);
   if(!horas || horas<=0) return;
   const local = await obterLocalizacaoAtual();
+  const com_usuario_id = (matchAtual && matchAtual.outro_usuario) ? matchAtual.outro_usuario.id : null;
   try{
     const resp = await fetch(`${API_URL}/api/seguranca/sessao/iniciar`, {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
-      body: JSON.stringify({ minutos: Math.round(horas*60), ...(local||{}) })
+      body: JSON.stringify({ minutos: Math.round(horas*60), com_usuario_id, ...(local||{}) })
     });
     const dados = await resp.json();
     if(!resp.ok){ alert(dados.erro||'Erro ao iniciar check-in.'); return; }
