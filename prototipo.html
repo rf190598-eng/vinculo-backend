@@ -1096,6 +1096,11 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 </div>
 
 <div class="screen" id="screen-premium" style="background:#1a0810;min-height:100vh;">
+  <div class="topbar" style="background:transparent;position:absolute;top:0;left:0;right:0;z-index:2">
+    <div class="icon-btn" onclick="goTo('myprofile')">&#8592;</div>
+    <div style="width:38px"></div>
+    <div style="width:38px"></div>
+  </div>
   <div style="background:linear-gradient(160deg,#5c1a2e,#2b0f17);padding:30px 24px 24px;text-align:center">
     <div style="font-size:40px;margin-bottom:10px">&#128081;</div>
     <div style="font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:700;margin-bottom:6px">Vinculo Premium</div>
@@ -1654,14 +1659,17 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <option value="peixes">Peixes</option>
     </select>
 
+    <div class="edit-section-title">Altura (cm)</div>
+    <input class="inp" id="editAltura" type="number" min="120" max="230" placeholder="Ex: 170"/>
+
     <div class="edit-section-title">Prompts para te ajudar &#10024;</div>
     <div class="prompt-card">
       <div class="prompt-q">Meu fim de semana ideal e...</div>
-      <input class="inp" style="margin-bottom:0" placeholder="Sua resposta..." value="Uma trilha de manha e um filme a noite"/>
+      <input class="inp" id="editPrompt1" style="margin-bottom:0" placeholder="Sua resposta..."/>
     </div>
     <div class="prompt-card">
       <div class="prompt-q">Nao vivo sem...</div>
-      <input class="inp" style="margin-bottom:0" placeholder="Sua resposta..."/>
+      <input class="inp" id="editPrompt2" style="margin-bottom:0" placeholder="Sua resposta..."/>
     </div>
 
     <div class="edit-section-title">Estilo de vida</div>
@@ -3241,18 +3249,25 @@ async function salvarEdicaoPerfil(){
   const bio = document.getElementById('editBio').value.trim();
   const genero = document.getElementById('editGenero').value;
   const signo = document.getElementById('editSigno').value;
+  const alturaInput = document.getElementById('editAltura').value.trim();
+  const altura = alturaInput ? parseInt(alturaInput, 10) : null;
 
   const estilo_vida = Array.from(document.querySelectorAll('#grupoEstiloVida .ls-chip.on')).map(el => el.dataset.valor);
   const interesses = Array.from(document.querySelectorAll('#grupoInteresses .ls-chip.on')).map(el => el.dataset.valor);
   const objetivoChip = document.querySelector('#grupoObjetivo .ls-chip.on');
   const objetivo = objetivoChip ? objetivoChip.dataset.valor : null;
 
+  const prompts = [
+    { pergunta: 'Meu fim de semana ideal e...', resposta: document.getElementById('editPrompt1').value.trim() },
+    { pergunta: 'Nao vivo sem...', resposta: document.getElementById('editPrompt2').value.trim() }
+  ].filter(p => p.resposta);
+
   if(!nome){ alert('O nome não pode ficar vazio.'); return; }
   try{
     const resp = await fetch(`${API_URL}/api/perfil/editar`, {
       method:'PUT',
       headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
-      body: JSON.stringify({ nome, bio, genero, signo, estilo_vida, interesses, objetivo })
+      body: JSON.stringify({ nome, bio, genero, signo, altura, estilo_vida, interesses, objetivo, prompts })
     });
     const dados = await resp.json();
     if(!resp.ok){ alert(dados.erro || 'Erro ao salvar.'); return; }
@@ -3267,6 +3282,18 @@ function preencherEdicaoPerfilComDadosSalvos(){
   if (!usuarioAtual) return;
   const generoEl = document.getElementById('editGenero');
   if (generoEl) generoEl.value = usuarioAtual.genero || '';
+
+  const signoEl = document.getElementById('editSigno');
+  if (signoEl) signoEl.value = usuarioAtual.signo || '';
+
+  const alturaEl = document.getElementById('editAltura');
+  if (alturaEl) alturaEl.value = usuarioAtual.altura || '';
+
+  const promptsSalvos = Array.isArray(usuarioAtual.prompts) ? usuarioAtual.prompts : [];
+  const prompt1El = document.getElementById('editPrompt1');
+  const prompt2El = document.getElementById('editPrompt2');
+  if (prompt1El) prompt1El.value = (promptsSalvos[0] && promptsSalvos[0].resposta) || '';
+  if (prompt2El) prompt2El.value = (promptsSalvos[1] && promptsSalvos[1].resposta) || '';
 
   const estiloSalvo = Array.isArray(usuarioAtual.estilo_vida) ? usuarioAtual.estilo_vida : [];
   document.querySelectorAll('#grupoEstiloVida .ls-chip').forEach(el => {
