@@ -3998,7 +3998,19 @@ async function carregarMeuPerfil(){
   const idade = usuarioAtual.data_nascimento ? calcularIdade(usuarioAtual.data_nascimento) : '';
   document.getElementById('meuPerfilNome').textContent = usuarioAtual.nome;
   document.getElementById('meuPerfilIdade').textContent = idade;
-  document.getElementById('meuPerfilBadgeVerificado').style.display = usuarioAtual.verificado ? 'flex' : 'none';
+ document.getElementById('meuPerfilBadgeVerificado').style.display = usuarioAtual.verificado ? 'flex' : 'none';
+
+  const igInputEl = document.getElementById('editInstagram');
+  const igStatusEl = document.getElementById('igStatusTexto');
+  if (igInputEl && igStatusEl) {
+    if (usuarioAtual.instagram_handle) {
+      igInputEl.value = '@' + usuarioAtual.instagram_handle;
+      igStatusEl.innerHTML = `✓ <a href="https://instagram.com/${usuarioAtual.instagram_handle}" target="_blank" rel="noopener" style="color:#d4b87a">instagram.com/${usuarioAtual.instagram_handle}</a>`;
+    } else {
+      igInputEl.value = '';
+      igStatusEl.textContent = '';
+    }
+  }
 
   let totalFotosAtual = 0;
   try{
