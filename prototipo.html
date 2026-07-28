@@ -3409,6 +3409,15 @@ function verPerfilCompleto(){
     objetivoWrap.style.display='none';
   }
 
+ const pvInstagramWrap = document.getElementById('pvInstagramWrap');
+  if(p.instagram_handle){
+    pvInstagramWrap.style.display = 'block';
+    document.getElementById('pvInstagram').href = `https://instagram.com/${p.instagram_handle}`;
+    document.getElementById('pvInstagramTexto').textContent = `@${p.instagram_handle}`;
+  } else {
+    pvInstagramWrap.style.display = 'none';
+  }
+
   const badgesEl = document.getElementById('pvBadges');
   badgesEl.innerHTML = p.verificado ? '<div class="badge badge-gold">&#10003; Foto verificada</div>' : '';
 
