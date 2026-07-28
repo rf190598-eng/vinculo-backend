@@ -10,7 +10,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
  */
 const enviarEmail = async (para, assunto, html) => {
   const { data, error } = await resend.emails.send({
-    from: 'Vínculo <onboarding@resend.dev>', // domínio de teste do Resend, funciona sem verificação
+    from: 'Vínculo <contato@vinculoapp.com.br>',
     to: para,
     subject: assunto,
     html
