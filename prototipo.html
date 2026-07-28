@@ -2303,8 +2303,9 @@ goTo = function(name){
     showToastVinculo('Acesso restrito.');
     return;
   }
-  if (usuarioAtual && usuarioAtual.verificado === false && !telasSemVerificacaoObrigatoria.includes(name)) {
+if (usuarioAtual && usuarioAtual.verificado === false && !telasSemVerificacaoObrigatoria.includes(name)) {
     goToBase('liveness');
+    setTimeout(iniciarLivenessCheck, 50);
     return;
   }
   if (usuarioAtual && usuarioAtual.verificado === true && perfilIncompleto() && !telasSemPerfilCompletoObrigatorio.includes(name)) {
