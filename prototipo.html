@@ -515,7 +515,29 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <button class="btn btn-primary" onclick="goTo('discover')">Entendi, vamos comecar!</button>
   </div>
 </div><!-- VERIFICACAO -->
-<div class="screen" id="screen-verify" style="background:#1a0810;min-height:100vh;">
+<div class="screen" id="screen-liveness" style="background:#1a0810;min-height:100vh;">
+  <div class="topbar">
+    <div class="icon-btn" onclick="goTo('auth')">&#8592;</div>
+    <div class="logo serif">Vín<span>culo</span></div>
+    <div style="width:38px"></div>
+  </div>
+  <div style="padding:0 18px">
+    <div class="progress-steps"><div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div></div>
+    <div class="verify-step">
+      <div class="big-ic">&#128064;</div>
+      <h3 class="serif" style="font-size:21px;margin-bottom:7px">Confirme que é você, ao vivo</h3>
+      <p style="color:#d8b0c4;font-size:12.5px;line-height:1.6;margin-bottom:18px">Antes da selfie, precisamos confirmar que existe uma pessoa real na câmera agora — isso protege você e as outras pessoas do app contra perfis falsos.</p>
+      <div id="livenessErro" style="color:#ff8fa3;font-size:12.5px;margin-bottom:10px;min-height:14px"></div>
+      <div id="livenessRoot" style="min-height:360px;border-radius:16px;overflow:hidden;background:#000"></div>
+      <button class="btn btn-ghost" id="btnRetentarLiveness" style="display:none;margin-top:14px" onclick="iniciarLivenessCheck()">Tentar novamente</button>
+    </div>
+    <div style="background:rgba(201,160,107,.12);border:1px solid rgba(201,160,107,.3);border-radius:12px;padding:12px 14px;font-size:12.5px;color:#e0c8a8;line-height:1.5">
+      &#128274; O vídeo é processado apenas pra checar que você é uma pessoa real, e não é salvo nem exibido no seu perfil.
+    </div>
+  </div>
+</div>
+  <div class="screen" id="screen-verify" style="background:#1a0810;min-height:100vh;">
+  
   <div class="topbar">
     <div class="icon-btn" onclick="goTo('auth')">&#8592;</div>
     <div class="logo serif">Vín<span>culo</span></div>
@@ -2210,8 +2232,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   </div>
 </div>
 
-<script>
-const noNav=['landing','auth','login','welcome','onboarding','tour1','tour2','tour3','tour4','verify','verify2','match','profile-view','chatroom','compat','edit-profile','notifications','assinatura','esqueci-senha','redefinir-senha'];
+const noNav=['landing','auth','login','welcome','onboarding','tour1','tour2','tour3','tour4','liveness','verify','verify2','match','profile-view','chatroom','compat','edit-profile','notifications','assinatura','esqueci-senha','redefinir-senha'];
 let swipeCount=0, timerInterval=null, timerSec=0;
 let rewindUsedToday=false, lastSwipeDir=null, totalSwipes=0;
 let filaPerfis=[];
