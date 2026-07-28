@@ -4468,7 +4468,39 @@ function sendIcebreaker(el, text){
   showToast('Quebra-gelo enviado: ' + text + ' &#128150;');
   setTimeout(()=>{ goTo('assinatura'); }, 1200);
 }
-
+async function salvarInstagram(){
+  const igInputEl = document.getElementById('editInstagram');
+  const igStatusEl = document.getElementById('igStatusTexto');
+  const valor = igInputEl.value.trim();
+  igStatusEl.textContent = 'Salvando...';
+  igStatusEl.style.color = '#d0a8b8';
+  try{
+    const resp = await fetch(`${API_URL}/api/perfil/editar`, {
+      method:'PUT',
+      headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
+      body: JSON.stringify({ instagram_handle: valor })
+    });
+    const dados = await resp.json();
+    if(!resp.ok){
+      igStatusEl.textContent = dados.erro || 'Erro ao salvar.';
+      igStatusEl.style.color = '#ff8fa3';
+      return;
+    }
+    usuarioAtual = dados.usuario;
+    localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
+    if (usuarioAtual.instagram_handle) {
+      igInputEl.value = '@' + usuarioAtual.instagram_handle;
+      igStatusEl.innerHTML = `✓ <a href="https://instagram.com/${usuarioAtual.instagram_handle}" target="_blank" rel="noopener" style="color:#d4b87a">instagram.com/${usuarioAtual.instagram_handle}</a>`;
+    } else {
+      igStatusEl.textContent = 'Instagram removido.';
+      igStatusEl.style.color = '#d0a8b8';
+    }
+    showToastVinculo('Perfil atualizado!');
+  }catch(e){
+    igStatusEl.textContent = 'Erro de conexão.';
+    igStatusEl.style.color = '#ff8fa3';
+  }
+}
 function toggleRedeSocial(el, rede){
   const isConnected = el.dataset.connected === '1';
   if(isConnected){
