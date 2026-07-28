@@ -66,7 +66,8 @@ app.use(cors({
 
 // ===== SEGURANÇA: Headers de segurança =====
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' } // necessário para servir imagens de /uploads
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // necessário para servir imagens de /uploads
+  contentSecurityPolicy: false // o prototipo.html usa script/onclick inline; CSP padrão bloqueava tudo
 }));
 
 // ===== SEGURANÇA: Limite de tamanho de payload (evita DoS por payload gigante) =====
