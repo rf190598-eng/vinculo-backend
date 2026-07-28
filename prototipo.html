@@ -4628,5 +4628,108 @@ function toggleLsRadio(el){
   el.classList.add('on');
 }
 </script>
+
+<!-- ===== Liveness (Face Liveness da AWS) — ilha React isolada, via CDN ===== -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@aws-amplify/ui-react@6/styles.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@aws-amplify/ui-react-liveness@3/styles.css">
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom": "https://esm.sh/react-dom@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "aws-amplify": "https://esm.sh/aws-amplify@6",
+    "@aws-amplify/ui-react": "https://esm.sh/@aws-amplify/ui-react@6?deps=react@18.3.1,react-dom@18.3.1",
+    "@aws-amplify/ui-react-liveness": "https://esm.sh/@aws-amplify/ui-react-liveness@3?deps=react@18.3.1,react-dom@18.3.1"
+  }
+}
+</script>
+<script type="module">
+  import React from 'react';
+  import { createRoot } from 'react-dom/client';
+  import { Amplify } from 'aws-amplify';
+  import { FaceLivenessDetector } from '@aws-amplify/ui-react-liveness';
+  import { ThemeProvider } from '@aws-amplify/ui-react';
+
+  const REGIAO_REKOGNITION = 'us-east-1';
+  const IDENTITY_POOL_ID = 'us-east-2:d4d09953-6cbb-4136-a0dd-813c2995345a';
+  const API_URL_LIVENESS = 'https://vinculo-backend-production.up.railway.app';
+
+  Amplify.configure({
+    Auth: {
+      Cognito: {
+        identityPoolId: IDENTITY_POOL_ID,
+        allowGuestAccess: true
+      }
+    }
+  });
+
+  let livenessRoot = null;
+
+  window.iniciarLivenessCheck = async function () {
+    const erroEl = document.getElementById('livenessErro');
+    const retryBtn = document.getElementById('btnRetentarLiveness');
+    const container = document.getElementById('livenessRoot');
+    if (!container) return;
+
+    erroEl.textContent = '';
+    retryBtn.style.display = 'none';
+
+    const token = localStorage.getItem('vinculo_token');
+    if (!token) { erroEl.textContent = 'Sessão expirada, faça login novamente.'; return; }
+
+    let sessionId;
+    try {
+      const resp = await fetch(`${API_URL_LIVENESS}/api/perfil/liveness/sessao`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const dados = await resp.json();
+      if (!resp.ok || !dados.sessionId) throw new Error(dados.erro || 'Não foi possível iniciar a verificação.');
+      sessionId = dados.sessionId;
+    } catch (e) {
+      erroEl.textContent = 'Erro ao iniciar verificação: ' + e.message;
+      retryBtn.style.display = 'block';
+      return;
+    }
+
+    async function aoFinalizarAnalise() {
+      try {
+        const resp = await fetch(`${API_URL_LIVENESS}/api/perfil/liveness/resultado/${sessionId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const dados = await resp.json();
+        if (dados.aprovado) {
+          if (window.showToastVinculo) window.showToastVinculo('Verificação de identidade confirmada!');
+          window.goTo('verify');
+        } else {
+          erroEl.textContent = 'Não foi possível confirmar sua identidade. Tente novamente em um ambiente bem iluminado.';
+          retryBtn.style.display = 'block';
+        }
+      } catch (e) {
+        erroEl.textContent = 'Erro ao buscar resultado: ' + e.message;
+        retryBtn.style.display = 'block';
+      }
+    }
+
+    function aoDarErro(erro) {
+      console.error('Erro no Face Liveness:', erro);
+      erroEl.textContent = 'Erro na câmera ou na verificação. Confira a permissão de câmera do navegador e tente de novo.';
+      retryBtn.style.display = 'block';
+    }
+
+    if (!livenessRoot) livenessRoot = createRoot(container);
+    livenessRoot.render(
+      React.createElement(ThemeProvider, null,
+        React.createElement(FaceLivenessDetector, {
+          sessionId,
+          region: REGIAO_REKOGNITION,
+          onAnalysisComplete: aoFinalizarAnalise,
+          onError: aoDarErro
+        })
+      )
+    );
+  };
+</script>
 </body>
 </html>
