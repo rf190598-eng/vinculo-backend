@@ -52,7 +52,21 @@ const editarPerfil = async (req, res) => {
     if (prompts !== undefined) dados.prompts = prompts;
     if (altura !== undefined) dados.altura = altura || null;
     if (peso !== undefined) dados.peso = peso || null;
-    if (cor_cabelo !== undefined) dados.cor_cabelo = cor_cabelo || null;
+   if (cor_cabelo !== undefined) dados.cor_cabelo = cor_cabelo || null;
+    if (instagram_handle !== undefined) {
+      if (!instagram_handle) {
+        dados.instagram_handle = null;
+      } else {
+        const limpo = String(instagram_handle).trim()
+          .replace(/^@/, '')
+          .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
+          .split('/')[0].split('?')[0];
+        if (!/^[a-zA-Z0-9._]{1,30}$/.test(limpo)) {
+          return res.status(400).json({ erro: 'Instagram inválido. Use apenas o @usuario (letras, números, pontos e underline).' });
+        }
+        dados.instagram_handle = limpo.toLowerCase();
+      }
+    }
     if (pref_genero !== undefined) dados.pref_genero = pref_genero || null;
     if (pref_idade_min !== undefined) dados.pref_idade_min = pref_idade_min || 18;
     if (pref_idade_max !== undefined) dados.pref_idade_max = pref_idade_max || 99;
