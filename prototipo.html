@@ -2288,8 +2288,8 @@ let tokenAtual = localStorage.getItem('vinculo_token') || null;
 
 // Telas que um usuário NÃO verificado ainda pode acessar.
 // Qualquer outra tela exige verificado === true, senão volta pra tela de verificação.
-const telasSemVerificacaoObrigatoria = ['landing','auth','login','welcome','verify','verify2'];
-const telasSemPerfilCompletoObrigatorio = ['landing','auth','login','welcome','verify','verify2','edit-profile','myprofile'];
+const telasSemVerificacaoObrigatoria = ['landing','auth','login','welcome','liveness','verify','verify2'];
+const telasSemPerfilCompletoObrigatorio = ['landing','auth','login','welcome','liveness','verify','verify2','edit-profile','myprofile'];
 
 function perfilIncompleto(){
   return !usuarioAtual.bio || !usuarioAtual.foto_url;
@@ -2303,7 +2303,7 @@ goTo = function(name){
     return;
   }
   if (usuarioAtual && usuarioAtual.verificado === false && !telasSemVerificacaoObrigatoria.includes(name)) {
-    goToBase('verify');
+    goToBase('liveness');
     return;
   }
   if (usuarioAtual && usuarioAtual.verificado === true && perfilIncompleto() && !telasSemPerfilCompletoObrigatorio.includes(name)) {
@@ -2311,6 +2311,9 @@ goTo = function(name){
     return;
   }
   goToBase(name);
+  if (name === 'liveness') {
+    setTimeout(iniciarLivenessCheck, 50);
+  }
 };
 
 function preencherSeletoresData(){
