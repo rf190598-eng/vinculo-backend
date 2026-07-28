@@ -9,6 +9,7 @@ const {
   CreateFaceLivenessSessionCommand,
   GetFaceLivenessSessionResultsCommand,
 } = require('@aws-sdk/client-rekognition');
+const Usuario = require('../models/Usuario');
 
 const REGIAO_LIVENESS = process.env.AWS_REKOGNITION_LIVENESS_REGION || 'us-east-1';
 const rekognitionClient = new RekognitionClient({ region: REGIAO_LIVENESS });
@@ -39,8 +40,11 @@ async function buscarResultadoLiveness(req, res) {
     const confianca = resultado.Confidence || 0;
     const aprovado = resultado.Status === 'SUCCEEDED' && confianca >= CONFIANCA_MINIMA;
 
-    if (aprovado && req.usuario) {
-      await req.usuario.update({ liveness_aprovado: true, liveness_confianca: confianca });
+    if (aprovado && req.usuarioId) {
+      await Usuario.update(
+        { liveness_aprovado: true, liveness_confianca: confianca },
+        { where: { id: req.usuarioId } }
+      );
     }
 
     return res.json({ aprovado, confianca, status: resultado.Status });
