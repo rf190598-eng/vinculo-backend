@@ -61,6 +61,14 @@ const Usuario = sequelize.define('Usuario', {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
+  liveness_aprovado: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  liveness_confianca: {
+    type: DataTypes.FLOAT,
+    allowNull: true
+  },
   premium: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
