@@ -335,6 +335,13 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <option value="feminino">Mulher</option>
       <option value="nao-binario">Não-binário</option>
     </select>
+    </select>
+    <select class="inp" id="cadPrefGenero">
+      <option value="">Mostrar meu perfil para</option>
+      <option value="masculino">Homens</option>
+      <option value="feminino">Mulheres</option>
+      <option value="todos">Todos</option>
+    </select>
     <input class="inp" id="cadSenha" type="password" placeholder="Senha"/>
     <div id="cadErro" style="color:#ff8fa3;font-size:12.5px;margin:-6px 0 8px;min-height:14px"></div>
     <button class="btn btn-primary" id="btnCriarConta" onclick="cadastrarUsuario()">Criar conta</button>
@@ -2410,7 +2417,8 @@ async function cadastrarUsuario(){
   const mes = document.getElementById('cadMes').value;
   const ano = document.getElementById('cadAno').value;
   const email = document.getElementById('cadEmail').value.trim();
-  const genero = document.getElementById('cadGenero').value;
+ const genero = document.getElementById('cadGenero').value;
+  const pref_genero = document.getElementById('cadPrefGenero').value;
   const senha = document.getElementById('cadSenha').value;
   const erroEl = document.getElementById('cadErro');
   erroEl.textContent = '';
@@ -2435,7 +2443,7 @@ async function cadastrarUsuario(){
     const resp = await fetch(`${API_URL}/api/auth/cadastrar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome, email, senha, data_nascimento, genero, codigo_indicacao_usado: codigoIndicacaoUsado })
+     body: JSON.stringify({ nome, email, senha, data_nascimento, genero, pref_genero, codigo_indicacao_usado: codigoIndicacaoUsado })
     });
     const dados = await resp.json();
     if (!resp.ok) {
