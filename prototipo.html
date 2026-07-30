@@ -531,12 +531,16 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div style="padding:0 18px">
     <div class="progress-steps"><div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div></div>
     <div class="verify-step">
-      <div class="big-ic">&#128064;</div>
-      <h3 class="serif" style="font-size:21px;margin-bottom:7px">Confirme que é você, ao vivo</h3>
-      <p style="color:#d8b0c4;font-size:12.5px;line-height:1.6;margin-bottom:18px">Antes da selfie, precisamos confirmar que existe uma pessoa real na câmera agora — isso protege você e as outras pessoas do app contra perfis falsos.</p>
+     <div class="big-ic">&#128737;</div>
+      <h3 class="serif" style="font-size:21px;margin-bottom:7px">Verificação de identidade biométrica</h3>
+      <p style="color:#d8b0c4;font-size:12.5px;line-height:1.6;margin-bottom:10px">Usamos o mesmo padrão de tecnologia adotado por bancos e instituições financeiras (Amazon Rekognition) pra confirmar que você é uma pessoa real, ao vivo — não uma foto, vídeo ou máscara.</p>
+      <p style="color:#c9a06b;font-size:11.5px;line-height:1.6;margin-bottom:18px">Posicione seu rosto dentro da área indicada e mantenha-se parado. A análise de reflexo de luz e profundidade é feita automaticamente — não é preciso fazer nenhum gesto.</p>
       <div id="livenessErro" style="color:#ff8fa3;font-size:12.5px;margin-bottom:10px;min-height:14px"></div>
       <div id="livenessRoot" style="min-height:360px;border-radius:16px;overflow:hidden;background:#000"></div>
       <button class="btn btn-ghost" id="btnRetentarLiveness" style="display:none;margin-top:14px" onclick="iniciarLivenessCheck()">Tentar novamente</button>
+    </div>
+    <div style="background:rgba(201,160,107,.12);border:1px solid rgba(201,160,107,.3);border-radius:12px;padding:12px 14px;font-size:12.5px;color:#e0c8a8;line-height:1.5">
+      &#128274; Certificado por criptografia ponta a ponta. O vídeo é processado apenas para essa verificação e não é salvo nem exibido no seu perfil.
     </div>
     <div style="background:rgba(201,160,107,.12);border:1px solid rgba(201,160,107,.3);border-radius:12px;padding:12px 14px;font-size:12.5px;color:#e0c8a8;line-height:1.5">
       &#128274; O vídeo é processado apenas pra checar que você é uma pessoa real, e não é salvo nem exibido no seu perfil.
@@ -4789,9 +4793,9 @@ function toggleLsRadio(el){
             hintCanNotIdentifyText: 'Posicione seu rosto na frente da câmera',
             hintTooCloseText: 'Afaste-se um pouco',
             hintTooFarText: 'Aproxime-se',
-            hintConnectingText: 'Conectando...',
-            hintVerifyingText: 'Verificando...',
-            hintCheckCompleteText: 'Verificação concluída',
+          hintConnectingText: 'Estabelecendo conexão segura...',
+            hintVerifyingText: 'Analisando padrão biométrico...',
+            hintCheckCompleteText: 'Identidade confirmada com segurança',
             hintIlluminationTooBrightText: 'Vá para um lugar com menos luz',
             hintIlluminationTooDarkText: 'Vá para um lugar mais iluminado',
             hintIlluminationNormalText: 'Condições de luz normais',
