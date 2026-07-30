@@ -3319,6 +3319,12 @@ async function salvarEdicaoPerfil(){
 
 function preencherEdicaoPerfilComDadosSalvos(){
   if (!usuarioAtual) return;
+  const nomeEl = document.getElementById('editNome');
+  if (nomeEl) nomeEl.value = usuarioAtual.nome || '';
+
+  const bioEl = document.getElementById('editBio');
+  if (bioEl) bioEl.value = usuarioAtual.bio || '';
+
   const generoEl = document.getElementById('editGenero');
   if (generoEl) generoEl.value = usuarioAtual.genero || '';
 
