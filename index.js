@@ -98,6 +98,11 @@ app.get('/prototipo', (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.sendFile(path.join(__dirname, 'prototipo.html'));
 });
+app.get('/vinculo-liveness-bundle.mjs', (req, res) => {
+  res.set('Content-Type', 'application/javascript');
+  res.set('Cache-Control', 'no-store');
+  res.sendFile(path.join(__dirname, 'vinculo-liveness-bundle.mjs'));
+});
 
 // ===== ATENÇÃO: /uploads público =====
 // Fotos de perfil podem ficar aqui (são públicas por natureza do produto).
