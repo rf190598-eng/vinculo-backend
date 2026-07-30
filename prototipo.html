@@ -4764,11 +4764,10 @@ function toggleLsRadio(el){
       retryBtn.style.display = 'block';
     }
 
-    if (!livenessRoot) livenessRoot = createRoot(container);
+ if (!livenessRoot) livenessRoot = createRoot(container);
     livenessRoot.render(
       React.createElement(ThemeProvider, null,
-       
-          React.createElement(FaceLivenessDetector, {
+        React.createElement(FaceLivenessDetector, {
           sessionId,
           region: REGIAO_REKOGNITION,
           onAnalysisComplete: aoFinalizarAnalise,
@@ -4822,10 +4821,9 @@ function toggleLsRadio(el){
             tryAgainText: 'Tentar novamente'
           }
         })
-        
       )
     );
-  };
+  };  
 </script>
 </body>
 </html>
