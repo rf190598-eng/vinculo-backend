@@ -4702,9 +4702,7 @@ function toggleLsRadio(el){
 <script type="module">
   import React from 'react';
   import { createRoot } from 'react-dom/client';
-  import { Amplify } from 'aws-amplify';
-  import { FaceLivenessDetector } from '@aws-amplify/ui-react-liveness';
-  import { ThemeProvider } from '@aws-amplify/ui-react';
+ import { Amplify, FaceLivenessDetector, ThemeProvider } from '/vinculo-liveness-bundle.mjs';
 
   const REGIAO_REKOGNITION = 'us-east-1';
   const IDENTITY_POOL_ID = 'us-east-2:d4d09953-6cbb-4136-a0dd-813c2995345a';
