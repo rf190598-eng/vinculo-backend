@@ -225,15 +225,42 @@ const adicionarFotoGaleria = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ erro: 'Nenhuma foto enviada' });
     }
+
     const totalAtual = await FotoPerfil.count({ where: { usuario_id: req.usuarioId } });
     if (totalAtual >= MAX_FOTOS_GALERIA) {
+      fs.unlink(req.file.path, () => {});
       return res.status(400).json({ erro: `Você já tem o máximo de ${MAX_FOTOS_GALERIA} fotos` });
+    }
+
+    // Só verifica a foto principal (a primeira) contra a verificação de identidade.
+    // As demais entram sem checagem, pra não multiplicar o custo de comparação facial.
+    const ehFotoPrincipal = totalAtual === 0;
+
+    if (ehFotoPrincipal) {
+      const usuarioAtual = await Usuario.findByPk(req.usuarioId);
+      if (usuarioAtual.foto_verificacao) {
+        let resultadoComparacao;
+        try {
+          const caminhoFotoVerificacao = path.join(__dirname, '..', usuarioAtual.foto_verificacao.replace(/^\//, ''));
+          resultadoComparacao = await compararRostos(req.file.path, caminhoFotoVerificacao);
+        } catch (erroComparacao) {
+          fs.unlink(req.file.path, () => {});
+          return res.status(503).json({ erro: 'Não foi possível verificar essa foto agora. Tente novamente em instantes: ' + erroComparacao.message });
+        }
+        if (!resultadoComparacao.bateu) {
+          fs.unlink(req.file.path, () => {});
+          return res.status(400).json({
+            erro: 'Essa foto não parece ser a mesma pessoa da verificação de identidade. Tente outra foto.',
+            motivo: resultadoComparacao.motivo
+          });
+        }
+      }
     }
 
     const url = '/uploads/' + req.file.filename;
     const foto = await FotoPerfil.create({ usuario_id: req.usuarioId, url, ordem: totalAtual });
 
-    if (totalAtual === 0) {
+    if (ehFotoPrincipal) {
       await Usuario.update({ foto_url: url }, { where: { id: req.usuarioId } });
     }
 
