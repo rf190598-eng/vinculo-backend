@@ -2296,6 +2296,9 @@ function goTo(name){
 
 /* ===== INTEGRAÇÃO COM O BACKEND (Vínculo) ===== */
 const API_URL = 'https://vinculo-backend-production.up.railway.app';
+  function escapeHtml(texto){
+  return String(texto ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 let usuarioAtual = JSON.parse(localStorage.getItem('vinculo_usuario') || 'null');
 let tokenAtual = localStorage.getItem('vinculo_token') || null;
 
