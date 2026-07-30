@@ -10,7 +10,7 @@ function gerarCodigoIndicacao(nome) {
 
 const cadastrar = async (req, res) => {
   try {
-    const { nome, email, senha, data_nascimento, genero, codigo_indicacao_usado } = req.body;
+    const { nome, email, senha, data_nascimento, genero, pref_genero, codigo_indicacao_usado } = req.body;
 
     const nascimento = new Date(data_nascimento);
     if (isNaN(nascimento.getTime())) {
@@ -43,8 +43,8 @@ const cadastrar = async (req, res) => {
       if (referenciador) indicado_por = referenciador.codigo_indicacao;
     }
 
-    const usuario = await Usuario.create({
-      nome, email, senha: senhaCriptografada, data_nascimento, genero,
+   const usuario = await Usuario.create({
+      nome, email, senha: senhaCriptografada, data_nascimento, genero, pref_genero,
       codigo_indicacao, indicado_por
     });
 
