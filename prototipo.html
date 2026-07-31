@@ -2718,8 +2718,8 @@ async function carregarCurtidasRecebidas(){
       const card = document.createElement('div');
       const idade = p.data_nascimento ? calcularIdade(p.data_nascimento) : '';
       if(souPremium){
-card.innerHTML = `<div style="background:rgba(0,0,0,.5);border-radius:8px;padding:4px 8px;font-size:12px;color:#fff;font-weight:700">${escapeHtml(p.nome)}, ${idade}</div>`;        if(p.foto_url){ card.style.backgroundImage = `url(${API_URL}${p.foto_url})`; card.style.backgroundSize='cover'; card.style.backgroundPosition='center'; }
-        card.innerHTML = `<div style="background:rgba(0,0,0,.5);border-radius:8px;padding:4px 8px;font-size:12px;color:#fff;font-weight:700">${p.nome}, ${idade}</div>`;
+        card.innerHTML = `<div style="background:rgba(0,0,0,.5);border-radius:8px;padding:4px 8px;font-size:12px;color:#fff;font-weight:700">${escapeHtml(p.nome)}, ${idade}</div>`;
+        if(p.foto_url){ card.style.backgroundImage = `url(${API_URL}${p.foto_url})`; card.style.backgroundSize='cover'; card.style.backgroundPosition='center'; }
         card.onclick = () => curtirDeVolta(p.id, p.nome, card);
       } else {
         card.className = 'likes-blur-card';
