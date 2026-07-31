@@ -2429,8 +2429,16 @@ async function cadastrarUsuario(){
   const erroEl = document.getElementById('cadErro');
   erroEl.textContent = '';
 
-  if (!nome || !dia || !mes || !ano || !email || !genero || !senha) {
+if (!nome || !dia || !mes || !ano || !email || !genero || !senha) {
     erroEl.textContent = 'Preenche todos os campos pra continuar.';
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    erroEl.textContent = 'Digite um e-mail válido.';
+    return;
+  }
+  if (senha.length < 6) {
+    erroEl.textContent = 'A senha precisa ter pelo menos 6 caracteres.';
     return;
   }
 
