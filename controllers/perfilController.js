@@ -3,6 +3,7 @@ const FotoPerfil = require('../models/FotoPerfil');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const { compararRostos } = require('../utils/rekognition');
 
 const storage = multer.diskStorage({
@@ -15,7 +16,7 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
-    cb(null, req.usuarioId + '-' + Date.now() + ext);
+    cb(null, crypto.randomUUID() + ext);
   }
 });
 
