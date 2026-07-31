@@ -270,13 +270,59 @@ const enviarMensagemDupla = async (req, res) => {
   }
 };
 
+const enviarMensagemDupla = async (req, res) => {
+  try {
+    const { dupla_match_id, conteudo } = req.body;
+    const usuarioId = req.usuarioId;
+
+    if (!dupla_match_id || !conteudo || !String(conteudo).trim()) {
+      return res.status(400).json({ erro: 'dupla_match_id e conteudo são obrigatórios' });
+    }
+
+    const minhaDupla = await getMinhaDupla(usuarioId);
+    if (!minhaDupla) return res.status(403).json({ erro: 'Você precisa estar em uma dupla ativa' });
+
+    const { Op } = require('sequelize');
+    const match = await DuplaMatch.findOne({
+      where: {
+        id: dupla_match_id,
+        ativo: true,
+        [Op.or]: [{ dupla1_id: minhaDupla.id }, { dupla2_id: minhaDupla.id }]
+      }
+    });
+    if (!match) return res.status(403).json({ erro: 'Match de dupla não encontrado ou você não faz parte dele' });
+
+    const conteudoLimpo = String(conteudo).replace(/<[^>]*>/g, '').trim().slice(0, 2000);
+    const mensagem = await MensagemDupla.create({ dupla_match_id, remetente_id: usuarioId, conteudo: conteudoLimpo });
+    res.status(201).json({ mensagem: 'Mensagem enviada!', dados: mensagem });
+  } catch (erro) {
+    console.error('Erro ao enviar mensagem de dupla:', erro);
+    res.status(500).json({ erro: 'Não foi possível enviar a mensagem.' });
+  }
+};
+
 const listarMensagensDupla = async (req, res) => {
   try {
     const { dupla_match_id } = req.params;
+    const usuarioId = req.usuarioId;
+
+    const minhaDupla = await getMinhaDupla(usuarioId);
+    if (!minhaDupla) return res.status(403).json({ erro: 'Você precisa estar em uma dupla ativa' });
+
+    const { Op } = require('sequelize');
+    const match = await DuplaMatch.findOne({
+      where: {
+        id: dupla_match_id,
+        [Op.or]: [{ dupla1_id: minhaDupla.id }, { dupla2_id: minhaDupla.id }]
+      }
+    });
+    if (!match) return res.status(403).json({ erro: 'Match de dupla não encontrado ou você não faz parte dele' });
+
     const mensagens = await MensagemDupla.findAll({ where: { dupla_match_id }, order: [['createdAt', 'ASC']] });
     res.json({ mensagens });
   } catch (erro) {
-    res.status(500).json({ erro: 'Erro ao listar mensagens: ' + erro.message });
+    console.error('Erro ao listar mensagens de dupla:', erro);
+    res.status(500).json({ erro: 'Não foi possível carregar as mensagens.' });
   }
 };
 
