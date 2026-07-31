@@ -2710,8 +2710,7 @@ async function carregarCurtidasRecebidas(){
       const card = document.createElement('div');
       const idade = p.data_nascimento ? calcularIdade(p.data_nascimento) : '';
       if(souPremium){
-        card.style.cssText = 'border-radius:16px;overflow:hidden;position:relative;height:180px;background:linear-gradient(160deg,#5c1a2e,#2b0f17);display:flex;align-items:flex-end;padding:10px;cursor:pointer';
-        if(p.foto_url){ card.style.backgroundImage = `url(${API_URL}${p.foto_url})`; card.style.backgroundSize='cover'; card.style.backgroundPosition='center'; }
+card.innerHTML = `<div style="background:rgba(0,0,0,.5);border-radius:8px;padding:4px 8px;font-size:12px;color:#fff;font-weight:700">${escapeHtml(p.nome)}, ${idade}</div>`;        if(p.foto_url){ card.style.backgroundImage = `url(${API_URL}${p.foto_url})`; card.style.backgroundSize='cover'; card.style.backgroundPosition='center'; }
         card.innerHTML = `<div style="background:rgba(0,0,0,.5);border-radius:8px;padding:4px 8px;font-size:12px;color:#fff;font-weight:700">${p.nome}, ${idade}</div>`;
         card.onclick = () => curtirDeVolta(p.id, p.nome, card);
       } else {
@@ -3000,7 +2999,7 @@ async function carregarDuplaChats(){
     if(matches.length === 0){ vazio.style.display = 'block'; return; }
     vazio.style.display = 'none';
     matches.forEach(m=>{
-      const nomes = `${m.outra_dupla.membro1.nome} & ${m.outra_dupla.membro2.nome}`;
+      const nomes = `${escapeHtml(m.outra_dupla.membro1.nome)} & ${escapeHtml(m.outra_dupla.membro2.nome)}`;
       const item = document.createElement('div');
       item.className = 'chat-list-item';
       item.style.cursor = 'pointer';
@@ -3448,7 +3447,7 @@ function verPerfilCompleto(){
     fotoEl.innerHTML = fotoEl.innerHTML; // mantém os botões de voltar/reportar
   }
 
-  document.getElementById('pvBtnCurtir').innerHTML = `&#128150; Curtir ${p.nome}`;
+  document.getElementById('pvBtnCurtir').innerHTML = `&#128150; Curtir ${escapeHtml(p.nome)}`;
 
   goTo('profile-view');
 }
@@ -3467,12 +3466,12 @@ function preencherCard(elId, perfil){
   const nomeEl = el.querySelector('.card-name');
   if(nomeEl){
     const temVerMais = elId === 'card1';
-    nomeEl.innerHTML = `${perfil.nome} <span class="card-age">${idade}</span>` +
+   nomeEl.innerHTML = `${escapeHtml(perfil.nome)} <span class="card-age">${idade}</span>` +
       (temVerMais ? ` <span style="font-size:13px;color:#f0a0b8;font-weight:700">&#8250; ver mais</span>` : '');
   }
   const tagsEl = el.querySelector('.card-tags');
   if(tagsEl){
-    tagsEl.innerHTML = perfil.bio ? `<div class="card-tag">${perfil.bio.slice(0,60)}</div>` : '<div class="card-tag" style="opacity:.6">Perfil ainda sem bio</div>';
+   tagsEl.innerHTML = perfil.bio ? `<div class="card-tag">${escapeHtml(perfil.bio.slice(0,60))}</div>` : '<div class="card-tag" style="opacity:.6">Perfil ainda sem bio</div>';
   }
   const verificadoEl = el.querySelector('.card-verified');
   if(verificadoEl) verificadoEl.style.display = perfil.verificado ? '' : 'none';
@@ -3659,7 +3658,7 @@ async function dispararPanicoReal(){
     }
     tituloEl.textContent = 'Alerta enviado!';
     textoEl.textContent = 'Seus contatos de confiança foram avisados com sua última localização (simulado nesta fase de testes).';
-    listaEl.innerHTML = (dados.mensagens||[]).map(m => `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08)"><b>${m.contato_nome}</b> (${m.contato_telefone}): ${m.mensagem}</div>`).join('');
+    listaEl.innerHTML = (dados.mensagens||[]).map(m => `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08)"><b>${escapeHtml(m.contato_nome)}</b> (${escapeHtml(m.contato_telefone)}): ${escapeHtml(m.mensagem)}</div>`).join('');
   }catch(e){
     tituloEl.textContent = 'Erro de conexão';
     textoEl.textContent = 'Não foi possível enviar o alerta agora. Tenta de novo.';
@@ -3981,7 +3980,7 @@ async function carregarStoriesBar(){
         <div style="width:58px;height:58px;border-radius:50%;padding:2.5px;background:linear-gradient(135deg,#f0a0b8,#c9a06b,#e0607a)">
           <div style="width:100%;height:100%;border-radius:50%;background:linear-gradient(160deg,#7a2a4a,#4a1428);display:flex;align-items:center;justify-content:center;font-size:22px;border:2px solid #1a0810">${icone}</div>
         </div>
-        <div style="font-size:10px;color:#fdf6f2;font-weight:600">${item.usuario.nome}</div>`;
+       <div style="font-size:10px;color:#fdf6f2;font-weight:600">${escapeHtml(item.usuario.nome)}</div>`;
       bar.appendChild(div);
     });
   } catch(e){}
@@ -4290,7 +4289,7 @@ async function carregarContatos(){
     contatos.forEach(c=>{
       const div=document.createElement('div');
       div.className='ec';
-      div.innerHTML = `<div class="ec-av">&#128100;</div><div style="flex:1"><div class="tl">${c.nome}</div><div class="ts">${c.parentesco||'Contato'} &nbsp;&#9679;&nbsp; ${c.telefone}</div></div><div style="color:#e8909e;font-size:20px;padding:4px 10px;cursor:pointer" onclick="removerContatoSeguranca('${c.id}')">&times;</div>`;
+     div.innerHTML = `<div class="ec-av">&#128100;</div><div style="flex:1"><div class="tl">${escapeHtml(c.nome)}</div><div class="ts">${escapeHtml(c.parentesco||'Contato')} &nbsp;&#9679;&nbsp; ${escapeHtml(c.telefone)}</div></div><div style="color:#e8909e;font-size:20px;padding:4px 10px;cursor:pointer" onclick="removerContatoSeguranca('${c.id}')">&times;</div>`;
       lista.appendChild(div);
     });
   }catch(e){
