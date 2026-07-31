@@ -318,14 +318,15 @@ const listarMensagensDupla = async (req, res) => {
     });
     if (!match) return res.status(403).json({ erro: 'Match de dupla não encontrado ou você não faz parte dele' });
 
-    const mensagens = await MensagemDupla.findAll({ where: { dupla_match_id }, order: [['createdAt', 'ASC']] });
-    res.json({ mensagens });
-  } catch (erro) {
-    console.error('Erro ao listar mensagens de dupla:', erro);
-    res.status(500).json({ erro: 'Não foi possível carregar as mensagens.' });
-  }
-};
+const enviarMensagemDupla = async (req, res) => {
+  try {
+    const { dupla_match_id, conteudo } = req.body;
+    const usuarioId = req.usuarioId;
 
+    if (!dupla_match_id || !conteudo || !String(conteudo).trim()) {
+      return res.status(400).json({ erro: 'dupla_match_id e conteudo são obrigatórios' });
+    }
+    ...
 module.exports = {
   convidarParaDupla, listarConvitesPendentes, responderConvite, statusDupla, sairDaDupla, editarBioDupla,
   listarDuplasParaAvaliar, avaliarDupla,
