@@ -10,6 +10,9 @@ const {
   GetFaceLivenessSessionResultsCommand,
 } = require('@aws-sdk/client-rekognition');
 const Usuario = require('../models/Usuario');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 
 const REGIAO_LIVENESS = process.env.AWS_REKOGNITION_LIVENESS_REGION || 'us-east-1';
 const rekognitionClient = new RekognitionClient({ region: REGIAO_LIVENESS });
@@ -41,10 +44,18 @@ async function buscarResultadoLiveness(req, res) {
     const aprovado = resultado.Status === 'SUCCEEDED' && confianca >= CONFIANCA_MINIMA;
 
     if (aprovado && req.usuarioId) {
-      await Usuario.update(
-        { liveness_aprovado: true, liveness_confianca: confianca },
-        { where: { id: req.usuarioId } }
-      );
+      const dadosParaAtualizar = { liveness_aprovado: true, liveness_confianca: confianca };
+
+      if (resultado.ReferenceImage && resultado.ReferenceImage.Bytes) {
+        const pasta = path.join(__dirname, '..', 'uploads');
+        if (!fs.existsSync(pasta)) fs.mkdirSync(pasta, { recursive: true });
+        const nomeArquivo = `${crypto.randomUUID()}.jpg`;
+        fs.writeFileSync(path.join(pasta, nomeArquivo), Buffer.from(resultado.ReferenceImage.Bytes));
+        dadosParaAtualizar.foto_verificacao = '/uploads/' + nomeArquivo;
+        dadosParaAtualizar.verificado = true;
+      }
+
+      await Usuario.update(dadosParaAtualizar, { where: { id: req.usuarioId } });
     }
 
     return res.json({ aprovado, confianca, status: resultado.Status });
