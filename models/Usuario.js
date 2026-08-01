@@ -135,9 +135,18 @@ cor_cabelo: {
     type: DataTypes.INTEGER,
     defaultValue: 99
   },
-  pref_distancia_km: {
+ pref_distancia_km: {
     type: DataTypes.INTEGER,
     defaultValue: 50
+  },
+  pref_apenas_verificados: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  pref_objetivo: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   },
   pref_altura_min: {
     type: DataTypes.INTEGER,
