@@ -3312,6 +3312,10 @@ async function salvarEdicaoPerfil(){
   ].filter(p => p.resposta);
 
   if(!nome){ alert('O nome não pode ficar vazio.'); return; }
+  if(window.emOnboardingPerfil){
+    const totalFotos = parseInt(document.getElementById('galeriaContagem').textContent, 10) || 0;
+    if(totalFotos < 1){ alert('Adicione pelo menos 1 foto antes de continuar.'); return; }
+  }
   try{
     const resp = await fetch(`${API_URL}/api/perfil/editar`, {
       method:'PUT',
@@ -3323,7 +3327,12 @@ async function salvarEdicaoPerfil(){
     usuarioAtual = dados.usuario;
     localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
     showToastVinculo('Perfil atualizado!');
-    goTo('myprofile');
+    if(window.emOnboardingPerfil){
+      window.emOnboardingPerfil = false;
+      goTo('discover');
+    } else {
+      goTo('myprofile');
+    }
   }catch(e){ alert('Erro de conexão.'); }
 }
 
