@@ -11,6 +11,7 @@ router.post('/visualizacao', autenticar, registrarVisualizacao);
 router.get('/minhas', autenticar, obterMinhasEstatisticas);
 router.get('/notificacoes', autenticar, listarNotificacoes);
 router.put('/notificacoes/marcar-lidas', autenticar, marcarNotificacoesLidas);
-router.get('/admin', autenticar, obterEstatisticasAdmin);
+const { verificarAdmin } = require('../controllers/verificarAdmin');
+router.get('/admin', autenticar, verificarAdmin, obterEstatisticasAdmin);
 
 module.exports = router;
