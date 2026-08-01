@@ -4774,7 +4774,8 @@ function toggleLsRadio(el){
         const dados = await resp.json();
         if (dados.aprovado) {
           if (window.showToastVinculo) window.showToastVinculo('Verificação de identidade confirmada!');
-          window.goTo('verify');
+         window.emOnboardingPerfil = true;
+          window.goTo('edit-profile');
         } else {
           erroEl.textContent = 'Não foi possível confirmar sua identidade. Tente novamente em um ambiente bem iluminado.';
           retryBtn.style.display = 'block';
