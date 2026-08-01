@@ -38,11 +38,12 @@ const removerTagsHtml = (texto) => String(texto).replace(/<[^>]*>/g, '').trim();
 
 const editarPerfil = async (req, res) => {
   try {
-    const {
+   const {
       nome, bio, genero, data_nascimento, cidade, objetivo, signo,
       altura, peso, cor_cabelo, instagram_handle, estilo_vida, interesses, prompts,
       pref_genero, pref_idade_min, pref_idade_max, pref_distancia_km,
-      pref_altura_min, pref_altura_max, pref_peso_min, pref_peso_max, pref_cor_cabelo
+      pref_altura_min, pref_altura_max, pref_peso_min, pref_peso_max, pref_cor_cabelo,
+      pref_apenas_verificados, pref_objetivo
     } = req.body;
     const usuario_id = req.usuarioId;
     const dados = {};
