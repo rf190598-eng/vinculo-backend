@@ -104,6 +104,9 @@ const editarPerfil = async (req, res) => {
     if (pref_peso_min !== undefined) dados.pref_peso_min = pref_peso_min || null;
     if (pref_peso_max !== undefined) dados.pref_peso_max = pref_peso_max || null;
     if (pref_cor_cabelo !== undefined) dados.pref_cor_cabelo = pref_cor_cabelo || null;
+    if (pref_cor_cabelo !== undefined) dados.pref_cor_cabelo = pref_cor_cabelo || null;
+    if (pref_apenas_verificados !== undefined) dados.pref_apenas_verificados = !!pref_apenas_verificados;
+    if (pref_objetivo !== undefined) dados.pref_objetivo = pref_objetivo || null;
 
     await Usuario.update(dados, { where: { id: usuario_id } });
     const usuario = await Usuario.findByPk(usuario_id, {
