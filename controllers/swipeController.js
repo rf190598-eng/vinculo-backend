@@ -160,6 +160,12 @@ const listarPerfis = async (req, res) => {
       if (eu.pref_idade_max && idade > eu.pref_idade_max) return false;
       return true;
     });
+    if (eu.pref_apenas_verificados) {
+      candidatos = candidatos.filter(c => c.verificado === true);
+    }
+    if (eu.pref_objetivo) {
+      candidatos = candidatos.filter(c => c.objetivo === eu.pref_objetivo);
+    }
 
     if (eu.premium) {
       candidatos = candidatos.filter(c => {
