@@ -1032,15 +1032,11 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <div class="switch" id="prefPrivIdade" onclick="alternarPreferencia(this,'priv','mostrarIdade')"></div>
       </div>
       <div class="toggle-row">
-        <div><div class="tl">Perfil visível só para verificados</div><div class="ts">Só quem tem selo de verificado te vê</div></div>
-        <div class="switch" id="prefPrivSoVerificados" onclick="alternarPreferencia(this,'priv','soVerificados')"></div>
-      </div>
-      <div class="toggle-row">
         <div><div class="tl">Modo incógnito</div><div class="ts">Navega no app sem aparecer pra ninguém</div></div>
         <div class="switch" id="prefPrivIncognito" onclick="alternarPreferencia(this,'priv','incognito')"></div>
       </div>
     </div>
-    <div style="font-size:11.5px;color:#a07080;padding:10px 4px;line-height:1.6">Essas preferências ficam salvas neste aparelho. Algumas (como modo incógnito) ainda não afetam a visibilidade real do seu perfil pra outras pessoas — isso é o próximo passo de desenvolvimento.</div>
+    <div style="font-size:11.5px;color:#a07080;padding:10px 4px;line-height:1.6">Essas preferências ficam salvas neste aparelho. "Mostrar minha idade" e "Modo incógnito" ainda não afetam a visibilidade real do seu perfil pra outras pessoas — isso é o próximo passo de desenvolvimento.</div>
   </div>
 </div>
 
@@ -2293,7 +2289,7 @@ function goTo(name){
     carregarMeuPerfil();
   }
   if(name==='notif-prefs'){ carregarPreferenciasNaTela('notif', {matches:'prefNotifMatches',mensagens:'prefNotifMensagens',curtidas:'prefNotifCurtidas',promo:'prefNotifPromo'}); }
-  if(name==='privacy-prefs'){ carregarPreferenciasNaTela('priv', {mostrarIdade:'prefPrivIdade',soVerificados:'prefPrivSoVerificados',incognito:'prefPrivIncognito'}); }
+  if(name==='privacy-prefs'){ carregarPreferenciasNaTela('priv', {mostrarIdade:'prefPrivIdade',incognito:'prefPrivIncognito'}); }
   if(name==='match') setTimeout(launchConfetti, 300);
 }
 
@@ -3818,7 +3814,7 @@ function toggleIncognito(el){
 }
 
 const defaultsNotif = { matches:true, mensagens:true, curtidas:true, promo:false };
-const defaultsPriv = { mostrarIdade:true, soVerificados:false, incognito:false };
+const defaultsPriv = { mostrarIdade:true, incognito:false };
 
 function obterPreferencias(categoria){
   try{ return JSON.parse(localStorage.getItem('vinculo_prefs_'+categoria) || '{}'); }
