@@ -2359,6 +2359,44 @@ function preencherSeletoresData(){
 }
 document.addEventListener('DOMContentLoaded', preencherSeletoresData);
 
+function detectarNavegadorEmbutido(){
+  const ua = navigator.userAgent || '';
+  const ehWhatsApp = /WhatsApp/i.test(ua);
+  const ehInstagram = /Instagram/i.test(ua);
+  const ehFacebook = /FBAN|FBAV|FB_IAB/i.test(ua);
+  const ehLine = /Line\//i.test(ua);
+  if(!ehWhatsApp && !ehInstagram && !ehFacebook && !ehLine) return;
+
+  const isAndroid = /Android/i.test(ua);
+  const urlAtual = window.location.href;
+  const nomeApp = ehWhatsApp ? 'WhatsApp' : ehInstagram ? 'Instagram' : ehFacebook ? 'Facebook' : 'Line';
+
+  let botaoAbrir = '';
+  if(isAndroid){
+    const semProtocolo = urlAtual.replace(/^https?:\/\//,'');
+    const intentUrl = `intent://${semProtocolo}#Intent;scheme=https;package=com.android.chrome;end;`;
+    botaoAbrir = `<a href="${intentUrl}" style="display:block;width:100%;max-width:300px;background:linear-gradient(135deg,#e0607a,#c9a06b);color:#fff;font-weight:700;text-decoration:none;padding:15px;border-radius:12px;margin-bottom:14px;font-size:14px;font-family:inherit">Abrir no Chrome</a>`;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'avisoNavegadorEmbutido';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(10,3,6,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;font-family:Karla,system-ui,sans-serif;color:#fdf6f2;';
+  overlay.innerHTML = `
+    <div style="font-size:44px;margin-bottom:16px">&#128247;&#128683;</div>
+    <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;margin-bottom:10px">Abra no navegador pra continuar</div>
+    <div style="font-size:13.5px;color:#d0a8b8;line-height:1.6;max-width:300px;margin-bottom:22px">Você está vendo o Vínculo dentro do ${nomeApp}, e esse navegador não permite usar a câmera pra verificação de identidade.</div>
+    ${botaoAbrir}
+    <div style="font-size:12.5px;color:#a07080;line-height:1.7;max-width:290px">${isAndroid ? 'Se o botão não funcionar, toque nos <b>3 pontinhos</b> (&#8942;) no canto de cima e escolha <b>"Abrir no Chrome"</b>.' : 'Toque no ícone de <b>compartilhar</b> embaixo da tela e escolha <b>"Abrir no Safari"</b>.'}</div>
+    <button id="btnCopiarLinkAviso" style="margin-top:20px;background:none;border:1.5px solid rgba(255,255,255,.25);color:#fdf6f2;padding:11px 20px;border-radius:10px;font-size:13px;cursor:pointer;font-family:inherit">Copiar link</button>
+  `;
+  document.body.appendChild(overlay);
+  document.getElementById('btnCopiarLinkAviso').addEventListener('click', function(){
+    if(navigator.clipboard){ navigator.clipboard.writeText(urlAtual); }
+    this.textContent = 'Link copiado!';
+  });
+}
+document.addEventListener('DOMContentLoaded', detectarNavegadorEmbutido);
+
 document.addEventListener('DOMContentLoaded', verificarSessaoSalva);
 
 document.addEventListener('DOMContentLoaded', () => {
