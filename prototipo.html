@@ -842,7 +842,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <div class="card-name" id="pvNome" style="font-size:30px">—</div>
       </div>
       <div style="display:flex;gap:8px">
-        <div class="icon-btn" onclick="openModal('report')" style="font-size:14px">&#128683;</div>
+        <div class="icon-btn" onclick="abrirConfirmacaoBloqueio()" style="font-size:14px" title="Bloquear perfil">&#128683;</div>
       </div>
     </div>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap" id="pvBadges"></div>
@@ -872,6 +872,21 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <button class="btn btn-ghost" style="flex:1;padding:14px" onclick="doSwipe('left');goTo('discover')">&#10005; Passar</button>
     <button class="btn btn-primary" style="flex:2;padding:14px" id="pvBtnCurtir" onclick="doSwipe('right');goTo('discover')">&#128150; Curtir</button>
   </div>
+  <div style="text-align:center;padding:0 18px 18px">
+    <div style="display:inline-flex;align-items:center;gap:6px;color:#e8909e;font-size:12.5px;font-weight:600;cursor:pointer" onclick="abrirConfirmacaoBloqueio()">&#128683; Bloquear este perfil</div>
+  </div>
+</div>
+<!-- CONFIRMACAO DE BLOQUEIO -->
+<div class="overlay" id="overlay-block-confirm" onclick="if(event.target===this)closeModal('block-confirm')">
+  <div class="modal modal-center">
+    <div class="modal-handle"></div>
+    <div class="big-ic" style="color:#e8909e">&#128683;</div>
+    <h3 class="serif">Bloquear perfil?</h3>
+    <p style="color:#d8b0c4;font-size:13px;line-height:1.6">Essa pessoa nao vai mais te ver, e voce nao vai mais ver ela em nenhum lugar do Vinculo. Nenhuma notificacao e enviada pra ela.</p>
+    <div id="blockErro" style="color:#ff8fa3;font-size:12.5px;margin-top:2px;min-height:14px"></div>
+    <button class="btn btn-danger" style="margin-top:6px" onclick="blockProfile()">Sim, bloquear</button>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('block-confirm')">Cancelar</button>
+  </div>
 </div>
 <!-- CHATS -->
 <div class="screen" id="screen-chats" style="background:#1a0810;min-height:100vh;">
@@ -896,6 +911,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div class="chatroom-avatar" id="chatroomAvatar">&#128100;</div>
     <div style="flex:1"><div style="font-weight:700;font-size:14px" id="chatroomNome">—</div></div>
     <div class="icon-btn" onclick="goTo('safety')">&#128737;</div>
+    <div class="icon-btn" onclick="openModal('chat-options')">&#8942;</div>
   </div>
   <div class="chat-safety-bar" onclick="openModal('share-route')">
     <span style="font-size:18px">&#128205;</span>
@@ -909,6 +925,17 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div class="chat-input-bar">
     <input class="chat-inp" id="chatInput" placeholder="Mensagem..." onkeypress="if(event.key==='Enter')enviarMensagemChat()"/>
     <button class="send-btn" onclick="enviarMensagemChat()">&#9658;</button>
+  </div>
+</div>
+<!-- OPCOES DA CONVERSA (denunciar/bloquear direto do chat) -->
+<div class="overlay" id="overlay-chat-options" onclick="if(event.target===this)closeModal('chat-options')">
+  <div class="modal modal-center">
+    <div class="modal-handle"></div>
+    <h3 class="serif">Opcoes da conversa</h3>
+    <p style="color:#d8b0c4;font-size:12.5px;margin-bottom:6px">Recebeu uma mensagem indevida? Voce pode denunciar e/ou bloquear essa pessoa agora.</p>
+    <button class="btn btn-ghost" style="margin-top:10px;border-color:rgba(232,144,158,.35);color:#e8909e" onclick="closeModal('chat-options');openModal('report')">&#9888; Denunciar mensagem</button>
+    <button class="btn btn-danger" style="margin-top:10px" onclick="closeModal('chat-options');abrirConfirmacaoBloqueio()">&#128683; Bloquear esta pessoa</button>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('chat-options')">Cancelar</button>
   </div>
 </div>
 
@@ -3189,6 +3216,7 @@ async function carregarChats(){
 async function abrirChat(match){
   matchAtual = match;
   const outro = match.outro_usuario || {};
+  perfilDenunciadoId = outro.id || null;
   document.getElementById('chatroomNome').textContent = outro.nome || 'Usuário';
   const checklistNome = document.getElementById('checklistNomeTexto');
   if(checklistNome) checklistNome.textContent = `Um checklist rapido para o seu encontro com ${outro.nome || 'essa pessoa'}`;
@@ -3774,7 +3802,7 @@ async function submitReport(){
   erroEl.textContent = '';
 
   if (!perfilDenunciadoId) {
-    erroEl.textContent = 'Abra o perfil da pessoa antes de denunciar.';
+    erroEl.textContent = 'Nao foi possivel identificar essa pessoa. Tenta abrir o perfil dela primeiro.';
     return;
   }
   if (!motivoReportSelecionado) {
@@ -3795,6 +3823,47 @@ async function submitReport(){
     document.getElementById('reportSentView').style.display='block';
     motivoReportSelecionado = null;
   } catch(e){ erroEl.textContent = 'Erro de conexão. Tenta de novo.'; }
+}
+
+async function blockProfile(){
+  const erroEl = document.getElementById('blockErro');
+  erroEl.textContent = '';
+
+  if (!perfilDenunciadoId) {
+    erroEl.textContent = 'Abra o perfil da pessoa antes de bloquear.';
+    return;
+  }
+
+  try{
+    const resp = await fetch(`${API_URL}/api/bloqueio`, {
+      method:'POST',
+      headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
+      body: JSON.stringify({ bloqueado_id: perfilDenunciadoId })
+    });
+    const dados = await resp.json();
+    if(!resp.ok){ erroEl.textContent = dados.erro || 'Não foi possível bloquear.'; return; }
+
+    // Remove o perfil bloqueado da fila de descoberta, se estiver nela
+    filaPerfis = filaPerfis.filter(p => p.id !== perfilDenunciadoId);
+    if (perfilCard2Data && perfilCard2Data.id === perfilDenunciadoId) perfilCard2Data = null;
+
+    closeModal('block-confirm');
+    showToastVinculo('Perfil bloqueado. Voce nao vai mais ver essa pessoa.');
+
+    const veioDoChat = document.getElementById('screen-chatroom').classList.contains('active');
+    if (veioDoChat) {
+      matchAtual = null;
+      goTo('chats');
+    } else {
+      goTo('discover');
+    }
+  } catch(e){ erroEl.textContent = 'Erro de conexão. Tenta de novo.'; }
+}
+
+function abrirConfirmacaoBloqueio(){
+  if (!perfilDenunciadoId && perfilCard1Data) perfilDenunciadoId = perfilCard1Data.id;
+  document.getElementById('blockErro').textContent = '';
+  openModal('block-confirm');
 }
 
 function doRewind(){
