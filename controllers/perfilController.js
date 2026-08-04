@@ -333,6 +333,6 @@ const removerFotoGaleria = async (req, res) => {
 };
 
 module.exports = {
-  editarPerfil, uploadFoto, upload, atualizarLocalizacao, uploadSelfieVerificacao, estatisticasIndicacao,
+  editarPerfil, uploadFoto, upload, atualizarLocalizacao, estatisticasIndicacao,
   listarFotosGaleria, adicionarFotoGaleria, removerFotoGaleria
 };
