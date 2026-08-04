@@ -591,7 +591,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div class="logo serif">Vín<span>culo</span></div>
     <div class="icon-row">
       <div class="icon-btn" onclick="openNotifications()" style="position:relative">&#128276;<span class="notification-dot"></span></div>
-     <div class="icon-btn" onclick="abrirModalFiltros()">&#127925;</div>
+     <div class="icon-btn" onclick="abrirModalFiltros()">&#127899;</div>
       <div class="icon-btn" onclick="goTo('safety')">&#128737;</div>
     </div>
   </div>
@@ -632,7 +632,6 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div class="filter-bar">
     <div class="filter-chip active">Todos</div>
     <div class="filter-chip" onclick="activateFilter(this)">Perto de mim</div>
-    <div class="filter-chip" onclick="activateFilter(this)">Verificados</div>
     <div class="filter-chip" onclick="activateFilter(this)">Online agora</div>
     <div class="filter-chip">Disponíveis agora</div>
   </div>
@@ -1679,12 +1678,12 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="width:38px"></div>
   </div>
   <div style="padding:0 18px 24px">
-    <div class="my-profile-photo" id="fotoEditPerfil" style="height:180px;border-radius:16px;margin-bottom:16px;cursor:pointer" onclick="document.getElementById('inputFotoPerfil').click()">&#128100;
+    <div class="my-profile-photo" id="fotoEditPerfil" style="height:180px;border-radius:16px;margin-bottom:16px;cursor:pointer" onclick="document.getElementById('galeriaGrid').scrollIntoView({behavior:'smooth',block:'center'})">&#128100;
       <div class="edit-overlay">&#9998;</div>
     </div>
 
     <div class="edit-section-title">Fotos do perfil (<span id="galeriaContagem">0</span>/7)</div>
-    <div style="font-size:12px;color:#d0a8b8;margin-bottom:10px;line-height:1.5">A primeira foto é a que aparece pra outras pessoas no Descobrir. Adicione pelo menos 7 pra ter mais chance de match.</div>
+    <div style="font-size:12px;color:#d0a8b8;margin-bottom:10px;line-height:1.5">A primeira foto é a que aparece no seu card do Descobrir. As outras aparecem quando alguém abre seu perfil completo. Adicione pelo menos 7 pra ter mais chance de match.</div>
     <div id="galeriaGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px"></div>
     <input type="file" id="inputGaleriaFoto" accept="image/*" style="display:none" onchange="galeriaFotoSelecionada(event)"/>
 
@@ -1748,7 +1747,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div class="ls-chip on" data-valor="relacionamento_serio" onclick="toggleLsRadio(this)">&#128141; Relacionamento serio</div>
       <div class="ls-chip" data-valor="amizade" onclick="toggleLsRadio(this)">&#128107; Amizade</div>
       <div class="ls-chip" data-valor="casual" onclick="toggleLsRadio(this)">&#128293; Algo casual</div>
-      <div class="ls-chip" data-valor="networking" onclick="toggleLsRadio(this)">&#129309; Networking</div>
+      <div class="ls-chip" data-valor="aberto" onclick="toggleLsRadio(this)">&#10024; Deixa rolar</div>
     </div>
 
     <div class="edit-section-title">Interesses</div>
@@ -2027,7 +2026,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <span class="tag-chip on" data-valor="relacionamento_serio">Relacionamento serio</span>
         <span class="tag-chip" data-valor="amizade">Amizade</span>
         <span class="tag-chip" data-valor="casual">Casual</span>
-        <span class="tag-chip" data-valor="networking">Networking</span>
+        <span class="tag-chip" data-valor="aberto">Deixa rolar</span>
       </div>
     </div>
     <div class="filter-section">
