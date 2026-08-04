@@ -171,14 +171,6 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 .range-val{display:flex;justify-content:space-between;font-size:12.5px;color:#c0a0b0;}
 .filter-section{margin-bottom:20px;}
 .filter-section-title{font-size:12px;font-weight:700;color:#d0a8b8;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;}
-.compat-opt{padding:13px 16px;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.15);border-radius:12px;font-size:13.5px;cursor:pointer;margin-bottom:8px;transition:.15s;color:#fdf6f2;}
-.compat-opt:active{transform:scale(.98);}
-.compat-opt.on{background:rgba(212,131,154,.2);border-color:#d4839a;color:#fdf6f2;}
-.score-ring{width:90px;height:90px;border-radius:50%;border:3px solid;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 8px;}
-.score-ring.gold{border-color:#c9a06b;background:rgba(201,160,107,.15);}
-.score-ring.green{border-color:#6dcc6d;background:rgba(109,204,109,.12);}
-.score-num{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:#fdf6f2;}
-.score-lbl{font-size:9px;letter-spacing:.5px;color:#d0a8b8;}
 .notification-dot{position:absolute;top:-2px;right:-2px;width:10px;height:10px;border-radius:50%;background:#f0a0b8;border:2px solid #120508;}
 .lifestyle-row{display:flex;align-items:center;padding:10px 0;border-top:1px solid rgba(255,255,255,.08);font-size:13.5px;color:#fdf6f2;}
 .lifestyle-row:first-of-type{border-top:none;}
@@ -1083,39 +1075,6 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="background:rgba(201,160,107,.12);border:1px solid rgba(201,160,107,.3);border-radius:12px;padding:11px 14px;font-size:12.5px;color:#e0c8a8;line-height:1.5;margin-top:10px">
       &#128274; Sua localizacao aparece como uma area aproximada. Nunca como ponto exato.
     </div>
-  </div>
-</div>
-
-<!-- COMPATIBILIDADE -->
-<div class="screen" id="screen-compat" style="background:#1a0810;min-height:100vh;">
-  <div class="topbar">
-    <div class="icon-btn" onclick="goTo('discover')">&#8592;</div>
-    <div class="logo serif">Compatibilidade</div>
-    <div style="width:38px"></div>
-  </div>
-  <div style="padding:0 18px">
-    <div style="text-align:center;padding:18px 0 14px">
-      <div style="font-size:13px;color:#e0c0d0;margin-bottom:6px;font-weight:600">Responda para melhorar suas conexoes</div>
-      <div style="display:flex;justify-content:center;gap:4px">
-        <div style="width:28px;height:4px;border-radius:2px;background:#d4839a"></div>
-        <div style="width:28px;height:4px;border-radius:2px;background:#d4839a"></div>
-        <div style="width:28px;height:4px;border-radius:2px;background:rgba(255,255,255,.15)"></div>
-        <div style="width:28px;height:4px;border-radius:2px;background:rgba(255,255,255,.15)"></div>
-        <div style="width:28px;height:4px;border-radius:2px;background:rgba(255,255,255,.15)"></div>
-      </div>
-    </div>
-    <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:24px 20px">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:20px">Como voce prefere passar um fim de semana?</div>
-      <div id="compat-opts">
-        <div class="compat-opt" onclick="selectCompat(this)">&#127774; Em casa, relaxando</div>
-        <div class="compat-opt" onclick="selectCompat(this)">&#127939; Atividades ao ar livre</div>
-        <div class="compat-opt" onclick="selectCompat(this)">&#127869; Descobrindo restaurantes</div>
-        <div class="compat-opt" onclick="selectCompat(this)">&#127926; Baladas e shows</div>
-        <div class="compat-opt" onclick="selectCompat(this)">&#9749; Cafe e conversa</div>
-      </div>
-    </div>
-    <button class="btn btn-primary" style="margin-top:16px" onclick="goTo('discover')">Proxima pergunta</button>
-    <button class="btn btn-ghost" style="margin-top:10px" onclick="goTo('discover')">Pular por agora</button>
   </div>
 </div>
 
@@ -2206,7 +2165,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 </div>
   
 <script>
-const noNav=['landing','auth','login','welcome','onboarding','tour1','tour2','tour3','tour4','liveness','verify','verify2','match','profile-view','chatroom','compat','edit-profile','notifications','assinatura','esqueci-senha','redefinir-senha'];
+const noNav=['landing','auth','login','welcome','onboarding','tour1','tour2','tour3','tour4','liveness','verify','verify2','match','profile-view','chatroom','edit-profile','notifications','assinatura','esqueci-senha','redefinir-senha'];
 let swipeCount=0, timerInterval=null, timerSec=0;
 let lastSwipeDir=null, totalSwipes=0;
 let filaPerfis=[];
@@ -4748,11 +4707,6 @@ function closeModal(name){
       motivoReportSelecionado = null;
     },300);
   }
-}
-
-function selectCompat(el){
-  document.querySelectorAll('.compat-opt').forEach(o=>o.classList.remove('on'));
-  el.classList.add('on');
 }
 
 function toggleLs(el){
