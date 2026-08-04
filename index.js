@@ -163,8 +163,20 @@ let servidor;
 
 const iniciar = async () => {
   await conectarBanco();
-  await sequelize.sync({ alter: true }); // TODO: trocar por migrations antes do lançamento
-  console.log('Tabelas sincronizadas!');
+
+  // ===== SEGURANÇA DE DADOS: alter:true só em desenvolvimento =====
+  // sequelize.sync({ alter: true }) muda o schema do banco automaticamente
+  // toda vez que o servidor sobe. Ótimo pra prototipar sozinho, perigoso
+  // rodando direto em produção com usuários reais (pode travar em tabelas
+  // grandes ou, em certas mudanças de coluna, perder dado). Antes do
+  // lançamento público, isso deve virar migrations reais (sequelize-cli).
+  if (process.env.NODE_ENV === 'production') {
+    await sequelize.sync(); // cria tabelas que não existem, mas NÃO altera as existentes
+    console.log('Sync em modo produção (sem alter). Use migrations pra mudar o schema.');
+  } else {
+    await sequelize.sync({ alter: true }); // TODO: trocar por migrations antes do lançamento
+    console.log('Tabelas sincronizadas (modo desenvolvimento, com alter)!');
+  }
 
   servidor = app.listen(PORT, () => {
     console.log('Servidor Vinculo rodando na porta ' + PORT);
