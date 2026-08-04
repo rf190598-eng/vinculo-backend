@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
-  editarPerfil, uploadFoto, upload, atualizarLocalizacao, uploadSelfieVerificacao, estatisticasIndicacao,
+  editarPerfil, uploadFoto, upload, atualizarLocalizacao, estatisticasIndicacao,
   listarFotosGaleria, adicionarFotoGaleria, removerFotoGaleria
 } = require('../controllers/perfilController');
 const { autenticar } = require('../controllers/authMiddleware');
