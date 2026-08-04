@@ -134,11 +134,7 @@ const uploadFoto = async (req, res) => {
   }
 };
 
-const uploadSelfieVerificacao = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ erro: 'Nenhuma selfie enviada' });
-    }
+
 
     const usuarioAtual = await Usuario.findByPk(req.usuarioId);
     if (!usuarioAtual.foto_url) {
