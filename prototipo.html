@@ -613,19 +613,15 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     </div>
   </div>
 
-  <!-- MODO DISPONÍVEL AGORA + DUPLA -->
-  <div style="margin:0 18px 10px;display:flex;gap:8px">
-    <div style="flex:2;display:flex;align-items:center;gap:10px;background:rgba(109,204,109,.08);border:1.5px solid rgba(109,204,109,.2);border-radius:14px;padding:11px 14px" id="modoDispBanner">
-    <div style="width:10px;height:10px;border-radius:50%;background:#6dcc6d;flex-shrink:0;box-shadow:0 0 8px #6dcc6d"></div>
-    <div style="flex:1">
-      <div style="font-size:13px;font-weight:700;color:#fdf6f2">Modo "Disponível agora"</div>
-      <div style="font-size:11.5px;color:#b0d8b0">Apareça para quem está livre perto de você</div>
-    </div>
-      <div class="switch" id="switchDisp" onclick="toggleDisponivel(this)"></div>
-    </div>
-    <div onclick="goTo('dupla')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:rgba(212,131,154,.08);border:1.5px solid rgba(212,131,154,.25);border-radius:14px;padding:11px 8px;cursor:pointer;text-align:center">
-      <span style="font-size:20px">&#128107;</span>
-      <span style="font-size:10px;color:#f0a0b8;font-weight:700;line-height:1.2">Modo<br>Dupla</span>
+  <!-- MODO DUPLA -->
+  <div style="margin:0 18px 10px">
+    <div onclick="goTo('dupla')" style="display:flex;align-items:center;gap:10px;background:rgba(212,131,154,.08);border:1.5px solid rgba(212,131,154,.25);border-radius:14px;padding:12px 14px;cursor:pointer">
+      <span style="font-size:22px">&#128107;</span>
+      <div style="flex:1;text-align:left">
+        <div style="font-size:13px;font-weight:700;color:#f0a0b8">Modo Dupla</div>
+        <div style="font-size:11px;color:#d0a8b8">Explore em dupla com um amigo</div>
+      </div>
+      <span style="color:#f0a0b8">&#8250;</span>
     </div>
   </div>
 
@@ -633,14 +629,6 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div class="filter-chip active">Todos</div>
     <div class="filter-chip" onclick="activateFilter(this)">Perto de mim</div>
     <div class="filter-chip" onclick="activateFilter(this)">Online agora</div>
-    <div class="filter-chip">Disponíveis agora</div>
-  </div>
-  <div id="boostActiveBanner" style="display:none;padding:0 18px 10px">
-    <div style="display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(212,131,154,.2),rgba(201,160,107,.15));border:1px solid #c9a06b;border-radius:14px;padding:11px 13px">
-      <span style="font-size:18px">&#9889;</span>
-      <div style="flex:1;font-size:11.5px;color:#fdf6f2"><b>Boost ativo!</b> Seu perfil esta em destaque agora</div>
-      <span id="boostTimer" style="font-family:'Cormorant Garamond',serif;font-weight:700;color:#c9a06b;font-size:16px">29:59</span>
-    </div>
   </div>
   <div id="completeProfileBanner" style="padding:0 18px 10px">
     <div style="display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(201,160,107,.18),rgba(212,131,154,.14));border:1.5px solid rgba(201,160,107,.5);border-radius:14px;padding:11px 13px">
@@ -724,15 +712,11 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
             <span style="font-size:18px">&#128205;</span>Ampliar o raio de busca
           </div>
           <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#fdf6f2">
-            <span style="font-size:18px">&#9889;</span>Ativar Boost para aparecer para mais pessoas
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#fdf6f2">
             <span style="font-size:18px">&#127775;</span>Responder a Pergunta do dia para ganhar destaque
           </div>
         </div>
       </div>
-      <button class="btn btn-primary" onclick="openModal('filters')" style="margin-bottom:10px">&#128205; Ampliar raio de busca</button>
-      <button class="btn btn-ghost" onclick="openModal('boost-info')" style="margin-bottom:10px">&#9889; Ativar Boost agora</button>
+      <button class="btn btn-primary" onclick="abrirModalFiltros()" style="margin-bottom:10px">&#128205; Ampliar raio de busca</button>
       <button style="background:none;border:none;color:#907080;font-size:13px;cursor:pointer;padding:6px;font-family:inherit" onclick="resetDiscoverDeck()">Ver perfis novamente do início</button>
     </div>
     <div class="swipe-card card-back" id="card2">
@@ -772,12 +756,10 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     </div>
   </div>
   <div class="swipe-btns">
-    <button class="sw-btn sw-info" onclick="doRewind()" id="rewindBtn">&#8617;</button>
     <button class="sw-btn sw-pass" onclick="doSwipe('left')">&#10005;</button>
     <button class="sw-btn sw-like" onclick="doSwipe('right')">&#128150;</button>
     <button class="sw-btn sw-super" onclick="doSwipe('super')">&#11088;</button>
   </div>
-  <div style="text-align:center;font-size:11.5px;color:#d0a8b8;margin-top:6px;font-weight:600" id="rewindHint">&#8617; Voltar atras &mdash; 1 gratis por dia</div>
 </div>
 
 <!-- MATCH -->
@@ -1172,15 +1154,6 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <div><div style="font-size:13px;font-weight:700">Ver quem curtiu voce</div><div style="font-size:12px;color:#d0b0c8">Veja todos os perfis que ja deram like em voce</div></div>
       </div>
       <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)">
-        <span style="font-size:20px">&#8617;</span>
-        <div><div style="font-size:13px;font-weight:700">Rewind</div><div style="font-size:12px;color:#d0b0c8">Desfaca o ultimo nao e tente de novo</div></div>
-      </div>
-      <div class="premium-item" onclick="openModal('boost-info')" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer">
-        <span style="font-size:20px">&#9889;</span>
-        <div style="flex:1"><div style="font-size:13px;font-weight:700">Boost de 30 min</div><div style="font-size:12px;color:#d0b0c8">Apareca mais para outros usuarios</div></div>
-        <span style="color:#a08090">&#8250;</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)">
         <span style="font-size:20px">&#127937;</span>
         <div><div style="font-size:13px;font-weight:700">Filtros avancados</div><div style="font-size:12px;color:#d0b0c8">Profissao, signo, escolaridade e mais</div></div>
       </div>
@@ -1264,18 +1237,6 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div style="font-size:13px;color:#e0c8d8;line-height:1.6">Veja quem já curtiu você e dê match na hora — antes de desperdiçar tempo com quem não está interessado.</div>
     </div>
 
-    <!-- BLOCO 2 — Visibilidade -->
-    <div style="background:linear-gradient(135deg,rgba(201,160,107,.12),rgba(212,131,154,.06));border:1.5px solid rgba(201,160,107,.3);border-radius:18px;padding:18px;margin-bottom:12px">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-        <div style="font-size:32px">&#9889;</div>
-        <div>
-          <div style="font-size:16px;font-weight:800;color:#fdf6f2">Você aparece mais — todo dia</div>
-          <div style="font-size:12px;color:#d4b87a;font-weight:600">Boost diário de 30 minutos incluído</div>
-        </div>
-      </div>
-      <div style="font-size:13px;color:#e0c8d8;line-height:1.6">Seu perfil sobe para o topo e aparece primeiro para pessoas compatíveis próximas de você. Mais visibilidade = mais matches.</div>
-    </div>
-
     <!-- BLOCO 3 — Super curtida -->
     <div style="background:linear-gradient(135deg,rgba(109,204,109,.08),rgba(201,160,107,.06));border:1.5px solid rgba(109,204,109,.25);border-radius:18px;padding:18px;margin-bottom:18px">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
@@ -1328,7 +1289,6 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 16px;margin:14px 0">
       <div style="font-size:11px;font-weight:700;color:#d0a8b8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Também incluído</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px">
-        <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:6px 12px;font-size:12px;color:#e0d0e8">&#8617; Rewind ilimitado</span>
         <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:6px 12px;font-size:12px;color:#e0d0e8">&#128274; Modo incógnito</span>
         <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:6px 12px;font-size:12px;color:#e0d0e8">&#127919; Filtros avançados</span>
         <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:6px 12px;font-size:12px;color:#e0d0e8">&#128204; Curtidas ilimitadas</span>
@@ -2068,17 +2028,6 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   </div>
 </div>
 
-<div class="overlay" id="overlay-premium-rewind" onclick="if(event.target===this)closeModal('premium-rewind')">
-  <div class="modal modal-center">
-    <div class="modal-handle"></div>
-    <div class="big-ic">&#128081;</div>
-    <h3 class="serif">Rewind ilimitado</h3>
-    <p>Voce ja usou seu rewind gratis de hoje. Assine o Premium para desfazer quantas vezes quiser, alem de outros beneficios.</p>
-    <button class="btn btn-primary" onclick="closeModal('premium-rewind');goTo('premium')">Ver Premium</button>
-    <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('premium-rewind')">Agora nao</button>
-  </div>
-</div>
-
 <!-- MODAL VIEW STORY -->
 <div class="overlay" id="overlay-view-story" onclick="if(event.target===this)closeModal('view-story')" style="align-items:center">
   <div style="background:#1a0810;width:100%;max-width:430px;height:100vh;position:relative;display:flex;flex-direction:column">
@@ -2185,16 +2134,6 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal('dupla-convite')">Fechar</button>
   </div>
 </div>
-<div class="overlay" id="overlay-boost-info" onclick="if(event.target===this)closeModal('boost-info')">
-  <div class="modal modal-center" id="boostModalContent">
-    <div class="modal-handle"></div>
-    <div class="big-ic">&#9889;</div>
-    <h3 class="serif">Boost de 30 minutos</h3>
-    <p>Seu perfil aparece entre os primeiros para pessoas na sua regiao durante 30 minutos. Otimo horario para usar: noites e fins de semana.</p>
-    <button class="btn btn-primary" onclick="activateBoost()">Ativar Boost agora</button>
-    <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('boost-info')">Agora nao</button>
-  </div>
-</div>
 
 <!-- MODAL CONFIRMAÇÃO ASSINATURA -->
 <div class="overlay" id="overlay-confirma-assinatura" onclick="if(event.target===this)closeModal('confirma-assinatura')">
@@ -2260,7 +2199,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div class="modal-handle"></div>
     <div class="big-ic">&#127881;</div>
     <h3 class="serif">Bem-vindo ao Premium!</h3>
-    <p>Sua assinatura está ativa! Agora você pode ver quem curtiu você, <b>conversar com seus matches</b>, usar Boost diário e muito mais.</p>
+    <p>Sua assinatura está ativa! Agora você pode ver quem curtiu você, <b>conversar com seus matches</b> e usar filtros avançados.</p>
     <button class="btn btn-primary" onclick="closeModal('assinatura-ok');goTo('likes')">Ver quem curtiu você</button>
     <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('assinatura-ok');goTo('discover')">Explorar o app</button>
   </div>
@@ -2269,7 +2208,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 <script>
 const noNav=['landing','auth','login','welcome','onboarding','tour1','tour2','tour3','tour4','liveness','verify','verify2','match','profile-view','chatroom','compat','edit-profile','notifications','assinatura','esqueci-senha','redefinir-senha'];
 let swipeCount=0, timerInterval=null, timerSec=0;
-let rewindUsedToday=false, lastSwipeDir=null, totalSwipes=0;
+let lastSwipeDir=null, totalSwipes=0;
 let filaPerfis=[];
 const lastProfileData = {name:'Camila',age:27};
 
@@ -3865,46 +3804,12 @@ function abrirConfirmacaoBloqueio(){
   openModal('block-confirm');
 }
 
-function doRewind(){
-  if(rewindUsedToday){
-    openModal('premium-rewind');
-    return;
-  }
-  rewindUsedToday=true;
-  document.getElementById('rewindHint').innerHTML='&#10003; Usado hoje &mdash; volta amanha';
-  document.getElementById('rewindBtn').style.opacity='.4';
-  showToastVinculo('Ultima acao desfeita!');
-}
-
 function showToastVinculo(msg){
   const t=document.createElement('div');
   t.textContent=msg;
   t.style.cssText='position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#1a0a0e;color:#fdf6f2;padding:10px 20px;border-radius:20px;font-size:12.5px;font-weight:600;z-index:600;border:1px solid rgba(212,131,154,.3);box-shadow:0 8px 24px rgba(0,0,0,.4)';
   document.body.appendChild(t);
   setTimeout(()=>t.remove(),2000);
-}
-
-let boostInterval=null, boostSeconds=1800;
-function activateBoost(){
-  closeModal('boost-info');
-  goTo('discover');
-  document.getElementById('boostActiveBanner').style.display='block';
-  boostSeconds=1800;
-  showToastVinculo('Boost ativado! Voce esta em destaque.');
-  if(boostInterval)clearInterval(boostInterval);
-  boostInterval=setInterval(()=>{
-    boostSeconds--;
-    if(boostSeconds<=0){
-      clearInterval(boostInterval);
-      document.getElementById('boostActiveBanner').style.display='none';
-      showToastVinculo('Seu Boost terminou.');
-      return;
-    }
-    const m=String(Math.floor(boostSeconds/60)).padStart(2,'0');
-    const s=String(boostSeconds%60).padStart(2,'0');
-    const el=document.getElementById('boostTimer');
-    if(el)el.textContent=m+':'+s;
-  },1000);
 }
 
 function toggleIncognito(el){
@@ -4646,20 +4551,6 @@ function launchConfetti(){
     container.appendChild(el);
   }
   setTimeout(()=>{ if(container) container.innerHTML=''; }, 4000);
-}
-
-function toggleDisponivel(sw){
-  sw.classList.toggle('on');
-  const banner = document.getElementById('modoDispBanner');
-  if(sw.classList.contains('on')){
-    banner.style.borderColor='rgba(109,204,109,.5)';
-    banner.style.background='rgba(109,204,109,.12)';
-    showToast('Você está disponível agora! Aparecendo para pessoas próximas &#128205;');
-  } else {
-    banner.style.borderColor='rgba(109,204,109,.2)';
-    banner.style.background='rgba(109,204,109,.08)';
-    showToast('Modo disponível desativado');
-  }
 }
 
 function sendIcebreaker(el, text){
