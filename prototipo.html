@@ -1744,7 +1744,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       </div>
     </div>
     <!-- Barra de destaque -->
-    <div style="background:rgba(255,255,255,.06);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px">
+    <div id="faixaPremiumPerfil" style="background:rgba(255,255,255,.06);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px">
       <span style="font-size:18px">&#128081;</span>
       <div style="flex:1;font-size:12px;color:#e0c0d0;line-height:1.4">Assine o Premium para ver <b style="color:#fdf6f2">quem visitou seu perfil</b> e aparecer mais vezes</div>
       <button onclick="goTo('assinatura')" style="background:linear-gradient(135deg,#e0607a,#c9a06b);border:none;border-radius:10px;padding:7px 11px;color:#fff;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">Ver planos</button>
@@ -4119,6 +4119,9 @@ async function carregarMeuPerfil(){
   document.getElementById('meuPerfilNome').textContent = usuarioAtual.nome;
   document.getElementById('meuPerfilIdade').textContent = idade;
  document.getElementById('meuPerfilBadgeVerificado').style.display = usuarioAtual.verificado ? 'flex' : 'none';
+
+  const faixaPremiumEl = document.getElementById('faixaPremiumPerfil');
+  if (faixaPremiumEl) faixaPremiumEl.style.display = usuarioAtual.premium ? 'none' : 'flex';
 
   const igInputEl = document.getElementById('editInstagram');
   const igStatusEl = document.getElementById('igStatusTexto');
