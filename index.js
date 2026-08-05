@@ -44,6 +44,7 @@ const parceriaRoutes = require('./routes/parceria');
 const duplaRoutes = require('./routes/dupla');
 const statusRoutes = require('./routes/status');
 const estatisticasRoutes = require('./routes/estatisticas');
+const usuarioRoutes = require('./routes/usuario');
 const { verificarCheckinsVencidos } = require('./controllers/segurancaController');
 
 const app = express();
@@ -135,6 +136,7 @@ app.use('/api/status', statusRoutes);
 app.use('/api/estatisticas', estatisticasRoutes);
 app.use('/api/denuncia', denunciaRoutes);
 app.use('/api/bloqueio', bloqueioRoutes);
+app.use('/api/usuario', usuarioRoutes);
 
 // ===== Rota não encontrada =====
 app.use((req, res) => {
