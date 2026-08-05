@@ -57,6 +57,13 @@ const Usuario = sequelize.define('Usuario', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  // Caminho da imagem de referência capturada durante o Face Liveness (antes de
+  // existir foto de perfil). Usada uma única vez, pra comparar com a primeira
+  // foto de perfil que o usuário definir (ver perfilController.uploadFoto).
+  foto_referencia_liveness: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   verificado: {
     type: DataTypes.BOOLEAN,
     defaultValue: false

@@ -1,12 +1,16 @@
 // livenessController.js
 // Lógica de backend para o Face Liveness do Vínculo.
 //
-// Fluxo completo:
-// 1. Liveness confirma que existe uma pessoa de verdade, viva, na câmera (Rekognition Face Liveness).
-// 2. Só DEPOIS disso, comparamos o rosto capturado no liveness com a foto_url do perfil
-//    (Rekognition CompareFaces, via compararRostos) — pra garantir que é a mesma pessoa
-//    do perfil, e não só "uma pessoa viva qualquer".
-// 3. Só se as duas etapas passarem, o usuário é marcado como verificado.
+// Fluxo completo (atualizado):
+// 1. Liveness confirma que existe uma pessoa de verdade, viva, na câmera (Rekognition Face
+//    Liveness). Isso roda logo após o cadastro, ANTES de existir qualquer foto de perfil.
+//    Se aprovado, a imagem de referência do liveness é salva e guardada em
+//    foto_referencia_liveness — ela é a "referência confiável" do rosto do usuário.
+// 2. O usuário completa o resto do cadastro (bio, prompts, etc) e, em algum momento,
+//    envia sua primeira foto de perfil (perfilController.uploadFoto). É SÓ NESSE MOMENTO
+//    que a foto é comparada (Rekognition CompareFaces, via compararRostos) com a
+//    referência do liveness, silenciosamente. Se bater, aí sim o usuário vira verificado.
+// 3. Fotos extras da galeria (depois da primeira) não passam por nenhuma comparação.
 
 const {
   RekognitionClient,
@@ -14,7 +18,6 @@ const {
   GetFaceLivenessSessionResultsCommand,
 } = require('@aws-sdk/client-rekognition');
 const Usuario = require('../models/Usuario');
-const { compararRostos } = require('../utils/rekognition');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -35,8 +38,9 @@ async function criarSessaoLiveness(req, res) {
 }
 
 // Credita o bônus de indicação pra quem indicou o usuário recém-verificado.
-// Movido de perfilController.uploadSelfieVerificacao (fluxo antigo, removido) pra cá,
-// que agora é o único lugar do backend que efetivamente verifica identidade.
+// Reutilizada pelo perfilController.uploadFoto, que agora é o lugar do backend
+// que efetivamente confirma identidade (comparando a 1ª foto de perfil com a
+// referência do liveness).
 async function creditarBonusIndicacaoSeAplicavel(usuarioVerificado) {
   if (!usuarioVerificado.indicado_por || usuarioVerificado.bonus_indicacao_creditado) return;
 
@@ -77,63 +81,30 @@ async function buscarResultadoLiveness(req, res) {
     const confianca = resultado.Confidence || 0;
     const livenessPassou = resultado.Status === 'SUCCEEDED' && confianca >= CONFIANCA_MINIMA;
 
-    // Liveness sozinho não é suficiente: sem imagem de referência, não dá pra confirmar
-    // identidade, então não marcamos como verificado.
     if (!livenessPassou || !resultado.ReferenceImage || !resultado.ReferenceImage.Bytes || !req.usuarioId) {
       return res.json({ aprovado: false, confianca, status: resultado.Status });
     }
 
-    const usuarioAtual = await Usuario.findByPk(req.usuarioId);
-    if (!usuarioAtual || !usuarioAtual.foto_url) {
-      return res.status(400).json({
-        erro: 'Cadastre uma foto de perfil antes de fazer a verificação facial.',
-        aprovado: false,
-      });
-    }
-
-    // Salva a imagem de referência do liveness temporariamente pra poder comparar
+    // Salva a imagem de referência do liveness — ela ainda não é comparada com nada
+    // aqui (não existe foto de perfil nesse ponto do fluxo). Fica guardada pra ser
+    // usada como referência quando o usuário definir a primeira foto de perfil
+    // (ver perfilController.uploadFoto).
     const pasta = path.join(__dirname, '..', 'uploads');
     if (!fs.existsSync(pasta)) fs.mkdirSync(pasta, { recursive: true });
     const nomeArquivo = `${crypto.randomUUID()}.jpg`;
     const caminhoReferencia = path.join(pasta, nomeArquivo);
     fs.writeFileSync(caminhoReferencia, Buffer.from(resultado.ReferenceImage.Bytes));
 
-    const caminhoFotoPerfil = path.join(__dirname, '..', usuarioAtual.foto_url.replace(/^\//, ''));
-
-    let comparacao;
-    try {
-      comparacao = await compararRostos(caminhoReferencia, caminhoFotoPerfil);
-    } catch (erroComparacao) {
-      fs.unlink(caminhoReferencia, () => {});
-      return res.status(503).json({
-        erro: 'Não foi possível concluir a verificação facial agora. Tente novamente em instantes: ' + erroComparacao.message,
-        aprovado: false,
-      });
-    }
-
-    if (!comparacao.bateu) {
-      fs.unlink(caminhoReferencia, () => {});
-      return res.status(400).json({
-        erro: 'Não foi possível confirmar que é a mesma pessoa da foto de perfil.',
-        motivo: comparacao.motivo,
-        similaridade: comparacao.similaridade,
-        aprovado: false,
-      });
-    }
-
-    // Liveness passou E é a mesma pessoa da foto de perfil: agora sim, verificado de verdade.
+    // Liveness aprovado é suficiente pra essa etapa. "verificado" só vira true
+    // mais adiante, quando a primeira foto de perfil bater com essa referência.
     await Usuario.update(
       {
         liveness_aprovado: true,
         liveness_confianca: confianca,
-        foto_verificacao: '/uploads/' + nomeArquivo,
-        verificado: true,
+        foto_referencia_liveness: '/uploads/' + nomeArquivo,
       },
       { where: { id: req.usuarioId } }
     );
-
-    const usuarioVerificado = await Usuario.findByPk(req.usuarioId);
-    await creditarBonusIndicacaoSeAplicavel(usuarioVerificado);
 
     return res.json({ aprovado: true, confianca, status: resultado.Status });
   } catch (erro) {
@@ -142,4 +113,4 @@ async function buscarResultadoLiveness(req, res) {
   }
 }
 
-module.exports = { criarSessaoLiveness, buscarResultadoLiveness };
+module.exports = { criarSessaoLiveness, buscarResultadoLiveness, creditarBonusIndicacaoSeAplicavel };

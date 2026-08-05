@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const { compararRostos } = require('../utils/rekognition');
+const { creditarBonusIndicacaoSeAplicavel } = require('./livenessController');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -129,16 +130,77 @@ const editarPerfil = async (req, res) => {
     }
 };
 
+// Mantém a tabela FotoPerfil sincronizada com Usuario.foto_url. A foto principal
+// é sempre a linha com ordem 0 (mesma convenção usada em adicionarFotoGaleria e
+// removerFotoGaleria). Se ainda não existe linha com ordem 0 pra esse usuário,
+// cria uma; se já existe (troca de foto principal), só atualiza a url — nunca
+// duplica linha, mesmo que o usuário troque de foto várias vezes.
+const sincronizarFotoPrincipalNaGaleria = async (usuarioId, url) => {
+    const [fotoPrincipal, criada] = await FotoPerfil.findOrCreate({
+          where: { usuario_id: usuarioId, ordem: 0 },
+          defaults: { url }
+    });
+    if (!criada && fotoPrincipal.url !== url) {
+          fotoPrincipal.url = url;
+          await fotoPrincipal.save();
+    }
+};
+
 const uploadFoto = async (req, res) => {
     try {
           if (!req.file) {
                   return res.status(400).json({ erro: 'Nenhuma foto enviada' });
           }
+
+          const usuarioAtual = await Usuario.findByPk(req.usuarioId);
+          if (!usuarioAtual) {
+                  fs.unlink(req.file.path, () => {});
+                  return res.status(404).json({ erro: 'Usuário não encontrado.' });
+          }
+
           const foto_url = '/uploads/' + req.file.filename;
+          const primeiraFotoDePerfil = !usuarioAtual.foto_url;
+
+          // Só compara com a referência do liveness na PRIMEIRA vez que o usuário define
+          // a foto de perfil principal, e só se ele já tiver passado pelo liveness antes.
+          // Trocas posteriores da foto principal não comparam de novo (custo de API) —
+          // e fotos da galeria nunca passam por essa checagem.
+          if (primeiraFotoDePerfil && usuarioAtual.liveness_aprovado && usuarioAtual.foto_referencia_liveness) {
+                  const caminhoReferencia = path.join(__dirname, '..', usuarioAtual.foto_referencia_liveness.replace(/^\//, ''));
+
+                  let comparacao;
+                  try {
+                          comparacao = await compararRostos(req.file.path, caminhoReferencia);
+                  } catch (erroComparacao) {
+                          fs.unlink(req.file.path, () => {});
+                          return res.status(503).json({ erro: 'Não foi possível concluir a verificação agora. Tente novamente em instantes: ' + erroComparacao.message });
+                  }
+
+                  if (!comparacao.bateu) {
+                          fs.unlink(req.file.path, () => {});
+                          return res.status(400).json({
+                                  erro: 'Não foi possível confirmar que é você nessa foto. Tenta outra.',
+                                  motivo: comparacao.motivo
+                          });
+                  }
+
+                  await Usuario.update(
+                        { foto_url, verificado: true },
+                        { where: { id: req.usuarioId } }
+                              );
+                  await sincronizarFotoPrincipalNaGaleria(req.usuarioId, foto_url);
+
+                  const usuarioVerificado = await Usuario.findByPk(req.usuarioId);
+                  await creditarBonusIndicacaoSeAplicavel(usuarioVerificado);
+
+                  return res.json({ mensagem: 'Foto atualizada e identidade confirmada!', foto_url });
+          }
+
           await Usuario.update(
             { foto_url },
             { where: { id: req.usuarioId } }
                 );
+          await sincronizarFotoPrincipalNaGaleria(req.usuarioId, foto_url);
           res.json({ mensagem: 'Foto atualizada com sucesso!', foto_url });
     } catch (erro) {
           res.status(500).json({ erro: 'Erro ao fazer upload: ' + erro.message });
@@ -196,37 +258,27 @@ const adicionarFotoGaleria = async (req, res) => {
           if (!req.file) {
                   return res.status(400).json({ erro: 'Nenhuma foto enviada' });
           }
+
+          // A galeria não pode ser usada pra definir a primeira foto de perfil — isso
+          // pularia a comparação facial com a referência do liveness, que só acontece
+          // na rota principal (uploadFoto). Só libera a galeria pra quem já tem foto_url.
+          const usuarioAtual = await Usuario.findByPk(req.usuarioId);
+          if (!usuarioAtual || !usuarioAtual.foto_url) {
+                  fs.unlink(req.file.path, () => {});
+                  return res.status(400).json({ erro: 'Defina sua foto de perfil principal antes de adicionar fotos à galeria.' });
+          }
+
           const totalAtual = await FotoPerfil.count({ where: { usuario_id: req.usuarioId } });
           if (totalAtual >= MAX_FOTOS_GALERIA) {
                   fs.unlink(req.file.path, () => {});
                   return res.status(400).json({ erro: `Você já tem o máximo de ${MAX_FOTOS_GALERIA} fotos` });
           }
 
-      // Só verifica a foto principal (a primeira) contra a verificação de identidade.
-      // As demais entram sem checagem, pra não multiplicar o custo de comparação facial.
+      // Fotos da galeria (incluindo a primeira) NUNCA passam por comparação facial —
+      // isso agora acontece só uma vez, na foto de perfil principal (uploadFoto),
+      // logo depois do liveness. Aqui é aceitar livremente; a moderação da
+      // comunidade (denúncias) cobre esse caso depois.
       const ehFotoPrincipal = totalAtual === 0;
-
-      if (ehFotoPrincipal) {
-              const usuarioAtual = await Usuario.findByPk(req.usuarioId);
-              if (usuarioAtual.foto_verificacao) {
-                        let resultadoComparacao;
-                        try {
-                                    const caminhoFotoVerificacao = path.join(__dirname, '..', usuarioAtual.foto_verificacao.replace(/^\//, ''));
-                                    resultadoComparacao = await compararRostos(req.file.path, caminhoFotoVerificacao);
-                        } catch (erroComparacao) {
-                                    fs.unlink(req.file.path, () => {});
-                                    return res.status(503).json({ erro: 'Não foi possível verificar essa foto agora. Tente novamente em instantes: ' + erroComparacao.message });
-                        }
-
-                if (!resultadoComparacao.bateu) {
-                            fs.unlink(req.file.path, () => {});
-                            return res.status(400).json({
-                                          erro: 'Essa foto não parece ser a mesma pessoa da verificação de identidade. Tente outra foto.',
-                                          motivo: resultadoComparacao.motivo
-                            });
-                }
-              }
-      }
 
       const url = '/uploads/' + req.file.filename;
           const foto = await FotoPerfil.create({ usuario_id: req.usuarioId, url, ordem: totalAtual });

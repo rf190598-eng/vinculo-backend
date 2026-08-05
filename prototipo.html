@@ -2247,19 +2247,9 @@ let tokenAtual = localStorage.getItem('vinculo_token') || null;
 // Qualquer outra tela exige verificado === true, senão volta pra tela de verificação.
 const telasSemVerificacaoObrigatoria = ['landing','auth','login','welcome','liveness'];
 const telasSemPerfilCompletoObrigatorio = ['landing','auth','login','welcome','liveness','edit-profile','myprofile'];
-// Telas que dão pra acessar mesmo sem foto de perfil ainda. 'liveness' fica DE FORA
-// de propósito: o backend (livenessController) compara o rosto capturado com a
-// foto_url do usuário, então sem foto o liveness sempre falha com 400. Por isso
-// a foto precisa vir antes da verificação facial no onboarding.
-const telasSemFotoObrigatoria = ['landing','auth','login','welcome','edit-profile','myprofile'];
 
 function perfilIncompleto(){
   return !usuarioAtual.bio || !usuarioAtual.foto_url;
-}
-
-// Único critério pra saber se falta foto: usuarioAtual.foto_url vazio/nulo.
-function semFotoDePerfil(){
-  return !usuarioAtual || !usuarioAtual.foto_url;
 }
 
 const goToBase = goTo;
@@ -2269,19 +2259,11 @@ goTo = function(name){
     showToastVinculo('Acesso restrito.');
     return;
   }
-  // 1) Sem foto de perfil: manda pra edição de perfil ANTES de tudo, inclusive
-  // antes do liveness (que depende da foto já estar salva pra funcionar).
-  if (usuarioAtual && semFotoDePerfil() && !telasSemFotoObrigatoria.includes(name)) {
-    goToBase('edit-profile');
-    return;
-  }
-  // 2) Já tem foto, mas ainda não passou pela verificação facial.
-  if (usuarioAtual && usuarioAtual.verificado === false && !telasSemVerificacaoObrigatoria.includes(name)) {
+if (usuarioAtual && usuarioAtual.verificado === false && !telasSemVerificacaoObrigatoria.includes(name)) {
     goToBase('liveness');
     setTimeout(iniciarLivenessCheck, 50);
     return;
   }
-  // 3) Verificado, mas ainda falta completar o perfil (ex: bio).
   if (usuarioAtual && usuarioAtual.verificado === true && perfilIncompleto() && !telasSemPerfilCompletoObrigatorio.includes(name)) {
     goToBase('edit-profile');
     return;
@@ -3275,6 +3257,49 @@ async function galeriaFotoSelecionada(event){
   const arquivo = event.target.files[0];
   if(!arquivo) return;
   event.target.value = '';
+
+  // Se ainda não existe foto_url, essa é a PRIMEIRA foto do usuário — precisa ir
+  // pela rota principal (/api/perfil/foto), que compara com a referência do
+  // liveness antes de aceitar. Da segunda foto em diante, segue pela galeria
+  // normalmente, sem nenhuma checagem facial.
+  const primeiraFoto = !usuarioAtual || !usuarioAtual.foto_url;
+
+  if(primeiraFoto){
+    try{
+      const formData = new FormData();
+      formData.append('foto', arquivo);
+      const resp = await fetch(`${API_URL}/api/perfil/foto`, {
+        method:'POST',
+        headers: { 'Authorization': `Bearer ${tokenAtual}` },
+        body: formData
+      });
+      const dados = await resp.json();
+      if(!resp.ok){
+        showToastVinculo(dados.erro || 'Não foi possível confirmar que é você nessa foto. Tenta outra, bem iluminada e só com seu rosto.');
+        return;
+      }
+      if(usuarioAtual){
+        usuarioAtual.foto_url = dados.foto_url;
+        localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
+        atualizarFotoNaTela(dados.foto_url);
+      }
+      // Essa rota pode ter mudado outros campos no servidor (ex: verificado),
+      // então busca o perfil atualizado pra manter o estado local sincronizado.
+      try{
+        const respPerfil = await fetch(`${API_URL}/api/auth/perfil`, {
+          headers: { 'Authorization': `Bearer ${tokenAtual}` }
+        });
+        if(respPerfil.ok){
+          usuarioAtual = await respPerfil.json();
+          localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
+        }
+      } catch(e){ /* mantém os dados que já temos se essa parte falhar */ }
+      showToastVinculo('Foto adicionada!');
+      carregarGaleria();
+    } catch(e){ showToastVinculo('Erro de conexão.'); }
+    return;
+  }
+
   try{
     const formData = new FormData();
     formData.append('foto', arquivo);
