@@ -2243,14 +2243,23 @@ function handleInstagramSeguro(handle){
 let usuarioAtual = JSON.parse(localStorage.getItem('vinculo_usuario') || 'null');
 let tokenAtual = localStorage.getItem('vinculo_token') || null;
 
-// Telas que um usuário NÃO verificado ainda pode acessar.
-// Qualquer outra tela exige verificado === true, senão volta pra tela de verificação.
+// Telas que um usuário sem liveness aprovado ainda pode acessar.
+// Qualquer outra tela exige liveness_aprovado === true, senão volta pro liveness.
 const telasSemVerificacaoObrigatoria = ['landing','auth','login','welcome','liveness'];
+// Telas liberadas no estágio intermediário (liveness já aprovado, mas ainda sem
+// foto de perfil confirmada) e também quando falta só completar o perfil (bio etc).
 const telasSemPerfilCompletoObrigatorio = ['landing','auth','login','welcome','liveness','edit-profile','myprofile'];
 
 function perfilIncompleto(){
   return !usuarioAtual.bio || !usuarioAtual.foto_url;
 }
+
+// Helper exposto pra outros scripts (ex: o módulo do liveness) poderem atualizar
+// o usuarioAtual em memória sem precisar duplicar a lógica de persistência.
+window.atualizarUsuarioLocal = function(novoUsuario){
+  usuarioAtual = novoUsuario;
+  localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
+};
 
 const goToBase = goTo;
 goTo = function(name){
@@ -2259,11 +2268,20 @@ goTo = function(name){
     showToastVinculo('Acesso restrito.');
     return;
   }
-if (usuarioAtual && usuarioAtual.verificado === false && !telasSemVerificacaoObrigatoria.includes(name)) {
+  // a) Ainda não passou pelo liveness: obriga a fazer o liveness primeiro.
+  if (usuarioAtual && !usuarioAtual.liveness_aprovado && !telasSemVerificacaoObrigatoria.includes(name)) {
     goToBase('liveness');
     setTimeout(iniciarLivenessCheck, 50);
     return;
   }
+  // b) Liveness já aprovado, mas ainda sem foto de perfil confirmada (verificado
+  // só vira true depois que a 1ª foto bater com a referência do liveness).
+  // Não chama iniciarLivenessCheck de novo — essa etapa já passou.
+  if (usuarioAtual && usuarioAtual.liveness_aprovado && !usuarioAtual.verificado && !telasSemPerfilCompletoObrigatorio.includes(name)) {
+    goToBase('edit-profile');
+    return;
+  }
+  // c) Já verificado, mas ainda falta completar o perfil (ex: bio).
   if (usuarioAtual && usuarioAtual.verificado === true && perfilIncompleto() && !telasSemPerfilCompletoObrigatorio.includes(name)) {
     goToBase('edit-profile');
     return;
@@ -4904,6 +4922,18 @@ function toggleLsRadio(el){
         });
         const dados = await resp.json();
         if (dados.aprovado) {
+          // Antes de navegar, sincroniza o usuarioAtual em memória com o backend.
+          // Sem isso, o wrapper de goTo ainda veria liveness_aprovado desatualizado
+          // (false) e mandaria de volta pro liveness, causando loop.
+          try {
+            const respPerfil = await fetch(`${API_URL_LIVENESS}/api/auth/perfil`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (respPerfil.ok && window.atualizarUsuarioLocal) {
+              window.atualizarUsuarioLocal(await respPerfil.json());
+            }
+          } catch (e) { /* segue mesmo assim; pior caso o goTo reavalia de novo */ }
+
           if (window.showToastVinculo) window.showToastVinculo('Verificação de identidade confirmada!');
          window.emOnboardingPerfil = true;
           window.goTo('edit-profile');
