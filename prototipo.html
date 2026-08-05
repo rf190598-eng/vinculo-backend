@@ -513,7 +513,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 </div><!-- VERIFICACAO -->
 <div class="screen" id="screen-liveness" style="background:#1a0810;min-height:100vh;">
   <div class="topbar">
-    <div class="icon-btn" onclick="goTo('auth')">&#8592;</div>
+    <div class="icon-btn" onclick="sairDaConta()" title="Sair da conta">&#8592;</div>
     <div class="logo serif">Vín<span>culo</span></div>
     <div style="width:38px"></div>
   </div>
@@ -523,60 +523,29 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
      <div class="big-ic">&#128737;</div>
       <h3 class="serif" style="font-size:21px;margin-bottom:7px">Verificação de identidade biométrica</h3>
       <p style="color:#d8b0c4;font-size:12.5px;line-height:1.6;margin-bottom:10px">Usamos o mesmo padrão de tecnologia adotado por bancos e instituições financeiras (Amazon Rekognition) pra confirmar que você é uma pessoa real, ao vivo — não uma foto, vídeo ou máscara.</p>
-      <p style="color:#c9a06b;font-size:11.5px;line-height:1.6;margin-bottom:18px">Posicione seu rosto dentro da área indicada e mantenha-se parado. A análise de reflexo de luz e profundidade é feita automaticamente — não é preciso fazer nenhum gesto.</p>
+      <p style="color:#c9a06b;font-size:11.5px;line-height:1.6;margin-bottom:14px">Posicione seu rosto dentro da área indicada e mantenha-se parado. A análise de reflexo de luz e profundidade é feita automaticamente — não é preciso fazer nenhum gesto.</p>
+      <ul style="text-align:left;color:#d8b0c4;font-size:12px;line-height:1.9;margin:0 0 18px 0;padding-left:0;list-style:none">
+        <li>&#128161; Fique em um ambiente bem iluminado</li>
+        <li>&#128083; Retire óculos escuros, boné ou máscara</li>
+        <li>&#128100; Deixe só o seu rosto no quadro</li>
+      </ul>
       <div id="livenessErro" style="color:#ff8fa3;font-size:12.5px;margin-bottom:10px;min-height:14px"></div>
-      <div id="livenessRoot" style="min-height:360px;border-radius:16px;overflow:hidden;background:#000"></div>
+      <div id="livenessRoot" style="min-height:360px;border-radius:16px;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center">
+        <div id="livenessCarregando" style="color:#d8b0c4;font-size:12.5px;display:flex;flex-direction:column;align-items:center;gap:10px">
+          <div style="width:28px;height:28px;border:3px solid rgba(255,255,255,.25);border-top-color:#c9a06b;border-radius:50%;animation:girarLiveness 0.8s linear infinite"></div>
+          <span>Preparando a câmera...</span>
+        </div>
+      </div>
       <button class="btn btn-ghost" id="btnRetentarLiveness" style="display:none;margin-top:14px" onclick="iniciarLivenessCheck()">Tentar novamente</button>
     </div>
     <div style="background:rgba(201,160,107,.12);border:1px solid rgba(201,160,107,.3);border-radius:12px;padding:12px 14px;font-size:12.5px;color:#e0c8a8;line-height:1.5">
       &#128274; Certificado por criptografia ponta a ponta. O vídeo é processado apenas para essa verificação e não é salvo nem exibido no seu perfil.
     </div>
-    <div style="background:rgba(201,160,107,.12);border:1px solid rgba(201,160,107,.3);border-radius:12px;padding:12px 14px;font-size:12.5px;color:#e0c8a8;line-height:1.5">
-      &#128274; O vídeo é processado apenas pra checar que você é uma pessoa real, e não é salvo nem exibido no seu perfil.
-    </div>
   </div>
 </div>
-  <div class="screen" id="screen-verify" style="background:#1a0810;min-height:100vh;">
-  
-  <div class="topbar">
-    <div class="icon-btn" onclick="goTo('auth')">&#8592;</div>
-    <div class="logo serif">Vín<span>culo</span></div>
-    <div style="width:38px"></div>
-  </div>
-  <div style="padding:0 18px">
-    <div class="progress-steps"><div class="step-dot done"></div><div class="step-dot active"></div><div class="step-dot"></div></div>
-    <div class="verify-step">
-      <div class="big-ic" id="verifyIcon">&#128247;</div>
-      <h3 class="serif" style="font-size:21px;margin-bottom:7px">Verificação de foto obrigatória</h3>
-      <p style="color:#d8b0c4;font-size:12.5px;line-height:1.6;margin-bottom:18px">Por segurança de todos, toda conta precisa confirmar a identidade com uma selfie antes de usar o app. Sem isso não é possível continuar.</p>
-      <img id="previewSelfie" style="display:none;width:140px;height:140px;object-fit:cover;border-radius:50%;margin-bottom:16px;border:3px solid #6dcc6d"/>
-      <div id="verifyErro" style="color:#ff8fa3;font-size:12.5px;margin-bottom:10px;min-height:14px"></div>
-      <input type="file" id="inputSelfie" accept="image/*" capture="user" style="display:none" onchange="selfieSelecionada(event)"/>
-      <button class="btn btn-primary" id="btnTirarSelfie" onclick="document.getElementById('inputSelfie').click()">Tirar selfie agora</button>
-    </div>
-    <div style="background:rgba(201,160,107,.12);border:1px solid rgba(201,160,107,.3);border-radius:12px;padding:12px 14px;font-size:12.5px;color:#e0c8a8;line-height:1.5">
-      &#128274; Sua selfie e usada APENAS para verificacao. Nunca exibida publicamente.
-    </div>
-  </div>
-</div>
-
-<div class="screen" id="screen-verify2" style="background:#1a0810;min-height:100vh;">
-  <div class="topbar">
-    <div class="icon-btn" onclick="goTo('verify')">&#8592;</div>
-    <div class="logo serif">Vín<span>culo</span></div>
-    <div style="width:38px"></div>
-  </div>
-  <div style="padding:0 18px">
-    <div class="progress-steps"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot active"></div></div>
-    <div class="verify-step" style="border-color:rgba(109,204,109,.4)">
-      <div class="big-ic">&#9989;</div>
-      <h3 class="serif" style="font-size:21px;margin-bottom:7px">Perfil verificado!</h3>
-      <p style="color:#d8b0c4;font-size:12.5px;line-height:1.6;margin-bottom:18px">Sua identidade foi confirmada. Seu perfil recebeu o selo de verificacao, aumentando sua credibilidade com outros usuarios.</p>
-      <button class="btn btn-primary" onclick="goTo('edit-profile')">Continuar</button>
-    </div>
-  </div>
-</div>
-
+<style>
+@keyframes girarLiveness{to{transform:rotate(360deg)}}
+</style>
 <!-- DISCOVER -->
 <div class="screen" id="screen-discover" style="background:#1a0810;min-height:100vh;">
   <div class="discover-header">
@@ -775,7 +744,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     </div>
 
     <!-- Compartilhar -->
-    <div onclick="showToast('Link de compartilhamento copiado! &#127881;')" style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.15);border-radius:20px;padding:8px 16px;cursor:pointer;margin-bottom:18px">
+    <div onclick="showToastVinculo('Link de compartilhamento copiado! 🎉')" style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.15);border-radius:20px;padding:8px 16px;cursor:pointer;margin-bottom:18px">
       <span style="font-size:16px">&#128279;</span>
       <span style="font-size:12.5px;color:#e0d0e8;font-weight:600">Compartilhar esse momento</span>
     </div>
@@ -859,6 +828,17 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div id="blockErro" style="color:#ff8fa3;font-size:12.5px;margin-top:2px;min-height:14px"></div>
     <button class="btn btn-danger" style="margin-top:6px" onclick="blockProfile()">Sim, bloquear</button>
     <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('block-confirm')">Cancelar</button>
+  </div>
+</div>
+<!-- CONFIRMACAO GENERICA (usada por qualquer ação que precise de "tem certeza?") -->
+<div class="overlay" id="overlay-confirm-generico" onclick="if(event.target===this)_cancelarConfirmacaoGenerica()">
+  <div class="modal modal-center">
+    <div class="modal-handle"></div>
+    <div class="big-ic" style="color:#e8909e" id="confirmGenericoIcone">&#10067;</div>
+    <h3 class="serif" id="confirmGenericoTitulo">Tem certeza?</h3>
+    <p style="color:#d8b0c4;font-size:13px;line-height:1.6" id="confirmGenericoMsg"></p>
+    <button class="btn btn-danger" style="margin-top:6px" id="confirmGenericoBtnOk" onclick="_confirmarConfirmacaoGenerica()">Confirmar</button>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="_cancelarConfirmacaoGenerica()">Cancelar</button>
   </div>
 </div>
 <!-- CHATS -->
@@ -2165,7 +2145,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 </div>
   
 <script>
-const noNav=['landing','auth','login','welcome','onboarding','tour1','tour2','tour3','tour4','liveness','verify','verify2','match','profile-view','chatroom','edit-profile','notifications','assinatura','esqueci-senha','redefinir-senha'];
+const noNav=['landing','auth','login','welcome','onboarding','tour1','tour2','tour3','tour4','liveness','match','profile-view','chatroom','edit-profile','notifications','assinatura','esqueci-senha','redefinir-senha'];
 let swipeCount=0, timerInterval=null, timerSec=0;
 let lastSwipeDir=null, totalSwipes=0;
 let filaPerfis=[];
@@ -2219,13 +2199,19 @@ const API_URL = 'https://vinculo-backend-production.up.railway.app';
   function escapeHtml(texto){
   return String(texto ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+// Handle do Instagram vira parte de uma URL e, em alguns lugares, é inserido
+// via innerHTML — não pode conter nada além do que o Instagram realmente aceita
+// em nome de usuário (letras, números, ponto e underscore).
+function handleInstagramSeguro(handle){
+  return String(handle ?? '').replace(/^@/, '').replace(/[^a-zA-Z0-9._]/g, '').slice(0, 30);
+}
 let usuarioAtual = JSON.parse(localStorage.getItem('vinculo_usuario') || 'null');
 let tokenAtual = localStorage.getItem('vinculo_token') || null;
 
 // Telas que um usuário NÃO verificado ainda pode acessar.
 // Qualquer outra tela exige verificado === true, senão volta pra tela de verificação.
-const telasSemVerificacaoObrigatoria = ['landing','auth','login','welcome','liveness','verify','verify2'];
-const telasSemPerfilCompletoObrigatorio = ['landing','auth','login','welcome','liveness','verify','verify2','edit-profile','myprofile'];
+const telasSemVerificacaoObrigatoria = ['landing','auth','login','welcome','liveness'];
+const telasSemPerfilCompletoObrigatorio = ['landing','auth','login','welcome','liveness','edit-profile','myprofile'];
 
 function perfilIncompleto(){
   return !usuarioAtual.bio || !usuarioAtual.foto_url;
@@ -2358,7 +2344,7 @@ async function verificarSessaoSalva(){
     const usuario = await resp.json();
     usuarioAtual = usuario;
     localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
-    goTo('discover'); // o próprio goTo já redireciona pra 'verify' se não estiver verificado
+    goTo('discover'); // o próprio goTo já redireciona pra 'liveness' se não estiver verificado
   } catch (e) {
     // Erro de rede — mantém os dados salvos e deixa a pessoa tentar de novo manualmente
   }
@@ -2599,50 +2585,6 @@ async function doSwipe(dir){
   },450);
 }
 
-async function selfieSelecionada(event){
-  const arquivo = event.target.files[0];
-  const erroEl = document.getElementById('verifyErro');
-  const btn = document.getElementById('btnTirarSelfie');
-  erroEl.textContent = '';
-  if (!arquivo) return;
-
-  const preview = document.getElementById('previewSelfie');
-  preview.src = URL.createObjectURL(arquivo);
-  preview.style.display = 'block';
-
-  btn.disabled = true;
-  btn.textContent = 'Enviando...';
-
-  try {
-    const formData = new FormData();
-    formData.append('foto', arquivo);
-    const resp = await fetch(`${API_URL}/api/perfil/selfie-verificacao`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${tokenAtual}` },
-      body: formData
-    });
-    const dados = await resp.json();
-    if (!resp.ok) {
-      erroEl.textContent = dados.erro || 'Não foi possível enviar a foto.';
-      btn.disabled = false;
-      btn.textContent = 'Tentar de novo';
-      return;
-    }
-    if (dados.usuario) {
-      usuarioAtual = dados.usuario;
-      localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
-    }
-
-    btn.disabled = false;
-    btn.textContent = 'Tirar selfie agora';
-    goTo('verify2');
-  } catch (e) {
-    erroEl.textContent = 'Erro de conexão. Tenta de novo.';
-    btn.disabled = false;
-    btn.textContent = 'Tentar de novo';
-  }
-}
-
 let perfilCard1Data = null;
 let perfilCard2Data = null;
 
@@ -2706,7 +2648,7 @@ async function curtirDeVolta(alvoId, nomeAlvo, cardEl){
       cardEl.style.opacity = '0.3';
       showToastVinculo('Curtida enviada!');
     }
-  } catch(e){ alert('Erro ao curtir.'); }
+  } catch(e){ showToastVinculo('Erro ao curtir.'); }
 }
 
 let planoSelecionado = 'mensal';
@@ -2770,7 +2712,7 @@ async function toggleConfirmarEvento(eventoId, btnEl){
       btnEl.style.color = '#1a0508';
       btnEl.style.border = 'none';
     }
-  } catch(e){ alert('Erro ao confirmar presença.'); }
+  } catch(e){ showToastVinculo('Erro ao confirmar presença.'); }
 }
 
 async function criarEventoSubmit(){
@@ -2879,10 +2821,10 @@ async function responderConviteDupla(duplaId, aceitar){
       body: JSON.stringify({ aceitar })
     });
     const dados = await resp.json();
-    if(!resp.ok){ alert(dados.erro || 'Erro ao responder convite.'); return; }
+    if(!resp.ok){ showToastVinculo(dados.erro || 'Erro ao responder convite.'); return; }
     showToastVinculo(aceitar ? 'Dupla formada! 🎉' : 'Convite recusado.');
     carregarStatusDuplaTela();
-  } catch(e){ alert('Erro de conexão.'); }
+  } catch(e){ showToastVinculo('Erro de conexão.'); }
 }
 
 async function salvarBioDupla(){
@@ -2894,20 +2836,21 @@ async function salvarBioDupla(){
       body: JSON.stringify({ bio_conjunta })
     });
     const dados = await resp.json();
-    if(!resp.ok){ alert(dados.erro || 'Erro ao salvar bio.'); return; }
+    if(!resp.ok){ showToastVinculo(dados.erro || 'Erro ao salvar bio.'); return; }
     showToastVinculo('Bio da dupla salva!');
-  } catch(e){ alert('Erro ao salvar bio.'); }
+  } catch(e){ showToastVinculo('Erro ao salvar bio.'); }
 }
 
 async function sairDaDuplaConfirm(){
-  if(!confirm('Tem certeza que quer sair da dupla?')) return;
+  const ok = await confirmarAcao('Tem certeza que quer sair da dupla?');
+  if (!ok) return;
   try{
     const resp = await fetch(`${API_URL}/api/dupla/sair`, { method:'POST', headers:{'Authorization':`Bearer ${tokenAtual}`} });
     const dados = await resp.json().catch(()=>({}));
-    if(!resp.ok){ alert(dados.erro || 'Erro ao sair da dupla.'); return; }
+    if(!resp.ok){ showToastVinculo(dados.erro || 'Erro ao sair da dupla.'); return; }
     showToastVinculo('Você saiu da dupla.');
     carregarStatusDuplaTela();
-  } catch(e){ alert('Erro ao sair da dupla.'); }
+  } catch(e){ showToastVinculo('Erro ao sair da dupla.'); }
 }
 
 async function carregarDuplasParaSwipe(){
@@ -2945,13 +2888,13 @@ async function avaliarDuplaAlvo(avaliadoDuplaId, tipo, btnEl){
       body: JSON.stringify({ avaliado_dupla_id: avaliadoDuplaId, tipo })
     });
     const dados = await resp.json();
-    if(!resp.ok){ alert(dados.erro || 'Erro ao avaliar.'); return; }
+    if(!resp.ok){ showToastVinculo(dados.erro || 'Erro ao avaliar.'); return; }
     const card = btnEl.closest('div[style*="border-radius:16px"]');
     if(card) card.style.opacity = '0.3';
     if(dados.match){
       showToastVinculo('É um Vínculo em dupla! 🎉');
     }
-  } catch(e){ alert('Erro de conexão.'); }
+  } catch(e){ showToastVinculo('Erro de conexão.'); }
 }
 
 async function carregarDuplaChats(){
@@ -3028,13 +2971,13 @@ async function enviarMensagemDuplaChat(){
     if(!resp.ok){
       const dados = await resp.json().catch(()=>({}));
       input.value = conteudo;
-      alert(dados.erro || 'Não foi possível enviar a mensagem.');
+      showToastVinculo(dados.erro || 'Não foi possível enviar a mensagem.');
       return;
     }
     await carregarMensagensDuplaChat();
   } catch(e){
     input.value = conteudo;
-    alert('Erro ao enviar mensagem.');
+    showToastVinculo('Erro ao enviar mensagem.');
   }
 }
 
@@ -3163,13 +3106,13 @@ async function enviarMensagemChat(){
     if(!resp.ok){
       const dados = await resp.json().catch(()=>({}));
       input.value = conteudo;
-      alert(dados.erro || 'Não foi possível enviar a mensagem.');
+      showToastVinculo(dados.erro || 'Não foi possível enviar a mensagem.');
       return;
     }
     await carregarMensagens();
   } catch(e){
     input.value = conteudo;
-    alert('Erro ao enviar mensagem. Tenta de novo.');
+    showToastVinculo('Erro ao enviar mensagem. Tenta de novo.');
   }
 }
 
@@ -3235,7 +3178,8 @@ async function galeriaFotoSelecionada(event){
 }
 
 async function removerFotoGaleriaReal(fotoId){
-  if(!confirm('Remover essa foto?')) return;
+  const ok = await confirmarAcao('Remover essa foto?');
+  if (!ok) return;
   try{
     await fetch(`${API_URL}/api/perfil/galeria/${fotoId}`, {
       method:'DELETE',
@@ -3270,10 +3214,10 @@ async function salvarEdicaoPerfil(){
     { pergunta: 'Nao vivo sem...', resposta: document.getElementById('editPrompt2').value.trim() }
   ].filter(p => p.resposta);
 
-  if(!nome){ alert('O nome não pode ficar vazio.'); return; }
+  if(!nome){ showToastVinculo('O nome não pode ficar vazio.'); return; }
   if(window.emOnboardingPerfil){
     const totalFotos = parseInt(document.getElementById('galeriaContagem').textContent, 10) || 0;
-    if(totalFotos < 1){ alert('Adicione pelo menos 1 foto antes de continuar.'); return; }
+    if(totalFotos < 1){ showToastVinculo('Adicione pelo menos 1 foto antes de continuar.'); return; }
   }
   try{
     const resp = await fetch(`${API_URL}/api/perfil/editar`, {
@@ -3282,7 +3226,7 @@ async function salvarEdicaoPerfil(){
       body: JSON.stringify({ nome, bio, genero, signo, altura, estilo_vida, interesses, objetivo, prompts })
     });
     const dados = await resp.json();
-    if(!resp.ok){ alert(dados.erro || 'Erro ao salvar.'); return; }
+    if(!resp.ok){ showToastVinculo(dados.erro || 'Erro ao salvar.'); return; }
     usuarioAtual = dados.usuario;
     localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
     showToastVinculo('Perfil atualizado!');
@@ -3292,7 +3236,7 @@ async function salvarEdicaoPerfil(){
     } else {
       goTo('myprofile');
     }
-  }catch(e){ alert('Erro de conexão.'); }
+  }catch(e){ showToastVinculo('Erro de conexão.'); }
 }
 
 function preencherEdicaoPerfilComDadosSalvos(){
@@ -3364,7 +3308,7 @@ async function fotoPerfilSelecionada(event){
     const dados = await resp.json();
     if (!resp.ok) {
       statusEl.textContent = 'Erro';
-      alert(dados.erro || 'Não foi possível enviar a foto.');
+      showToastVinculo(dados.erro || 'Não foi possível enviar a foto.');
       return;
     }
     if (usuarioAtual) {
@@ -3375,7 +3319,7 @@ async function fotoPerfilSelecionada(event){
     statusEl.textContent = '✓ Enviada';
   } catch (e) {
     statusEl.textContent = 'Erro';
-    alert('Erro de conexão. Tenta de novo.');
+    showToastVinculo('Erro de conexão. Tenta de novo.');
   }
 }
 
@@ -3402,9 +3346,10 @@ function verPerfilCompleto(){
 
  const pvInstagramWrap = document.getElementById('pvInstagramWrap');
   if(p.instagram_handle){
+    const handleSeguro = handleInstagramSeguro(p.instagram_handle);
     pvInstagramWrap.style.display = 'block';
-    document.getElementById('pvInstagram').href = `https://instagram.com/${p.instagram_handle}`;
-    document.getElementById('pvInstagramTexto').textContent = `@${p.instagram_handle}`;
+    document.getElementById('pvInstagram').href = `https://instagram.com/${handleSeguro}`;
+    document.getElementById('pvInstagramTexto').textContent = `@${handleSeguro}`;
   } else {
     pvInstagramWrap.style.display = 'none';
   }
@@ -4018,8 +3963,9 @@ async function carregarMeuPerfil(){
   const igStatusEl = document.getElementById('igStatusTexto');
   if (igInputEl && igStatusEl) {
     if (usuarioAtual.instagram_handle) {
-      igInputEl.value = '@' + usuarioAtual.instagram_handle;
-      igStatusEl.innerHTML = `✓ <a href="https://instagram.com/${usuarioAtual.instagram_handle}" target="_blank" rel="noopener" style="color:#d4b87a">instagram.com/${usuarioAtual.instagram_handle}</a>`;
+      const handleSeguro = handleInstagramSeguro(usuarioAtual.instagram_handle);
+      igInputEl.value = '@' + handleSeguro;
+      igStatusEl.innerHTML = `✓ <a href="https://instagram.com/${handleSeguro}" target="_blank" rel="noopener" style="color:#d4b87a">instagram.com/${handleSeguro}</a>`;
     } else {
       igInputEl.value = '';
       igStatusEl.textContent = '';
@@ -4219,12 +4165,12 @@ async function iniciarSessaoSeguranca(){
       body: JSON.stringify({ minutos: Math.round(horas*60), com_usuario_id, ...(local||{}) })
     });
     const dados = await resp.json();
-    if(!resp.ok){ alert(dados.erro||'Erro ao iniciar check-in.'); return; }
+    if(!resp.ok){ showToastVinculo(dados.erro||'Erro ao iniciar check-in.'); return; }
     sessaoSegurancaAtiva = dados.sessao;
     iniciarTimersSeguranca();
     atualizarDisplayTimerSeguranca();
     showToastVinculo('Check-in ativado! Seus contatos serão avisados se você não confirmar retorno a tempo.');
-  }catch(e){ alert('Erro de conexão.'); }
+  }catch(e){ showToastVinculo('Erro de conexão.'); }
 }
 
 async function confirmarRetornoSeguroReal(){
@@ -4293,19 +4239,20 @@ async function adicionarContatoSeguranca(){
       body: JSON.stringify({ nome, telefone, parentesco })
     });
     const dados = await resp.json();
-    if(!resp.ok){ alert(dados.erro || 'Erro ao adicionar contato'); return; }
+    if(!resp.ok){ showToastVinculo(dados.erro || 'Erro ao adicionar contato'); return; }
     carregarContatos();
-  }catch(e){ alert('Erro de conexão.'); }
+  }catch(e){ showToastVinculo('Erro de conexão.'); }
 }
 
 async function removerContatoSeguranca(id){
-  if(!confirm('Remover esse contato de confiança?')) return;
+  const ok = await confirmarAcao('Remover esse contato de confiança?');
+  if (!ok) return;
   try{
     await fetch(`${API_URL}/api/seguranca/contatos/${id}`, {
       method:'DELETE', headers:{'Authorization':`Bearer ${tokenAtual}`}
     });
     carregarContatos();
-  }catch(e){ alert('Erro ao remover.'); }
+  }catch(e){ showToastVinculo('Erro ao remover.'); }
 }
 
 document.querySelectorAll('.star').forEach(star=>{
@@ -4516,13 +4463,13 @@ function sendIcebreaker(el, text){
   el.style.background='rgba(212,131,154,.25)';
   el.style.borderColor='#d4839a';
   el.style.color='#fdf6f2';
-  showToast('Quebra-gelo enviado: ' + text + ' &#128150;');
+  showToastVinculo('Quebra-gelo enviado: ' + text + ' 💗');
   setTimeout(()=>{ goTo('assinatura'); }, 1200);
 }
 async function salvarInstagram(){
   const igInputEl = document.getElementById('editInstagram');
   const igStatusEl = document.getElementById('igStatusTexto');
-  const valor = igInputEl.value.trim();
+  const valor = handleInstagramSeguro(igInputEl.value.trim());
   igStatusEl.textContent = 'Salvando...';
   igStatusEl.style.color = '#d0a8b8';
   try{
@@ -4540,8 +4487,9 @@ async function salvarInstagram(){
     usuarioAtual = dados.usuario;
     localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
     if (usuarioAtual.instagram_handle) {
-      igInputEl.value = '@' + usuarioAtual.instagram_handle;
-      igStatusEl.innerHTML = `✓ <a href="https://instagram.com/${usuarioAtual.instagram_handle}" target="_blank" rel="noopener" style="color:#d4b87a">instagram.com/${usuarioAtual.instagram_handle}</a>`;
+      const handleSeguro = handleInstagramSeguro(usuarioAtual.instagram_handle);
+      igInputEl.value = '@' + handleSeguro;
+      igStatusEl.innerHTML = `✓ <a href="https://instagram.com/${handleSeguro}" target="_blank" rel="noopener" style="color:#d4b87a">instagram.com/${handleSeguro}</a>`;
     } else {
       igStatusEl.textContent = 'Instagram removido.';
       igStatusEl.style.color = '#d0a8b8';
@@ -4565,7 +4513,7 @@ function toggleRedeSocial(el, rede){
       document.getElementById('fbStatus').textContent='Não conectado · opcional';
       document.getElementById('fbArrow').textContent='+ Conectar';
     }
-    showToast('Rede social desconectada');
+    showToastVinculo('Rede social desconectada');
   } else {
     el.dataset.connected = '1';
     el.style.borderColor='rgba(109,204,109,.5)';
@@ -4581,7 +4529,7 @@ function toggleRedeSocial(el, rede){
       document.getElementById('fbArrow').textContent='Remover';
       document.getElementById('fbArrow').style.color='#e08090';
     }
-    showToast('✓ ' + (rede==='instagram'?'Instagram':'Facebook') + ' verificado! Badge ativo no seu perfil &#127775;');
+    showToastVinculo('✓ ' + (rede==='instagram'?'Instagram':'Facebook') + ' verificado! Badge ativo no seu perfil 🌟');
   }
 }
 
@@ -4590,19 +4538,6 @@ function activateFilter(el){
   el.classList.add('active');
 }
 
-function showToast(msg){
-  let t = document.getElementById('toast');
-  if(!t){
-    t = document.createElement('div');
-    t.id='toast';
-    t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(26,8,16,.96);border:1.5px solid rgba(212,131,154,.4);border-radius:12px;padding:11px 18px;font-size:13px;color:#fdf6f2;z-index:999;max-width:340px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.5);transition:opacity .3s;';
-    document.body.appendChild(t);
-  }
-  t.innerHTML=msg;
-  t.style.opacity='1';
-  clearTimeout(t._timer);
-  t._timer=setTimeout(()=>{t.style.opacity='0';},3000);
-}
 
 function selectPlan(plan){
   planoSelecionado = plan;
@@ -4643,7 +4578,7 @@ function selectPayment(el){
 async function finalizarAssinatura(){
   const metodoTexto = selectedPayment ? selectedPayment.textContent : '';
   if(!metodoTexto.includes('Pix')){
-    alert('Por enquanto, só o pagamento via Pix está funcionando de verdade no protótipo. Escolhe o Pix pra continuar.');
+    showToastVinculo('Por enquanto, só o pagamento via Pix está funcionando de verdade no protótipo. Escolhe o Pix pra continuar.');
     return;
   }
   closeModal('confirma-assinatura');
@@ -4695,6 +4630,26 @@ async function verificarStatusPremium(){
 }
 
 function openModal(name){document.getElementById('overlay-'+name).classList.add('open');}
+
+// ===== Confirmação genérica (substitui window.confirm nativo) =====
+// Uso: const ok = await confirmarAcao('Remover essa foto?'); if (!ok) return;
+let _resolverConfirmacaoGenerica = null;
+function confirmarAcao(mensagem, opts){
+  opts = opts || {};
+  document.getElementById('confirmGenericoTitulo').textContent = opts.titulo || 'Tem certeza?';
+  document.getElementById('confirmGenericoMsg').textContent = mensagem;
+  document.getElementById('confirmGenericoBtnOk').textContent = opts.textoBotao || 'Confirmar';
+  openModal('confirm-generico');
+  return new Promise((resolve) => { _resolverConfirmacaoGenerica = resolve; });
+}
+function _confirmarConfirmacaoGenerica(){
+  closeModal('confirm-generico');
+  if (_resolverConfirmacaoGenerica) { _resolverConfirmacaoGenerica(true); _resolverConfirmacaoGenerica = null; }
+}
+function _cancelarConfirmacaoGenerica(){
+  closeModal('confirm-generico');
+  if (_resolverConfirmacaoGenerica) { _resolverConfirmacaoGenerica(false); _resolverConfirmacaoGenerica = null; }
+}
 function closeModal(name){
   document.getElementById('overlay-'+name).classList.remove('open');
   if(name==='report'){
@@ -4745,6 +4700,8 @@ function toggleLsRadio(el){
   });
 
   let livenessRoot = null;
+  let livenessTimeoutId = null;
+  const LIVENESS_TIMEOUT_MS = 25000;
 
   window.iniciarLivenessCheck = async function () {
     const erroEl = document.getElementById('livenessErro');
@@ -4754,6 +4711,7 @@ function toggleLsRadio(el){
 
     erroEl.textContent = '';
     retryBtn.style.display = 'none';
+    if (livenessTimeoutId) { clearTimeout(livenessTimeoutId); livenessTimeoutId = null; }
 
     const token = localStorage.getItem('vinculo_token');
     if (!token) { erroEl.textContent = 'Sessão expirada, faça login novamente.'; return; }
@@ -4773,7 +4731,21 @@ function toggleLsRadio(el){
       return;
     }
 
+    // Trava de segurança: se não terminar em ~25s (travado, rede ruim, AWS sem
+    // responder), avisa o usuário em vez de deixar a tela esperando pra sempre.
+    function armarTimeoutSeguranca() {
+      livenessTimeoutId = setTimeout(() => {
+        erroEl.textContent = 'Isso está demorando mais que o normal. Confira sua conexão e tente de novo.';
+        retryBtn.style.display = 'block';
+      }, LIVENESS_TIMEOUT_MS);
+    }
+
+    function pararTimeoutSeguranca() {
+      if (livenessTimeoutId) { clearTimeout(livenessTimeoutId); livenessTimeoutId = null; }
+    }
+
     async function aoFinalizarAnalise() {
+      pararTimeoutSeguranca();
       try {
         const resp = await fetch(`${API_URL_LIVENESS}/api/perfil/liveness/resultado/${sessionId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -4794,11 +4766,13 @@ function toggleLsRadio(el){
     }
 
     function aoDarErro(erro) {
+      pararTimeoutSeguranca();
       console.error('Erro no Face Liveness:', erro);
       erroEl.textContent = 'Erro na câmera ou na verificação. Confira a permissão de câmera do navegador e tente de novo.';
       retryBtn.style.display = 'block';
     }
 
+    armarTimeoutSeguranca();
  if (!livenessRoot) livenessRoot = createRoot(container);
     livenessRoot.render(
       React.createElement(ThemeProvider, null,

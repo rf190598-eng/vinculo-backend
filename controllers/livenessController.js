@@ -1,8 +1,12 @@
 // livenessController.js
 // Lógica de backend para o Face Liveness do Vínculo.
-// Isso NÃO substitui a comparação de rosto (Rekognition CompareFaces) que você já tem —
-// é uma etapa ANTERIOR: confirma que existe uma pessoa de verdade, viva, na câmera,
-// antes de rodar a comparação de rosto que você já implementou.
+//
+// Fluxo completo:
+// 1. Liveness confirma que existe uma pessoa de verdade, viva, na câmera (Rekognition Face Liveness).
+// 2. Só DEPOIS disso, comparamos o rosto capturado no liveness com a foto_url do perfil
+//    (Rekognition CompareFaces, via compararRostos) — pra garantir que é a mesma pessoa
+//    do perfil, e não só "uma pessoa viva qualquer".
+// 3. Só se as duas etapas passarem, o usuário é marcado como verificado.
 
 const {
   RekognitionClient,
@@ -10,6 +14,7 @@ const {
   GetFaceLivenessSessionResultsCommand,
 } = require('@aws-sdk/client-rekognition');
 const Usuario = require('../models/Usuario');
+const { compararRostos } = require('../utils/rekognition');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -29,6 +34,35 @@ async function criarSessaoLiveness(req, res) {
   }
 }
 
+// Credita o bônus de indicação pra quem indicou o usuário recém-verificado.
+// Movido de perfilController.uploadSelfieVerificacao (fluxo antigo, removido) pra cá,
+// que agora é o único lugar do backend que efetivamente verifica identidade.
+async function creditarBonusIndicacaoSeAplicavel(usuarioVerificado) {
+  if (!usuarioVerificado.indicado_por || usuarioVerificado.bonus_indicacao_creditado) return;
+
+  const referenciador = await Usuario.findOne({ where: { codigo_indicacao: usuarioVerificado.indicado_por } });
+  if (!referenciador) return;
+
+  // Só estende quem já está num plano com data de expiração de verdade (fase paga).
+  // Se o indicador já tem premium sem data de expiração (fase gratuita atual),
+  // não faz sentido "trocar" isso por um prazo de 7 dias - isso rebaixaria
+  // quem deveria estar sendo recompensado.
+  if (referenciador.premium_ate) {
+    const agora = new Date();
+    const baseAtual = new Date(referenciador.premium_ate) > agora ? new Date(referenciador.premium_ate) : agora;
+    const novoPremiumAte = new Date(baseAtual.getTime() + 7 * 24 * 60 * 60 * 1000);
+    await Usuario.update(
+      { premium: true, premium_ate: novoPremiumAte },
+      { where: { id: referenciador.id } }
+    );
+  }
+
+  await Usuario.update(
+    { bonus_indicacao_creditado: true },
+    { where: { id: usuarioVerificado.id } }
+  );
+}
+
 async function buscarResultadoLiveness(req, res) {
   const { sessionId } = req.params;
 
@@ -41,24 +75,67 @@ async function buscarResultadoLiveness(req, res) {
     const resultado = await rekognitionClient.send(comando);
 
     const confianca = resultado.Confidence || 0;
-    const aprovado = resultado.Status === 'SUCCEEDED' && confianca >= CONFIANCA_MINIMA;
+    const livenessPassou = resultado.Status === 'SUCCEEDED' && confianca >= CONFIANCA_MINIMA;
 
-    if (aprovado && req.usuarioId) {
-      const dadosParaAtualizar = { liveness_aprovado: true, liveness_confianca: confianca };
-
-      if (resultado.ReferenceImage && resultado.ReferenceImage.Bytes) {
-        const pasta = path.join(__dirname, '..', 'uploads');
-        if (!fs.existsSync(pasta)) fs.mkdirSync(pasta, { recursive: true });
-        const nomeArquivo = `${crypto.randomUUID()}.jpg`;
-        fs.writeFileSync(path.join(pasta, nomeArquivo), Buffer.from(resultado.ReferenceImage.Bytes));
-        dadosParaAtualizar.foto_verificacao = '/uploads/' + nomeArquivo;
-        dadosParaAtualizar.verificado = true;
-      }
-
-      await Usuario.update(dadosParaAtualizar, { where: { id: req.usuarioId } });
+    // Liveness sozinho não é suficiente: sem imagem de referência, não dá pra confirmar
+    // identidade, então não marcamos como verificado.
+    if (!livenessPassou || !resultado.ReferenceImage || !resultado.ReferenceImage.Bytes || !req.usuarioId) {
+      return res.json({ aprovado: false, confianca, status: resultado.Status });
     }
 
-    return res.json({ aprovado, confianca, status: resultado.Status });
+    const usuarioAtual = await Usuario.findByPk(req.usuarioId);
+    if (!usuarioAtual || !usuarioAtual.foto_url) {
+      return res.status(400).json({
+        erro: 'Cadastre uma foto de perfil antes de fazer a verificação facial.',
+        aprovado: false,
+      });
+    }
+
+    // Salva a imagem de referência do liveness temporariamente pra poder comparar
+    const pasta = path.join(__dirname, '..', 'uploads');
+    if (!fs.existsSync(pasta)) fs.mkdirSync(pasta, { recursive: true });
+    const nomeArquivo = `${crypto.randomUUID()}.jpg`;
+    const caminhoReferencia = path.join(pasta, nomeArquivo);
+    fs.writeFileSync(caminhoReferencia, Buffer.from(resultado.ReferenceImage.Bytes));
+
+    const caminhoFotoPerfil = path.join(__dirname, '..', usuarioAtual.foto_url.replace(/^\//, ''));
+
+    let comparacao;
+    try {
+      comparacao = await compararRostos(caminhoReferencia, caminhoFotoPerfil);
+    } catch (erroComparacao) {
+      fs.unlink(caminhoReferencia, () => {});
+      return res.status(503).json({
+        erro: 'Não foi possível concluir a verificação facial agora. Tente novamente em instantes: ' + erroComparacao.message,
+        aprovado: false,
+      });
+    }
+
+    if (!comparacao.bateu) {
+      fs.unlink(caminhoReferencia, () => {});
+      return res.status(400).json({
+        erro: 'Não foi possível confirmar que é a mesma pessoa da foto de perfil.',
+        motivo: comparacao.motivo,
+        similaridade: comparacao.similaridade,
+        aprovado: false,
+      });
+    }
+
+    // Liveness passou E é a mesma pessoa da foto de perfil: agora sim, verificado de verdade.
+    await Usuario.update(
+      {
+        liveness_aprovado: true,
+        liveness_confianca: confianca,
+        foto_verificacao: '/uploads/' + nomeArquivo,
+        verificado: true,
+      },
+      { where: { id: req.usuarioId } }
+    );
+
+    const usuarioVerificado = await Usuario.findByPk(req.usuarioId);
+    await creditarBonusIndicacaoSeAplicavel(usuarioVerificado);
+
+    return res.json({ aprovado: true, confianca, status: resultado.Status });
   } catch (erro) {
     console.error('Erro ao buscar resultado de liveness:', erro);
     return res.status(500).json({ erro: 'Não foi possível verificar o resultado do liveness.' });
