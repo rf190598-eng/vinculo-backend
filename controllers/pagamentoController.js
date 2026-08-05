@@ -30,6 +30,7 @@ const criarPagamentoPix = async (req, res) => {
         transaction_amount: planoEscolhido.valor,
         description: planoEscolhido.nome,
         payment_method_id: 'pix',
+        notification_url: 'https://vinculo-backend-production.up.railway.app/api/pagamento/webhook',
         payer: {
           email: usuario.email,
           first_name: usuario.nome
