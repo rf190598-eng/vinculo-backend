@@ -841,6 +841,40 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <button class="btn btn-ghost" style="margin-top:10px" onclick="_cancelarConfirmacaoGenerica()">Cancelar</button>
   </div>
 </div>
+<!-- EXCLUIR CONTA (LGPD) -->
+<div class="overlay" id="overlay-excluir-conta" onclick="if(event.target===this)closeModal('excluir-conta')">
+  <div class="modal" id="excluirContaModalContent">
+    <div id="excluirContaAvisoView">
+      <div class="modal-handle"></div>
+      <div style="text-align:center;margin-bottom:14px">
+        <div class="big-ic" style="color:#ff6b6b">&#9888;&#65039;</div>
+        <h3 class="serif">Excluir sua conta?</h3>
+        <p style="color:#d8b0c4;font-size:12.5px">Essa ação é <b style="color:#ff8fa3">permanente e irreversível</b>. Não é possível desfazer nem recuperar seus dados depois.</p>
+      </div>
+      <div style="background:rgba(192,41,63,.08);border:1px solid rgba(192,41,63,.3);border-radius:12px;padding:12px 14px;font-size:12.5px;color:#e0c0d0;text-align:left;line-height:1.7;margin-bottom:6px">
+        Isso vai apagar definitivamente:
+        <div style="margin-top:6px">&#8226; Seu perfil e fotos</div>
+        <div>&#8226; Seus matches e conversas</div>
+        <div>&#8226; Curtidas, visualizações e denúncias/bloqueios</div>
+        <div>&#8226; Modo Dupla, check-ins e demais dados vinculados à sua conta</div>
+      </div>
+      <button class="btn btn-danger" style="margin-top:14px" onclick="avancarExclusaoContaParaSenha()">Continuar</button>
+      <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('excluir-conta')">Cancelar</button>
+    </div>
+    <div id="excluirContaSenhaView" style="display:none">
+      <div class="modal-handle"></div>
+      <div style="text-align:center;margin-bottom:14px">
+        <div class="big-ic" style="color:#ff6b6b">&#128274;</div>
+        <h3 class="serif">Confirme sua senha</h3>
+        <p style="color:#d8b0c4;font-size:12.5px">Por segurança, digite sua senha atual para excluir sua conta permanentemente.</p>
+      </div>
+      <input class="inp" id="excluirContaSenha" type="password" placeholder="Sua senha atual" oninput="atualizarBotaoExcluirConta()"/>
+      <div id="excluirContaErro" style="color:#ff8fa3;font-size:12.5px;margin-top:6px;min-height:14px"></div>
+      <button class="btn btn-danger" style="margin-top:8px" id="btnExcluirContaFinal" disabled onclick="confirmarExclusaoConta()">Excluir permanentemente</button>
+      <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('excluir-conta')">Cancelar</button>
+    </div>
+  </div>
+</div>
 <!-- CHATS -->
 <div class="screen" id="screen-chats" style="background:#1a0810;min-height:100vh;">
   <div class="topbar">
@@ -1740,6 +1774,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div class="settings-item" id="menuPainelAdmin" onclick="goTo('admin')"><div class="settings-label"><span class="settings-ic">&#128202;</span><span style="color:#d4b87a">Painel Admin</span></div><span style="background:rgba(212,131,154,.2);border-radius:20px;padding:2px 8px;font-size:10px;color:#f0a0b8;font-weight:700">ADMIN</span></div>
   <div class="settings-item" onclick="goTo('landing')"><div class="settings-label"><span class="settings-ic">&#127968;</span>Ver landing page</div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item" onclick="sairDaConta()"><div class="settings-label"><span class="settings-ic">&#128682;</span><span style="color:#e8909e">Sair da conta</span></div></div>
+  <div class="settings-item" onclick="abrirModalExcluirConta()" style="border-top:1px solid rgba(192,41,63,.3);margin-top:4px"><div class="settings-label"><span class="settings-ic">&#9888;&#65039;</span><span style="color:#ff6b6b;font-weight:700">Excluir minha conta</span></div><span style="color:#ff6b6b">&#8250;</span></div>
 </div>
 
 </div><!-- .app -->
@@ -2324,6 +2359,71 @@ function sairDaConta(){
   tokenAtual = null;
   usuarioAtual = null;
   goTo('landing');
+}
+
+/* ===== EXCLUSÃO DE CONTA (LGPD) ===== */
+function abrirModalExcluirConta(){
+  document.getElementById('excluirContaAvisoView').style.display = 'block';
+  document.getElementById('excluirContaSenhaView').style.display = 'none';
+  document.getElementById('excluirContaSenha').value = '';
+  document.getElementById('excluirContaErro').textContent = '';
+  atualizarBotaoExcluirConta();
+  openModal('excluir-conta');
+}
+
+function avancarExclusaoContaParaSenha(){
+  document.getElementById('excluirContaAvisoView').style.display = 'none';
+  document.getElementById('excluirContaSenhaView').style.display = 'block';
+  document.getElementById('excluirContaSenha').focus();
+}
+
+function atualizarBotaoExcluirConta(){
+  const senha = document.getElementById('excluirContaSenha').value;
+  document.getElementById('btnExcluirContaFinal').disabled = !senha;
+}
+
+async function confirmarExclusaoConta(){
+  const senha = document.getElementById('excluirContaSenha').value;
+  const erroEl = document.getElementById('excluirContaErro');
+  const btn = document.getElementById('btnExcluirContaFinal');
+  if (!senha) return;
+
+  erroEl.textContent = '';
+  btn.disabled = true;
+  const textoOriginalBtn = btn.textContent;
+  btn.textContent = 'Excluindo...';
+
+  try {
+    const resp = await fetch(`${API_URL}/api/usuario/conta`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tokenAtual}` },
+      body: JSON.stringify({ senha })
+    });
+    const dados = await resp.json().catch(() => ({}));
+
+    if (resp.ok) {
+      closeModal('excluir-conta');
+      localStorage.removeItem('vinculo_token');
+      localStorage.removeItem('vinculo_usuario');
+      tokenAtual = null;
+      usuarioAtual = null;
+      showToastVinculo(dados.mensagem || 'Conta excluída com sucesso.');
+      goTo('landing');
+      return;
+    }
+
+    if (resp.status === 401) {
+      erroEl.textContent = 'Senha incorreta.';
+    } else {
+      erroEl.textContent = dados.erro || 'Não foi possível excluir a conta. Tente novamente.';
+    }
+    btn.disabled = false;
+    btn.textContent = textoOriginalBtn;
+  } catch (e) {
+    erroEl.textContent = 'Erro de conexão. Tenta de novo.';
+    btn.disabled = false;
+    btn.textContent = textoOriginalBtn;
+  }
 }
 
 async function verificarSessaoSalva(){
@@ -4652,6 +4752,15 @@ function _cancelarConfirmacaoGenerica(){
 }
 function closeModal(name){
   document.getElementById('overlay-'+name).classList.remove('open');
+  if(name==='excluir-conta'){
+    setTimeout(()=>{
+      document.getElementById('excluirContaAvisoView').style.display = 'block';
+      document.getElementById('excluirContaSenhaView').style.display = 'none';
+      document.getElementById('excluirContaSenha').value = '';
+      document.getElementById('excluirContaErro').textContent = '';
+      atualizarBotaoExcluirConta();
+    },300);
+  }
   if(name==='report'){
     setTimeout(()=>{
       document.getElementById('reportFormView').style.display='block';
