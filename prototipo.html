@@ -2247,9 +2247,19 @@ let tokenAtual = localStorage.getItem('vinculo_token') || null;
 // Qualquer outra tela exige verificado === true, senão volta pra tela de verificação.
 const telasSemVerificacaoObrigatoria = ['landing','auth','login','welcome','liveness'];
 const telasSemPerfilCompletoObrigatorio = ['landing','auth','login','welcome','liveness','edit-profile','myprofile'];
+// Telas que dão pra acessar mesmo sem foto de perfil ainda. 'liveness' fica DE FORA
+// de propósito: o backend (livenessController) compara o rosto capturado com a
+// foto_url do usuário, então sem foto o liveness sempre falha com 400. Por isso
+// a foto precisa vir antes da verificação facial no onboarding.
+const telasSemFotoObrigatoria = ['landing','auth','login','welcome','edit-profile','myprofile'];
 
 function perfilIncompleto(){
   return !usuarioAtual.bio || !usuarioAtual.foto_url;
+}
+
+// Único critério pra saber se falta foto: usuarioAtual.foto_url vazio/nulo.
+function semFotoDePerfil(){
+  return !usuarioAtual || !usuarioAtual.foto_url;
 }
 
 const goToBase = goTo;
@@ -2259,11 +2269,19 @@ goTo = function(name){
     showToastVinculo('Acesso restrito.');
     return;
   }
-if (usuarioAtual && usuarioAtual.verificado === false && !telasSemVerificacaoObrigatoria.includes(name)) {
+  // 1) Sem foto de perfil: manda pra edição de perfil ANTES de tudo, inclusive
+  // antes do liveness (que depende da foto já estar salva pra funcionar).
+  if (usuarioAtual && semFotoDePerfil() && !telasSemFotoObrigatoria.includes(name)) {
+    goToBase('edit-profile');
+    return;
+  }
+  // 2) Já tem foto, mas ainda não passou pela verificação facial.
+  if (usuarioAtual && usuarioAtual.verificado === false && !telasSemVerificacaoObrigatoria.includes(name)) {
     goToBase('liveness');
     setTimeout(iniciarLivenessCheck, 50);
     return;
   }
+  // 3) Verificado, mas ainda falta completar o perfil (ex: bio).
   if (usuarioAtual && usuarioAtual.verificado === true && perfilIncompleto() && !telasSemPerfilCompletoObrigatorio.includes(name)) {
     goToBase('edit-profile');
     return;
