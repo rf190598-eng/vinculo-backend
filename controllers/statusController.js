@@ -46,14 +46,42 @@ const storage = multer.diskStorage({
   }
 });
 
+// Tipos aceitos num status/story. Lista EXPLÍCITA em vez da regex solta de
+// antes (/jpeg|jpg|png|mp4|quicktime|webm|mov/), que casava a substring em
+// qualquer posição do mimetype e por isso também aceitava coisas não
+// pretendidas (ex: 'application/mp4', 'audio/webm' — áudio puro sem vídeo).
+const MIMETYPES_STATUS_PERMITIDOS = [
+  'image/jpeg',
+  'image/jpg',   // não é oficial, mas alguns clientes/navegadores mandam assim
+  'image/png',
+  'video/mp4',       // Safari/iPhone (e fallback do MediaRecorder em alguns Androids)
+  'video/webm',      // Chrome/Firefox — formato padrão do MediaRecorder do composer
+  'video/quicktime'  // .mov gravado nativamente pelo iPhone e enviado pela galeria
+];
+
+// A comparação NÃO pode ser igualdade de string: o MediaRecorder do navegador
+// devolve o mimetype com os codecs anexados como parâmetro
+// (ex: 'video/webm;codecs=vp9,opus' ou 'video/webm;codecs=vp8,opus'), que é
+// exatamente o valor que o front usa ao montar o File enviado. Então aceitamos
+// o tipo base exato OU o tipo base seguido de ';' + parâmetros. Continua sendo
+// estrito o bastante pra não deixar passar 'video/mp4x' e afins.
+const mimetypeStatusPermitido = (mimetype) => {
+  const limpo = String(mimetype || '').trim().toLowerCase();
+  return MIMETYPES_STATUS_PERMITIDOS.some(
+    (tipo) => limpo === tipo || limpo.startsWith(tipo + ';')
+  );
+};
+
 const uploadStatus = multer({
   storage,
   limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const tiposValidos = /jpeg|jpg|png|mp4|quicktime|webm|mov/;
-    const valido = tiposValidos.test(file.mimetype);
-    if (valido) cb(null, true);
-    else cb(new Error('Formato de arquivo nao suportado'));
+    if (mimetypeStatusPermitido(file.mimetype)) return cb(null, true);
+    // Loga o mimetype recusado: sem isso não dá pra saber DEPOIS o que o
+    // navegador do usuário mandou de verdade (em produção o handler global do
+    // index.js troca a mensagem do erro por 'Erro interno do servidor').
+    console.warn('[status] upload recusado — mimetype recebido:', file.mimetype, '| arquivo:', file.originalname);
+    cb(new Error('Formato de arquivo nao suportado: ' + file.mimetype));
   }
 });
 
