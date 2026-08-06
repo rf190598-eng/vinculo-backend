@@ -2022,7 +2022,13 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <div style="font-size:13.5px;font-weight:700;color:#fdf6f2" id="viewStoryNome">—</div>
         <div style="font-size:11px;color:rgba(255,255,255,.7)" id="viewStoryPergunta">Pergunta do dia</div>
       </div>
-      <div onclick="closeModal('view-story')" style="margin-left:auto;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff">&#10005;</div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+        <!-- Só aparece quando o story sendo visto é do próprio usuário logado
+             (controlado em abrirPessoaEmIndice) — nunca visível vendo story
+             de outra pessoa. -->
+        <div id="viewStoryExcluir" onclick="excluirStoryAtual()" style="display:none;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.4);align-items:center;justify-content:center;font-size:15px;cursor:pointer;color:#fff">&#128465;</div>
+        <div onclick="closeModal('view-story')" style="width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff">&#10005;</div>
+      </div>
     </div>
     <!-- Conteúdo do story -->
     <div id="viewStoryConteudoWrap" style="flex:1;background:linear-gradient(160deg,#8a2a4a,#4a1428,#1a0810);display:flex;align-items:center;justify-content:center;font-size:80px;overflow:hidden;position:relative">
@@ -4103,6 +4109,7 @@ async function carregarPerguntaDoDia(){
     if(acaoEl) acaoEl.style.display = dados.ja_respondi ? 'none' : 'flex';
 
     const ring = document.getElementById('meuStoryRing');
+    console.log('[ring] carregarPerguntaDoDia: elemento meuStoryRing encontrado?', !!ring);
     if(ring){
       atualizarMeuStoryRingComMiniatura(ring);
     }
@@ -4125,12 +4132,16 @@ async function carregarPerguntaDoDia(){
 // do ja_respondi de outro endpoint — se dependesse de ja_respondi, esse
 // círculo voltaria a ficar vazio sempre que houvesse essa divergência.
 async function atualizarMeuStoryRingComMiniatura(ring){
+  console.log('[ring] atualizarMeuStoryRingComMiniatura chamada. ring:', ring);
   let stories = [];
   try{
     const resp = await fetch(`${API_URL}/api/status/meu`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
     const dados = await resp.json();
+    console.log('[ring] resposta de /api/status/meu — ok?', resp.ok, '| dados:', dados);
     if(resp.ok) stories = dados.stories || [];
-  } catch(e){}
+  } catch(e){ console.log('[ring] erro no fetch de /api/status/meu:', e); }
+
+  console.log('[ring] stories ativos encontrados:', stories.length);
 
   if(!stories.length){
     // O badge "+" no canto já comunica "adicionar story", então não faz mais
@@ -4157,6 +4168,7 @@ async function atualizarMeuStoryRingComMiniatura(ring){
     ? `background-image:url(${API_URL}${ultimo.media_url});background-size:cover;background-position:center`
     : 'display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(160deg,#7a2a4a,#4a1428)';
   const conteudoMiniatura = ehVideo ? '&#127909;' : '';
+  console.log('[ring] último story:', ultimo, '| tipo:', ultimo.tipo, '| ehVideo?', ehVideo, '| media_url:', ultimo.media_url, '| vai mostrar emoji de câmera (vídeo sem thumbnail)?', ehVideo);
   ring.innerHTML = `<div style="width:100%;height:100%;border-radius:50%;border:2px solid #1a0810;${miniaturaEstilo}">${conteudoMiniatura}</div>`;
 }
 
@@ -5076,6 +5088,7 @@ async function enviarStoryComposer(){
     // aqui, a atualização da bolinha para de depender do sucesso de uma
     // requisição que não tem nada a ver com ela.
     const meuRing = document.getElementById('meuStoryRing');
+    console.log('[ring] enviarStoryComposer: elemento meuStoryRing encontrado?', !!meuRing, '| chamando atualizarMeuStoryRingComMiniatura agora');
     if(meuRing) atualizarMeuStoryRingComMiniatura(meuRing);
   } catch(e){ erroEl.textContent = 'Erro de conexão.'; }
 }
@@ -5200,6 +5213,15 @@ function abrirPessoaEmIndice(pessoaIndice, storyIndice){
     perguntaEl.style.display = 'none';
   }
 
+  // Botão de excluir só aparece vendo o PRÓPRIO story — comparação por id,
+  // não por referência de objeto (pessoa.usuario vem de fetches diferentes
+  // dependendo de como se chegou aqui: feed de outras pessoas ou /api/status/meu).
+  const excluirEl = document.getElementById('viewStoryExcluir');
+  if(excluirEl){
+    const ehProprioStory = !!(usuarioAtual && pessoa.usuario && pessoa.usuario.id === usuarioAtual.id);
+    excluirEl.style.display = ehProprioStory ? 'flex' : 'none';
+  }
+
   const fotoPerfilEl = document.getElementById('viewStoryFotoPerfil');
   if(pessoa.usuario.foto_url){
     fotoPerfilEl.style.backgroundImage = `url(${API_URL}${pessoa.usuario.foto_url})`;
@@ -5290,6 +5312,58 @@ function retomarStory(){
   storyInicioTempo += (performance.now() - storyPausadoEm);
   const videoEl = document.getElementById('viewStoryVideoEl');
   if(videoEl) videoEl.play().catch(()=>{});
+}
+
+// Exclusão de um story específico — só chamável a partir do botão que só
+// aparece vendo o PRÓPRIO story (viewStoryExcluir, controlado em
+// abrirPessoaEmIndice), mas o backend também confere a posse por conta
+// própria (403 se não for dono), então não há caminho pra excluir story
+// alheio mesmo manipulando o front.
+async function excluirStoryAtual(){
+  const pessoa = storyViewLista[storyViewPessoaIndice];
+  if(!pessoa) return;
+  const item = pessoa.stories[storyViewStoryIndice];
+  if(!item) return;
+
+  pausarStory();
+  const confirmou = confirm('Excluir este story? Essa ação não pode ser desfeita.');
+  if(!confirmou){ retomarStory(); return; }
+
+  try{
+    const resp = await fetch(`${API_URL}/api/status/${item.id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${tokenAtual}` }
+    });
+    const dados = await resp.json().catch(() => ({}));
+    if(!resp.ok){
+      showToastVinculo(dados.erro || 'Erro ao excluir story.');
+      retomarStory();
+      return;
+    }
+  } catch(e){
+    showToastVinculo('Erro de conexão ao excluir story.');
+    retomarStory();
+    return;
+  }
+
+  // Remove da lista local ANTES de navegar — abrirPessoaEmIndice decide com
+  // base no tamanho ATUAL de pessoa.stories se avança pro próximo story dessa
+  // pessoa, pula pra próxima pessoa, ou fecha o viewer (mesma lógica de
+  // overflow/underflow já usada na navegação normal por toque, reaproveitada
+  // sem nenhuma mudança nela).
+  const indiceRemovido = storyViewStoryIndice;
+  pessoa.stories.splice(indiceRemovido, 1);
+
+  pararAutoAvancoStory();
+  abrirPessoaEmIndice(storyViewPessoaIndice, indiceRemovido);
+
+  // O story excluído pode ter sido o mais recente — atualiza a miniatura da
+  // bolinha "Seu story" pra refletir o novo estado (outro story vira o mais
+  // recente, ou volta pro círculo vazio/foto de perfil se não sobrou nenhum).
+  const meuRing = document.getElementById('meuStoryRing');
+  if(meuRing) atualizarMeuStoryRingComMiniatura(meuRing);
+
+  showToastVinculo('Story excluído.');
 }
 
 function iniciarAutoAvancoStory(ehVideo){

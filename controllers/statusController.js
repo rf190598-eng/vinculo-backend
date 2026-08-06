@@ -233,4 +233,46 @@ const meuStatusAtivo = async (req, res) => {
   }
 };
 
-module.exports = { obterPerguntaDoDia, criarResposta, listarStatusFeed, meuStatusAtivo, uploadStatus };
+// Exclui UM story específico do próprio usuário. Segue o mesmo padrão de
+// autorização usado no resto do controller: sempre filtra por
+// usuario_id === req.usuarioId antes de qualquer efeito, nunca confia num id
+// vindo da URL sozinho. Se existir arquivo de mídia associado, remove o
+// arquivo físico de /uploads também — senão o disco acumula lixo órfão a
+// cada story excluído (foto/vídeo nunca mais referenciados por nenhuma linha
+// do banco).
+const excluirStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const status = await StatusResposta.findByPk(id);
+
+    if (!status) {
+      return res.status(404).json({ erro: 'Story não encontrado' });
+    }
+    if (status.usuario_id !== req.usuarioId) {
+      return res.status(403).json({ erro: 'Você não pode excluir um story que não é seu' });
+    }
+
+    if (status.media_url) {
+      // media_url é salvo como '/uploads/nome-do-arquivo.ext' (ver criarResposta);
+      // path.basename evita qualquer risco de path traversal caso o valor
+      // salvo alguma vez viesse com coisa a mais que um nome de arquivo simples.
+      const caminhoArquivo = path.join(__dirname, '..', 'uploads', path.basename(status.media_url));
+      fs.unlink(caminhoArquivo, (erroUnlink) => {
+        // Não falha a requisição por causa disso — o registro no banco é a
+        // fonte de verdade pro usuário; um arquivo órfão remanescente (ex: já
+        // tinha sido removido antes, ou nunca existiu) não deve impedir a
+        // exclusão do story em si.
+        if (erroUnlink && erroUnlink.code !== 'ENOENT') {
+          console.warn('[status] falha ao remover arquivo físico do story excluído:', caminhoArquivo, erroUnlink.message);
+        }
+      });
+    }
+
+    await status.destroy();
+    res.json({ mensagem: 'Story excluído' });
+  } catch (erro) {
+    res.status(500).json({ erro: 'Erro ao excluir story: ' + erro.message });
+  }
+};
+
+module.exports = { obterPerguntaDoDia, criarResposta, listarStatusFeed, meuStatusAtivo, uploadStatus, excluirStatus };
