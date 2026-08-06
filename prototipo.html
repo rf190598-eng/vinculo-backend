@@ -396,7 +396,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div class="serif" style="font-size:32px;font-weight:700;margin-bottom:8px;color:#fdf6f2">Conta criada!</div>
     <div style="color:#d0a8b8;font-size:13.5px;margin-bottom:28px;line-height:1.6;max-width:280px">Falta só um passo rápido: confirmar sua identidade. É o que garante que todo mundo no Vínculo é uma pessoa real e verificada.</div>
     <div class="verify-chip">&#128737; Quase lá — verificação de identidade</div>
-    <button class="btn btn-primary" style="margin-top:20px" onclick="goTo('liveness')">Verificar minha identidade</button>
+    <button class="btn btn-primary" style="margin-top:20px" onclick="goTo('liveness')">Começar verificação</button>
   </div>
 </div>
 
@@ -1709,6 +1709,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div class="card-name" style="font-size:26px"><span id="meuPerfilNome">—</span> <span class="card-age" style="font-size:18px" id="meuPerfilIdade"></span></div>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
       <div class="badge badge-gold" id="meuPerfilBadgeVerificado" style="display:none">&#10003; Verificado</div>
+      <div class="badge badge-gold" id="meuPerfilBadgePremium" style="display:none">&#128081; Premium</div>
       <div class="badge badge-green" id="meuPerfilBadgePorcentagem">0% do perfil completo</div>
     </div>
   </div>
@@ -4119,6 +4120,7 @@ async function carregarMeuPerfil(){
   document.getElementById('meuPerfilNome').textContent = usuarioAtual.nome;
   document.getElementById('meuPerfilIdade').textContent = idade;
  document.getElementById('meuPerfilBadgeVerificado').style.display = usuarioAtual.verificado ? 'flex' : 'none';
+  document.getElementById('meuPerfilBadgePremium').style.display = usuarioAtual.premium ? 'flex' : 'none';
 
   const faixaPremiumEl = document.getElementById('faixaPremiumPerfil');
   if (faixaPremiumEl) faixaPremiumEl.style.display = usuarioAtual.premium ? 'none' : 'flex';
