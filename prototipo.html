@@ -576,8 +576,8 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="font-size:10px;font-weight:800;color:#d4b87a;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">&#127775; Pergunta do dia</div>
     <div style="font-size:13.5px;font-weight:700;color:#fdf6f2;margin-bottom:8px" id="perguntaDoDiaTexto">Carregando...</div>
     <div style="display:flex;gap:8px" id="perguntaDoDiaAcao">
-      <input style="flex:1;min-width:0;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:10px;padding:8px 12px;font-size:13px;color:#fdf6f2;outline:none;font-family:inherit;text-overflow:ellipsis;overflow:hidden;white-space:nowrap" placeholder="Sua resposta aparece no seu perfil..." readonly onclick="selecionarTipoResposta('texto');openModal('pergunta-dia')"/>
-      <button style="background:linear-gradient(135deg,#e0607a,#c9a06b);border:none;border-radius:10px;padding:8px 14px;color:#fff;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap" onclick="selecionarTipoResposta('texto');openModal('pergunta-dia')">Responder</button>
+      <input style="flex:1;min-width:0;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:10px;padding:8px 12px;font-size:13px;color:#fdf6f2;outline:none;font-family:inherit;text-overflow:ellipsis;overflow:hidden;white-space:nowrap" placeholder="Sua resposta aparece no seu perfil..." readonly onclick="abrirModalPerguntaDiaSelecao()"/>
+      <button style="background:linear-gradient(135deg,#e0607a,#c9a06b);border:none;border-radius:10px;padding:8px 14px;color:#fff;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap" onclick="abrirModalPerguntaDiaSelecao()">Responder</button>
     </div>
   </div>
 
@@ -2090,7 +2090,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 </div>
 
 <!-- MODAL CÂMERA AO VIVO (foto/vídeo pro story) -->
-<div class="overlay" id="overlay-camera-story" style="align-items:center">
+<div class="overlay" id="overlay-camera-story" style="align-items:center;z-index:600">
   <div style="background:#000;width:100%;max-width:430px;height:100vh;position:relative;display:flex;flex-direction:column;overflow:hidden">
 
     <!-- Preview ao vivo da câmera -->
@@ -2136,7 +2136,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 </div>
 
 <!-- MODAL EDITOR DE STORY (texto arrastável/redimensionável/rotacionável) -->
-<div class="overlay" id="overlay-editor-story" style="align-items:center">
+<div class="overlay" id="overlay-editor-story" style="align-items:center;z-index:610">
   <div style="background:#000;width:100%;max-width:430px;height:100vh;position:relative;display:flex;flex-direction:column;overflow:hidden">
 
     <!-- Fundo: foto, vídeo ou gradiente -->
@@ -5007,7 +5007,29 @@ async function aoClicarMeuStory(){
 // rodada anterior), que sem querer tirou a única forma de postar um segundo
 // story no mesmo dia.
 function abrirNovoStoryDireto(){
-  selecionarTipoResposta('texto');
+  abrirModalPerguntaDiaSelecao();
+}
+
+// Abre o modal 'pergunta-dia' num estado NEUTRO, com as 3 abas (Texto/Foto/
+// Vídeo) visíveis e nenhuma escolhida ainda — diferente de chamar
+// selecionarTipoResposta('texto') direto, que tem o efeito colateral de já
+// abrir o editor (é o comportamento certo quando o usuário TOCA na aba
+// Texto, mas errado como "estado inicial" do modal: pulava a escolha do
+// tipo direto pro editor vazio). Usada sempre que o modal é aberto sem um
+// tipo pré-determinado pelo usuário (badge "+", bolinha sem story, e o
+// atalho "Responder" do card da pergunta do dia).
+function abrirModalPerguntaDiaSelecao(){
+  tipoRespostaEscolhido = null;
+  arquivoRespostaSelecionadoVar = null;
+  overlayTextosStoryVar = null;
+  document.getElementById('respostaArquivoPreview').style.display = 'none';
+  document.getElementById('respostaTextoArea').style.display = 'none';
+  document.getElementById('respostaEscolherArea').style.display = 'none';
+  ['texto','foto','video'].forEach(t=>{
+    const btn = document.getElementById('tipoResp'+t.charAt(0).toUpperCase()+t.slice(1));
+    btn.style.borderColor = 'rgba(255,255,255,.15)';
+    btn.style.background = 'rgba(255,255,255,.05)';
+  });
   openModal('pergunta-dia');
 }
 
