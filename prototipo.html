@@ -4055,6 +4055,7 @@ async function carregarPerguntaDoDia(){
   try{
     const resp = await fetch(`${API_URL}/api/status/pergunta-do-dia`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
     const dados = await resp.json();
+    if(!resp.ok){ throw new Error(dados.erro || 'Erro ao buscar pergunta do dia'); }
     const textoFormatado = `"${dados.pergunta}"`;
     const cardEl = document.getElementById('perguntaDoDiaTexto');
     const modalEl = document.getElementById('perguntaDoDiaModalTexto');
@@ -4063,11 +4064,30 @@ async function carregarPerguntaDoDia(){
 
     const ring = document.getElementById('meuStoryRing');
     if(ring && dados.ja_respondi){
-      ring.style.background = 'linear-gradient(135deg,#f0a0b8,#c9a06b,#e0607a)';
-      ring.style.border = 'none';
-      ring.innerHTML = '<div style="width:100%;height:100%;border-radius:50%;background:linear-gradient(160deg,#7a2a4a,#4a1428);display:flex;align-items:center;justify-content:center;font-size:24px;border:2px solid #1a0810">&#9989;</div>';
+      atualizarMeuStoryRingComMiniatura(ring);
     }
   } catch(e){}
+}
+
+// Busca o status ativo do próprio usuário pra desenhar a mesma miniatura real
+// (background-image com media_url) usada pros stories dos outros em carregarStoriesBar,
+// em vez do ícone fixo de check que ficava sem refletir o conteúdo publicado.
+async function atualizarMeuStoryRingComMiniatura(ring){
+  ring.style.background = 'linear-gradient(135deg,#f0a0b8,#c9a06b,#e0607a)';
+  ring.style.border = 'none';
+  let status = null;
+  try{
+    const resp = await fetch(`${API_URL}/api/status/meu`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
+    const dados = await resp.json();
+    if(resp.ok) status = dados.status;
+  } catch(e){}
+
+  const ehVideo = status && status.tipo === 'video';
+  const miniaturaEstilo = (status && !ehVideo && status.media_url)
+    ? `background-image:url(${API_URL}${status.media_url});background-size:cover;background-position:center`
+    : 'display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(160deg,#7a2a4a,#4a1428)';
+  const conteudoMiniatura = ehVideo ? '&#127909;' : '';
+  ring.innerHTML = `<div style="width:100%;height:100%;border-radius:50%;border:2px solid #1a0810;${miniaturaEstilo}">${conteudoMiniatura}</div>`;
 }
 
 function selecionarTipoResposta(tipo){
