@@ -4429,11 +4429,30 @@ function iniciarGravacaoStory(duracaoMaxSegundos){
   }
   cameraStoryMediaRecorder.ondataavailable = (ev) => { if(ev.data && ev.data.size > 0) cameraStoryChunks.push(ev.data); };
   cameraStoryMediaRecorder.onstop = () => {
-    const tipoFinal = cameraStoryMediaRecorder.mimeType || mimeType || 'video/webm';
-    const blob = new Blob(cameraStoryChunks, { type: tipoFinal });
-    const ext = tipoFinal.includes('mp4') ? 'mp4' : 'webm';
-    const arquivo = new File([blob], 'story-video-' + Date.now() + '.' + ext, { type: tipoFinal });
-    console.log('[camera] vídeo gravado, indo direto pro editor');
+    const tipoBruto = cameraStoryMediaRecorder.mimeType || mimeType || 'video/webm';
+
+    // CAUSA RAIZ do "text/plain" que chegava no backend: o MediaRecorder
+    // devolve o mimetype COM os codecs juntos ('video/webm;codecs=vp9,opus').
+    // Esse valor ia inteiro pro .type do File, e o navegador copia o .type
+    // literalmente pro cabeçalho Content-Type da parte do multipart. Só que
+    // "vp9,opus" tem uma VÍRGULA sem aspas, e vírgula não é caractere válido
+    // num valor de parâmetro de header HTTP (RFC 7231: tem que ser token ou
+    // string entre aspas). O busboy — que é quem o multer usa por baixo pra
+    // ler o multipart — não consegue parsear esse header e cai no default
+    // dele, que é justamente 'text/plain'. Por isso o arquivo chegava íntegro
+    // (833KB) mas com o tipo errado, e só o VÍDEO falhava: a foto usa
+    // 'image/jpeg', que não tem parâmetro nenhum.
+    // Os codecs não servem pra nada no backend (o próprio container carrega
+    // essa informação), então enviamos só o tipo base.
+    // Atenção: o tipo COM codecs continua sendo necessário na criação do
+    // MediaRecorder (escolherMimeTypeVideoStory) — é ele que define o encoder.
+    // A remoção é só na hora de embrulhar o resultado como arquivo.
+    const tipoBase = tipoBruto.split(';')[0].trim();
+
+    const blob = new Blob(cameraStoryChunks, { type: tipoBase });
+    const ext = tipoBase.includes('mp4') ? 'mp4' : 'webm';
+    const arquivo = new File([blob], 'story-video-' + Date.now() + '.' + ext, { type: tipoBase });
+    console.log('[camera] vídeo gravado. tipo bruto:', tipoBruto, '| tipo que vai ser enviado:', arquivo.type, '| bytes:', arquivo.size);
     pararStreamCameraStory();
     abrirEditorStory('video', arquivo);
   };
@@ -4987,7 +5006,17 @@ async function enviarStoryComposer(){
   formData.append('tipo', tipoRespostaEscolhido);
 
   if(!arquivoRespostaSelecionadoVar){ erroEl.textContent = 'Nada pra enviar ainda.'; return; }
-  formData.append('arquivo', arquivoRespostaSelecionadoVar);
+
+  // Nome do arquivo passado EXPLICITAMENTE como 3º argumento. Hoje o valor
+  // sempre é um File (que já carrega .name), mas se algum dia entrar um Blob
+  // puro aqui, a parte do multipart iria sem "filename" — e o busboy trata
+  // parte sem filename como CAMPO DE TEXTO, não como arquivo, fazendo
+  // req.file chegar undefined no controller. Passar o nome elimina esse risco
+  // sem custo nenhum.
+  const nomeArquivo = arquivoRespostaSelecionadoVar.name
+    || ('story-' + Date.now() + (tipoRespostaEscolhido === 'video' ? '.webm' : '.jpg'));
+  console.log('[envio] anexando arquivo:', nomeArquivo, '| type:', arquivoRespostaSelecionadoVar.type, '| bytes:', arquivoRespostaSelecionadoVar.size);
+  formData.append('arquivo', arquivoRespostaSelecionadoVar, nomeArquivo);
   if(tipoRespostaEscolhido === 'video' && overlayTextosStoryVar && overlayTextosStoryVar.length){
     formData.append('overlays_texto', JSON.stringify(overlayTextosStoryVar));
   }
