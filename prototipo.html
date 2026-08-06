@@ -4013,6 +4013,7 @@ function selecionarTipoResposta(tipo){
     escolherArea.style.display = 'block';
     document.getElementById('respostaEscolherIcone').textContent = tipo === 'foto' ? '📷' : '🎥';
     input.accept = tipo === 'foto' ? 'image/*' : 'video/*';
+    input.setAttribute('capture', 'environment');
   }
 }
 
