@@ -94,7 +94,17 @@ const criarResposta = async (req, res) => {
 
     // Caixas de texto posicionadas sobre um vídeo (editor de story). Não faz
     // sentido pra foto/texto, já que nesses casos o texto já vem "queimado"
-    // na própria imagem enviada. Validado/saneado aqui pra nunca guardar lixo.
+    // na própria imagem enviada. Validado/saneado aqui pra nunca guardar lixo —
+    // "fonte" é validada contra uma whitelist (não contra regex) porque esse
+    // valor vai direto pra dentro de um atributo style no HTML na hora de
+    // exibir (renderizarOverlaysTextoStory), então uma string arbitrária aqui
+    // seria uma forma de quebrar o style attribute.
+    const FONTES_OVERLAY_PERMITIDAS = [
+      "'Cormorant Garamond', serif",
+      "'Karla', sans-serif",
+      "'Poppins', sans-serif",
+      "'Caveat', cursive"
+    ];
     let overlaysValidados = null;
     if (tipo === 'video' && overlays_texto) {
       try {
@@ -103,6 +113,9 @@ const criarResposta = async (req, res) => {
           overlaysValidados = parsed.slice(0, 20).map(o => ({
             texto: String(o.texto || '').replace(/<[^>]*>/g, '').slice(0, 200),
             cor: /^#[0-9a-fA-F]{3,8}$/.test(o.cor) ? o.cor : '#fdf6f2',
+            fonte: FONTES_OVERLAY_PERMITIDAS.includes(o.fonte) ? o.fonte : FONTES_OVERLAY_PERMITIDAS[0],
+            tamanhoFonte: Number.isFinite(o.tamanhoFonte) ? Math.max(10, Math.min(96, o.tamanhoFonte)) : 28,
+            fundo: !!o.fundo,
             x: Number.isFinite(o.x) ? Math.max(0, Math.min(100, o.x)) : 50,
             y: Number.isFinite(o.y) ? Math.max(0, Math.min(100, o.y)) : 50,
             rot: Number.isFinite(o.rot) ? o.rot : 0,
@@ -131,6 +144,11 @@ const criarResposta = async (req, res) => {
   }
 };
 
+// Agrupa por usuário: cada pessoa aparece uma vez na barra, mas carrega TODOS
+// os stories ativos dela (não substituídos ao postar de novo, só filtrados
+// por expira_em). Ordena os stories de cada pessoa do mais antigo pro mais
+// novo (pra navegação avançar cronologicamente, igual Instagram), e ordena as
+// pessoas pelo story mais recente delas primeiro (mesmo critério de antes).
 const listarStatusFeed = async (req, res) => {
   try {
     const { Op } = require('sequelize');
@@ -139,45 +157,51 @@ const listarStatusFeed = async (req, res) => {
         usuario_id: { [Op.ne]: req.usuarioId },
         expira_em: { [Op.gt]: new Date() }
       },
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'ASC']]
     });
 
-    const vistos = new Set();
-    const feed = [];
+    const porUsuario = new Map();
     for (const r of respostas) {
-      if (vistos.has(r.usuario_id)) continue;
-      vistos.add(r.usuario_id);
-      const usuario = await Usuario.findByPk(r.usuario_id, { attributes: ['id', 'nome', 'foto_url'] });
-      feed.push({
+      if (!porUsuario.has(r.usuario_id)) porUsuario.set(r.usuario_id, []);
+      porUsuario.get(r.usuario_id).push({
         id: r.id, tipo: r.tipo, conteudo_texto: r.conteudo_texto, media_url: r.media_url,
-        pergunta_texto: r.pergunta_texto, overlays_texto: r.overlays_texto, usuario
+        pergunta_texto: r.pergunta_texto, overlays_texto: r.overlays_texto, createdAt: r.createdAt
       });
     }
+
+    const feed = [];
+    for (const [usuario_id, stories] of porUsuario) {
+      const usuario = await Usuario.findByPk(usuario_id, { attributes: ['id', 'nome', 'foto_url'] });
+      feed.push({ usuario, stories });
+    }
+    feed.sort((a, b) => new Date(b.stories[b.stories.length - 1].createdAt) - new Date(a.stories[a.stories.length - 1].createdAt));
+
     res.json({ feed });
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao listar status: ' + erro.message });
   }
 };
 
+// Retorna a LISTA de stories ativos do próprio usuário (do mais antigo pro
+// mais novo), não só o último — postar de novo agora soma à lista, não troca.
 const meuStatusAtivo = async (req, res) => {
   try {
     const { Op } = require('sequelize');
-    const status = await StatusResposta.findOne({
+    const respostas = await StatusResposta.findAll({
       where: { usuario_id: req.usuarioId, expira_em: { [Op.gt]: new Date() } },
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'ASC']]
     });
 
-    if (!status) return res.json({ status: null });
+    if (!respostas.length) return res.json({ stories: [] });
 
     const usuario = await Usuario.findByPk(req.usuarioId, { attributes: ['id', 'nome', 'foto_url'] });
-    res.json({
-      status: {
-        id: status.id, tipo: status.tipo, conteudo_texto: status.conteudo_texto, media_url: status.media_url,
-        pergunta_texto: status.pergunta_texto, overlays_texto: status.overlays_texto, usuario
-      }
-    });
+    const stories = respostas.map(status => ({
+      id: status.id, tipo: status.tipo, conteudo_texto: status.conteudo_texto, media_url: status.media_url,
+      pergunta_texto: status.pergunta_texto, overlays_texto: status.overlays_texto, createdAt: status.createdAt
+    }));
+    res.json({ stories, usuario });
   } catch (erro) {
-    res.status(500).json({ erro: 'Erro ao buscar seu status: ' + erro.message });
+    res.status(500).json({ erro: 'Erro ao buscar seus stories: ' + erro.message });
   }
 };
 

@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#2b0f17"/>
 <title>Vinculo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Karla:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Karla:wght@400;500;600;700&family=Poppins:wght@700;800&family=Caveat:wght@600;700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 body{font-family:'Karla',system-ui,sans-serif;background:#1a0810;max-width:430px;margin:0 auto;min-height:100vh;color:#fdf6f2;overflow-x:hidden;}
 input,textarea,select{font-size:16px!important;font-family:inherit;}
@@ -2011,7 +2011,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div id="viewStoryBarraProgresso" style="display:flex;gap:3px;padding:12px 14px 8px;position:absolute;top:26px;left:0;right:0;z-index:10"></div>
     <!-- Header -->
     <div style="position:absolute;top:42px;left:0;right:0;z-index:10;display:flex;align-items:center;gap:10px;padding:0 14px">
-      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7a2a4a,#4a1428);display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid rgba(255,255,255,.4)">&#128100;</div>
+      <div id="viewStoryFotoPerfil" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7a2a4a,#4a1428);display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid rgba(255,255,255,.4)">&#128100;</div>
       <div>
         <div style="font-size:13.5px;font-weight:700;color:#fdf6f2" id="viewStoryNome">—</div>
         <div style="font-size:11px;color:rgba(255,255,255,.7)" id="viewStoryPergunta">Pergunta do dia</div>
@@ -2143,18 +2143,44 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <!-- Camada de caixas de texto arrastáveis -->
     <div id="editorStoryCamadaTextos" style="position:absolute;inset:0;z-index:6"></div>
 
-    <!-- Topo: voltar + adicionar texto -->
-    <div style="position:absolute;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:16px 14px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
+    <!-- Topo: só o botão de voltar/cancelar (as ferramentas foram pra barra inferior) -->
+    <div style="position:absolute;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;padding:16px 14px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
       <div onclick="cancelarEdicaoStory()" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff">&#10005;</div>
-      <div onclick="adicionarCaixaTextoStory()" style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);border-radius:20px;padding:8px 16px;cursor:pointer;color:#fff;font-weight:700;font-size:13px">&#128221; Texto</div>
     </div>
 
-    <!-- Paleta de cor (aparece com uma caixa selecionada) -->
-    <div id="editorStoryPaleta" style="display:none;position:absolute;top:66px;left:0;right:0;z-index:20;justify-content:center;gap:8px;padding:0 14px;flex-wrap:wrap"></div>
+    <!-- Rodapé: painel de edição de texto (contextual, aparece com uma caixa selecionada),
+         barra de ferramentas inferior estilo Instagram, e botão continuar -->
+    <div style="position:absolute;bottom:0;left:0;right:0;z-index:20;display:flex;flex-direction:column;background:linear-gradient(0deg,rgba(0,0,0,.72),rgba(0,0,0,.3) 65%,transparent)">
 
-    <!-- Rodapé -->
-    <div style="position:absolute;bottom:0;left:0;right:0;z-index:20;padding:18px;background:linear-gradient(0deg,rgba(0,0,0,.6),transparent)">
-      <button class="btn btn-primary" onclick="continuarDaEdicaoStory()">Continuar</button>
+      <div id="editorStoryPainelTexto" style="display:none;padding:12px 14px 2px">
+        <div id="editorStoryPaleta" style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
+        <div id="editorStoryFontes" style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:10px">
+          <div onclick="ajustarTamanhoFonteStory(-4)" style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;cursor:pointer">A-</div>
+          <span id="editorStoryTamanhoLabel" style="color:#fff;font-size:12px;min-width:44px;text-align:center">28px</span>
+          <div onclick="ajustarTamanhoFonteStory(4)" style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;cursor:pointer">A+</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;margin-bottom:4px">
+          <label style="color:#fff;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;background:rgba(255,255,255,.1);padding:6px 12px;border-radius:16px">
+            <input type="checkbox" id="editorStoryFundoToggle" onchange="alternarFundoCaixaStory(this.checked)" style="cursor:pointer"/> Fundo atrás do texto
+          </label>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:center;gap:26px;padding:10px 14px 4px">
+        <div onclick="adicionarCaixaTextoStory()" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:#fff">
+          <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:19px">&#128221;</div>
+          <span style="font-size:10px;font-weight:600">Texto</span>
+        </div>
+        <div onclick="showToastVinculo('Filtros chegando em breve! ✨')" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:rgba(255,255,255,.45)">
+          <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:19px">&#127912;</div>
+          <span style="font-size:10px;font-weight:600">Em breve</span>
+        </div>
+      </div>
+
+      <div style="padding:14px 18px 18px">
+        <button class="btn btn-primary" onclick="continuarDaEdicaoStory()">Continuar</button>
+      </div>
     </div>
 
   </div>
@@ -4075,16 +4101,17 @@ async function carregarPerguntaDoDia(){
 async function atualizarMeuStoryRingComMiniatura(ring){
   ring.style.background = 'linear-gradient(135deg,#f0a0b8,#c9a06b,#e0607a)';
   ring.style.border = 'none';
-  let status = null;
+  let stories = [];
   try{
     const resp = await fetch(`${API_URL}/api/status/meu`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
     const dados = await resp.json();
-    if(resp.ok) status = dados.status;
+    if(resp.ok) stories = dados.stories || [];
   } catch(e){}
 
-  const ehVideo = status && status.tipo === 'video';
-  const miniaturaEstilo = (status && !ehVideo && status.media_url)
-    ? `background-image:url(${API_URL}${status.media_url});background-size:cover;background-position:center`
+  const ultimo = stories[stories.length - 1];
+  const ehVideo = ultimo && ultimo.tipo === 'video';
+  const miniaturaEstilo = (ultimo && !ehVideo && ultimo.media_url)
+    ? `background-image:url(${API_URL}${ultimo.media_url});background-size:cover;background-position:center`
     : 'display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(160deg,#7a2a4a,#4a1428)';
   const conteudoMiniatura = ehVideo ? '&#127909;' : '';
   ring.innerHTML = `<div style="width:100%;height:100%;border-radius:50%;border:2px solid #1a0810;${miniaturaEstilo}">${conteudoMiniatura}</div>`;
@@ -4331,7 +4358,7 @@ function confirmarCapturaStory(){
 // validar sem testar em dispositivo real), guardamos as caixas de texto como
 // metadata (overlayTextosStoryVar) e renderizamos como camada HTML por cima
 // do <video> tanto na prévia quanto na exibição real do story
-// (renderizarOverlaysTextoStory, chamada em abrirStoryEmIndice). Pra FOTO e
+// (renderizarOverlaysTextoStory, chamada em abrirPessoaEmIndice). Pra FOTO e
 // pra story só de TEXTO, o resultado é achatado de verdade num <canvas> e
 // vira um arquivo de imagem único (ver continuarDaEdicaoStory).
 let editorStoryTipoFundo = 'foto'; // 'foto' | 'video' | 'texto'
@@ -4341,13 +4368,24 @@ let overlayTextosStoryVar = null; // metadata de texto pro caso de vídeo (não 
 
 const EDITOR_STORY_CORES = ['#fdf6f2', '#f0a0b8', '#d4b87a', '#e0607a', '#c9a06b', '#7a2a4a', '#1a0810', '#6dcc6d'];
 const EDITOR_STORY_FONTE_BASE = 28; // px, tamanho de referência no editor (escala 1)
+const EDITOR_STORY_FONTE_MIN = 14;
+const EDITOR_STORY_FONTE_MAX = 64;
+// Reaproveita a serif elegante e a sans-serif já usadas no resto do app, mais
+// duas alternativas (impacto/bold e manuscrita) pra dar variedade de estilo
+// nos stories sem fugir da identidade visual.
+const EDITOR_STORY_FONTES = [
+  { label: 'Elegante', valor: "'Cormorant Garamond', serif" },
+  { label: 'Clean', valor: "'Karla', sans-serif" },
+  { label: 'Impacto', valor: "'Poppins', sans-serif" },
+  { label: 'Manuscrita', valor: "'Caveat', cursive" }
+];
 
 function abrirEditorStory(tipo, arquivo){
   editorStoryTipoFundo = tipo;
   editorStoryArquivoFundo = arquivo || null;
   editorStoryCaixaAtiva = null;
   document.getElementById('editorStoryCamadaTextos').innerHTML = '';
-  document.getElementById('editorStoryPaleta').style.display = 'none';
+  document.getElementById('editorStoryPainelTexto').style.display = 'none';
 
   const img = document.getElementById('editorStoryFundoImg');
   const video = document.getElementById('editorStoryFundoVideo');
@@ -4385,10 +4423,13 @@ function adicionarCaixaTextoStory(){
   caixa.dataset.y = '50';
   caixa.dataset.rot = '0';
   caixa.dataset.escala = '1';
+  caixa.dataset.fonte = EDITOR_STORY_FONTES[0].valor;
+  caixa.dataset.tamanhoFonte = EDITOR_STORY_FONTE_BASE;
+  caixa.dataset.fundo = '0';
   caixa.style.cssText = 'position:absolute;touch-action:none;padding:10px 14px;';
   caixa.innerHTML = `
     <span class="editor-story-caixa-del" style="position:absolute;top:-11px;left:-11px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2">&times;</span>
-    <div class="editor-story-caixa-conteudo" contenteditable="true" style="color:#fdf6f2;font-family:'Cormorant Garamond',serif;font-size:${EDITOR_STORY_FONTE_BASE}px;font-weight:700;text-shadow:0 2px 10px rgba(0,0,0,.6);outline:none;min-width:26px;white-space:pre-wrap;text-align:center;cursor:text">Toque para editar</div>
+    <div class="editor-story-caixa-conteudo" contenteditable="true" style="color:#fdf6f2;font-family:${EDITOR_STORY_FONTES[0].valor};font-size:${EDITOR_STORY_FONTE_BASE}px;font-weight:700;text-shadow:0 2px 10px rgba(0,0,0,.6);outline:none;min-width:26px;white-space:pre-wrap;text-align:center;cursor:text">Toque para editar</div>
     <span class="editor-story-caixa-resize" style="position:absolute;bottom:-13px;right:-13px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:nwse-resize;z-index:2">&#8646;</span>
     <span class="editor-story-caixa-rotate" style="position:absolute;top:-13px;right:-13px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:grab;z-index:2">&#8635;</span>
   `;
@@ -4413,7 +4454,11 @@ function selecionarCaixaStory(caixa){
   caixa.style.outline = '1.5px dashed rgba(255,255,255,.55)';
   caixa.style.outlineOffset = '6px';
   editorStoryCaixaAtiva = caixa;
+  document.getElementById('editorStoryPainelTexto').style.display = 'block';
   montarPaletaCoresStory(caixa);
+  montarFontesStory(caixa);
+  atualizarPainelTamanhoStory(caixa);
+  atualizarToggleFundoStory(caixa);
 }
 
 function montarPaletaCoresStory(caixa){
@@ -4430,10 +4475,61 @@ function montarPaletaCoresStory(caixa){
   paleta.style.display = 'flex';
 }
 
+// Amostras de fonte (mostra "Aa" já na fonte real). Reaproveita a mesma serif
+// e sans-serif já usadas no resto do app, mais 2 alternativas.
+function montarFontesStory(caixa){
+  const cont = document.getElementById('editorStoryFontes');
+  cont.innerHTML = '';
+  const conteudo = caixa.querySelector('.editor-story-caixa-conteudo');
+  const fonteAtual = caixa.dataset.fonte || EDITOR_STORY_FONTES[0].valor;
+  EDITOR_STORY_FONTES.forEach(f => {
+    const sw = document.createElement('div');
+    const ativa = fonteAtual === f.valor;
+    sw.title = f.label;
+    sw.textContent = 'Aa';
+    sw.style.cssText = `width:38px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:${f.valor};font-size:16px;font-weight:700;color:#1a0810;background:${ativa ? '#fff' : 'rgba(255,255,255,.55)'};border:2px solid ${ativa ? '#fff' : 'transparent'};cursor:pointer`;
+    sw.onclick = (ev) => {
+      ev.stopPropagation();
+      caixa.dataset.fonte = f.valor;
+      conteudo.style.fontFamily = f.valor;
+      montarFontesStory(caixa);
+    };
+    cont.appendChild(sw);
+  });
+}
+
+function ajustarTamanhoFonteStory(delta){
+  if(!editorStoryCaixaAtiva) return;
+  const conteudo = editorStoryCaixaAtiva.querySelector('.editor-story-caixa-conteudo');
+  const atual = parseFloat(editorStoryCaixaAtiva.dataset.tamanhoFonte) || EDITOR_STORY_FONTE_BASE;
+  const novo = Math.max(EDITOR_STORY_FONTE_MIN, Math.min(EDITOR_STORY_FONTE_MAX, atual + delta));
+  editorStoryCaixaAtiva.dataset.tamanhoFonte = novo;
+  conteudo.style.fontSize = novo + 'px';
+  document.getElementById('editorStoryTamanhoLabel').textContent = novo + 'px';
+}
+
+function atualizarPainelTamanhoStory(caixa){
+  const tamanho = caixa.dataset.tamanhoFonte || EDITOR_STORY_FONTE_BASE;
+  document.getElementById('editorStoryTamanhoLabel').textContent = tamanho + 'px';
+}
+
+// Fundo semi-transparente atrás da caixa de texto — útil quando o texto não
+// aparece bem sobre a foto (era exatamente esse o problema relatado).
+function alternarFundoCaixaStory(ligado){
+  if(!editorStoryCaixaAtiva) return;
+  editorStoryCaixaAtiva.dataset.fundo = ligado ? '1' : '0';
+  editorStoryCaixaAtiva.style.background = ligado ? 'rgba(0,0,0,.42)' : 'transparent';
+  editorStoryCaixaAtiva.style.borderRadius = ligado ? '10px' : '0';
+}
+
+function atualizarToggleFundoStory(caixa){
+  document.getElementById('editorStoryFundoToggle').checked = caixa.dataset.fundo === '1';
+}
+
 function removerCaixaStory(caixa){
   if(editorStoryCaixaAtiva === caixa){
     editorStoryCaixaAtiva = null;
-    document.getElementById('editorStoryPaleta').style.display = 'none';
+    document.getElementById('editorStoryPainelTexto').style.display = 'none';
   }
   caixa.remove();
 }
@@ -4590,6 +4686,9 @@ async function continuarDaEdicaoStory(){
     return {
       texto: conteudo.textContent.replace(/ /g, ' ').trim(),
       cor: conteudo.style.color ? rgbParaHex(conteudo.style.color) : '#fdf6f2',
+      fonte: c.dataset.fonte || EDITOR_STORY_FONTES[0].valor,
+      tamanhoFonte: parseFloat(c.dataset.tamanhoFonte) || EDITOR_STORY_FONTE_BASE,
+      fundo: c.dataset.fundo === '1',
       x: parseFloat(c.dataset.x), y: parseFloat(c.dataset.y),
       rot: parseFloat(c.dataset.rot), escala: parseFloat(c.dataset.escala)
     };
@@ -4663,29 +4762,53 @@ function desenharTextosNoCanvas(ctx, dadosCaixas, w, h, fatorEscalaCanvas){
     ctx.save();
     ctx.translate((d.x / 100) * w, (d.y / 100) * h);
     ctx.rotate(d.rot * Math.PI / 180);
-    const tamanhoFonte = EDITOR_STORY_FONTE_BASE * d.escala * fatorEscalaCanvas;
-    ctx.fillStyle = d.cor;
-    ctx.font = `700 ${tamanhoFonte}px 'Cormorant Garamond', serif`;
+    const tamanhoFonte = (d.tamanhoFonte || EDITOR_STORY_FONTE_BASE) * d.escala * fatorEscalaCanvas;
+    ctx.font = `700 ${tamanhoFonte}px ${d.fonte || EDITOR_STORY_FONTES[0].valor}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(0,0,0,.6)';
-    ctx.shadowBlur = 10 * fatorEscalaCanvas;
     const linhas = d.texto.split('\n');
     const alturaLinha = tamanhoFonte * 1.2;
     const inicioY = -((linhas.length - 1) * alturaLinha) / 2;
+
+    // Fundo semi-transparente atrás do texto (opcional) — desenhado sem sombra,
+    // largura calculada pela linha mais longa.
+    if(d.fundo){
+      let larguraMax = 0;
+      linhas.forEach(l => { larguraMax = Math.max(larguraMax, ctx.measureText(l).width); });
+      const padX = 16 * fatorEscalaCanvas, padY = 10 * fatorEscalaCanvas;
+      const alturaTotal = linhas.length * alturaLinha;
+      const rx = -larguraMax / 2 - padX, ry = inicioY - alturaLinha / 2 - padY;
+      const rw = larguraMax + padX * 2, rh = alturaTotal + padY * 2;
+      const raio = 10 * fatorEscalaCanvas;
+      ctx.fillStyle = 'rgba(0,0,0,.42)';
+      if(ctx.roundRect){
+        ctx.beginPath();
+        ctx.roundRect(rx, ry, rw, rh, raio);
+        ctx.fill();
+      } else {
+        ctx.fillRect(rx, ry, rw, rh);
+      }
+    }
+
+    ctx.fillStyle = d.cor;
+    ctx.shadowColor = 'rgba(0,0,0,.6)';
+    ctx.shadowBlur = 10 * fatorEscalaCanvas;
     linhas.forEach((linha, i) => ctx.fillText(linha, 0, inicioY + i * alturaLinha));
     ctx.restore();
   });
 }
 
 // Renderiza, só pra exibição (sem interação), as caixas de texto salvas como
-// metadata sobre um story de vídeo — usada em abrirStoryEmIndice.
+// metadata sobre um story de vídeo — usada em abrirPessoaEmIndice.
 function renderizarOverlaysTextoStory(item, media){
   if(!Array.isArray(item.overlays_texto)) return;
   item.overlays_texto.forEach(o => {
     const div = document.createElement('div');
     div.textContent = o.texto;
-    div.style.cssText = `position:absolute;left:${o.x}%;top:${o.y}%;transform:translate(-50%,-50%) rotate(${o.rot}deg) scale(${o.escala});color:${o.cor};font-family:'Cormorant Garamond',serif;font-weight:700;font-size:${EDITOR_STORY_FONTE_BASE}px;text-shadow:0 2px 10px rgba(0,0,0,.6);white-space:pre-wrap;text-align:center;pointer-events:none;max-width:90%`;
+    const tamanho = o.tamanhoFonte || EDITOR_STORY_FONTE_BASE;
+    const fonte = o.fonte || EDITOR_STORY_FONTES[0].valor;
+    const fundoCss = o.fundo ? 'background:rgba(0,0,0,.42);border-radius:10px;padding:6px 12px;' : '';
+    div.style.cssText = `position:absolute;left:${o.x}%;top:${o.y}%;transform:translate(-50%,-50%) rotate(${o.rot}deg) scale(${o.escala});color:${o.cor};font-family:${fonte};font-weight:700;font-size:${tamanho}px;text-shadow:0 2px 10px rgba(0,0,0,.6);white-space:pre-wrap;text-align:center;pointer-events:none;max-width:90%;${fundoCss}`;
     media.appendChild(div);
   });
 }
@@ -4742,9 +4865,13 @@ async function carregarStoriesBar(){
       // banda/decodificação alto pra algo que o usuário ainda nem pediu pra ver).
       // Foto (e texto, que agora também vira imagem gerada) usa a própria
       // media_url como miniatura real, igual Instagram.
-      const ehVideo = item.tipo === 'video';
-      const miniaturaEstilo = (!ehVideo && item.media_url)
-        ? `background-image:url(${API_URL}${item.media_url});background-size:cover;background-position:center`
+      // feed agora é 1 entrada por PESSOA com a lista de stories ativos dela;
+      // a miniatura da bolinha usa o story mais recente (último do array, já
+      // que o backend manda em ordem cronológica crescente).
+      const ultimo = item.stories[item.stories.length - 1];
+      const ehVideo = ultimo.tipo === 'video';
+      const miniaturaEstilo = (!ehVideo && ultimo.media_url)
+        ? `background-image:url(${API_URL}${ultimo.media_url});background-size:cover;background-position:center`
         : 'display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(160deg,#7a2a4a,#4a1428)';
       const conteudoMiniatura = ehVideo ? '&#127909;' : '';
 
@@ -4758,9 +4885,18 @@ async function carregarStoriesBar(){
   } catch(e){}
 }
 
-/* ===== Visualização de stories: navegação, auto-avanço e barra de progresso ===== */
+/* ===== Visualização de stories: navegação em 2 camadas (pessoa + stories da
+   pessoa), auto-avanço e barra de progresso =====
+   storyViewLista agora é uma lista de PESSOAS: [{ usuario, stories: [...] }].
+   storyViewPessoaIndice aponta a pessoa atual; storyViewStoryIndice aponta o
+   story atual dentro da lista de stories dela. A barra de progresso mostra um
+   segmento por story da pessoa atual (não da lista inteira de pessoas); ao
+   passar do último story dela, avança pra próxima pessoa (índice 0 dela) —
+   e ao voltar antes do primeiro story dela, volta pra pessoa anterior, no
+   último story dela. Igual Instagram. */
 let storyViewLista = [];
-let storyViewIndice = 0;
+let storyViewPessoaIndice = 0;
+let storyViewStoryIndice = 0;
 let storyAutoAvancoId = null;
 let storyInicioTempo = 0;
 let storyPausado = false;
@@ -4772,18 +4908,19 @@ const STORY_LONG_PRESS_MS = 180;
 
 function verStoryReal(indice){
   storyViewLista = feedStoriesCache;
-  abrirStoryEmIndice(indice);
+  abrirPessoaEmIndice(indice, 0);
 }
 
-// Chamada ao tocar na bolinha "Seu story". Se já existe status ativo, mostra ele
-// (mesmo modal de visualização); se não existe, cai no formulário de criar novo.
+// Chamada ao tocar na bolinha "Seu story". Se já existem stories ativos, mostra
+// eles (mesmo modal de visualização); se não existe nenhum, cai no formulário
+// de criar novo.
 async function aoClicarMeuStory(){
   try{
     const resp = await fetch(`${API_URL}/api/status/meu`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
     const dados = await resp.json();
-    if(resp.ok && dados.status){
-      storyViewLista = [dados.status];
-      abrirStoryEmIndice(0);
+    if(resp.ok && dados.stories && dados.stories.length){
+      storyViewLista = [{ usuario: dados.usuario, stories: dados.stories }];
+      abrirPessoaEmIndice(0, 0);
       return;
     }
   } catch(e){ /* se der erro, cai no fallback de criar novo abaixo */ }
@@ -4791,17 +4928,58 @@ async function aoClicarMeuStory(){
   openModal('pergunta-dia');
 }
 
-function abrirStoryEmIndice(indice){
-  if(indice < 0) return; // já está no primeiro, toque na esquerda não faz nada
-  if(indice >= storyViewLista.length){
+// pessoaIndice/storyIndice podem "estourar" pros dois lados (negativo ou além
+// do tamanho da lista) — é assim que a navegação cruza de uma pessoa pra
+// outra, então essa função lida com o "carry" pra pessoa vizinha antes de
+// desistir (fechar o modal, se acabaram as pessoas, ou não fazer nada, se já
+// tava na primeira pessoa/primeiro story).
+function abrirPessoaEmIndice(pessoaIndice, storyIndice){
+  if(pessoaIndice < 0) return; // já está na primeira pessoa, toque na esquerda não faz nada
+  if(pessoaIndice >= storyViewLista.length){
     closeModal('view-story');
     return;
   }
-  storyViewIndice = indice;
-  const item = storyViewLista[indice];
+  const pessoa = storyViewLista[pessoaIndice];
+  if(storyIndice < 0){
+    const anterior = storyViewLista[pessoaIndice - 1];
+    return abrirPessoaEmIndice(pessoaIndice - 1, anterior ? anterior.stories.length - 1 : 0);
+  }
+  if(storyIndice >= pessoa.stories.length){
+    return abrirPessoaEmIndice(pessoaIndice + 1, 0);
+  }
 
-  document.getElementById('viewStoryNome').textContent = item.usuario.nome;
-  document.getElementById('viewStoryPergunta').textContent = item.pergunta_texto;
+  storyViewPessoaIndice = pessoaIndice;
+  storyViewStoryIndice = storyIndice;
+  const item = pessoa.stories[storyIndice];
+
+  document.getElementById('viewStoryNome').textContent = pessoa.usuario.nome;
+
+  // A legenda "pergunta do dia" só faz sentido pra story tipo 'texto' (a pessoa
+  // realmente escreveu uma resposta à pergunta). Pra foto/vídeo, pergunta_texto
+  // é só metadata interna (guardada em toda linha, respondida ou não com
+  // palavras) e não deve aparecer flutuando por cima da mídia como se fosse
+  // uma legenda que o usuário escreveu.
+  const perguntaEl = document.getElementById('viewStoryPergunta');
+  if(item.tipo === 'texto' && item.pergunta_texto){
+    perguntaEl.textContent = item.pergunta_texto;
+    perguntaEl.style.display = 'block';
+  } else {
+    perguntaEl.textContent = '';
+    perguntaEl.style.display = 'none';
+  }
+
+  const fotoPerfilEl = document.getElementById('viewStoryFotoPerfil');
+  if(pessoa.usuario.foto_url){
+    fotoPerfilEl.style.backgroundImage = `url(${API_URL}${pessoa.usuario.foto_url})`;
+    fotoPerfilEl.style.backgroundSize = 'cover';
+    fotoPerfilEl.style.backgroundPosition = 'center';
+    fotoPerfilEl.textContent = '';
+  } else {
+    fotoPerfilEl.style.backgroundImage = '';
+    fotoPerfilEl.style.backgroundSize = '';
+    fotoPerfilEl.style.backgroundPosition = '';
+    fotoPerfilEl.innerHTML = '&#128100;';
+  }
 
   const media = document.getElementById('viewStoryMedia');
   const textoEl = document.getElementById('viewStoryTexto');
@@ -4833,17 +5011,18 @@ function abrirStoryEmIndice(indice){
 
 function avancarStory(direcao){
   pararAutoAvancoStory();
-  abrirStoryEmIndice(storyViewIndice + direcao);
+  abrirPessoaEmIndice(storyViewPessoaIndice, storyViewStoryIndice + direcao);
 }
 
 function montarBarraProgressoStory(){
   const barra = document.getElementById('viewStoryBarraProgresso');
   barra.innerHTML = '';
-  storyViewLista.forEach((_, i) => {
+  const stories = storyViewLista[storyViewPessoaIndice].stories;
+  stories.forEach((_, i) => {
     const seg = document.createElement('div');
     seg.style.cssText = 'flex:1;height:3px;border-radius:2px;overflow:hidden;background:rgba(255,255,255,.3)';
     const preenchido = document.createElement('div');
-    preenchido.style.cssText = 'height:100%;background:rgba(255,255,255,.95);width:' + (i < storyViewIndice ? '100%' : '0%');
+    preenchido.style.cssText = 'height:100%;background:rgba(255,255,255,.95);width:' + (i < storyViewStoryIndice ? '100%' : '0%');
     seg.appendChild(preenchido);
     barra.appendChild(seg);
   });
@@ -4875,7 +5054,7 @@ function retomarStory(){
 function iniciarAutoAvancoStory(ehVideo){
   pararAutoAvancoStory();
   const segmentos = document.querySelectorAll('#viewStoryBarraProgresso > div');
-  const preenchidoAtual = segmentos[storyViewIndice] && segmentos[storyViewIndice].firstChild;
+  const preenchidoAtual = segmentos[storyViewStoryIndice] && segmentos[storyViewStoryIndice].firstChild;
   if(preenchidoAtual) preenchidoAtual.style.width = '0%';
 
   if(ehVideo){
@@ -5674,7 +5853,7 @@ function closeModal(name){
     video.removeAttribute('src');
     video.load();
     document.getElementById('editorStoryCamadaTextos').innerHTML = '';
-    document.getElementById('editorStoryPaleta').style.display = 'none';
+    document.getElementById('editorStoryPainelTexto').style.display = 'none';
   }
   if(name==='excluir-conta'){
     setTimeout(()=>{
