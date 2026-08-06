@@ -197,6 +197,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 .report-reason{padding:11px 14px;border-radius:11px;border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);font-size:13.5px;cursor:pointer;margin-bottom:7px;transition:.15s;color:#fdf6f2;}
 .report-reason.on{border-color:#c0293f;background:rgba(168,41,63,.2);color:#fdf6f2;}
 @keyframes heartPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.18);}}
+@keyframes pulseRec{0%,100%{opacity:1;}50%{opacity:.3;}}
 @keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1;}100%{transform:translateY(100vh) rotate(720deg);opacity:0;}}
 .confetti-piece{position:absolute;width:10px;height:10px;border-radius:2px;animation:confettiFall linear forwards;}
 
@@ -2067,9 +2068,9 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 
     <textarea id="respostaTextoArea" style="width:100%;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:12px;padding:14px;font-size:14px;color:#fdf6f2;outline:none;font-family:inherit;resize:none;min-height:100px" placeholder="Escreva sua resposta... ela aparecerá no seu perfil por 24h"></textarea>
 
-    <div id="respostaEscolherArea" onclick="document.getElementById('respostaArquivoInput').click()" style="display:none;text-align:center;padding:24px;background:rgba(255,255,255,.05);border:2px dashed rgba(255,255,255,.2);border-radius:12px;cursor:pointer;margin-bottom:6px">
+    <div id="respostaEscolherArea" onclick="abrirCameraStory(tipoRespostaEscolhido)" style="display:none;text-align:center;padding:24px;background:rgba(255,255,255,.05);border:2px dashed rgba(255,255,255,.2);border-radius:12px;cursor:pointer;margin-bottom:6px">
       <div style="font-size:28px;margin-bottom:6px" id="respostaEscolherIcone">&#128247;</div>
-      <div style="font-size:12.5px;color:#d0a8b8">Toque para escolher</div>
+      <div style="font-size:12.5px;color:#d0a8b8" id="respostaEscolherTexto">Toque para abrir a câmera</div>
     </div>
 
     <input type="file" id="respostaArquivoInput" accept="image/*" style="display:none" onchange="arquivoRespostaSelecionado(event)"/>
@@ -2079,6 +2080,52 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="font-size:11.5px;color:#d0a8b8;margin:8px 0 14px;line-height:1.5">&#128161; Quem responde aparece em destaque no Descobrir por 24 horas.</div>
     <button class="btn btn-primary" onclick="publicarRespostaPergunta()">Publicar resposta</button>
     <button class="btn btn-ghost" onclick="closeModal('pergunta-dia')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL CÂMERA AO VIVO (foto/vídeo pro story) -->
+<div class="overlay" id="overlay-camera-story" style="align-items:center">
+  <div style="background:#000;width:100%;max-width:430px;height:100vh;position:relative;display:flex;flex-direction:column;overflow:hidden">
+
+    <!-- Preview ao vivo da câmera -->
+    <video id="cameraStoryVideoPreview" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;background:#000"></video>
+
+    <!-- Prévia do que foi capturado -->
+    <img id="cameraStoryPreviewImg" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;display:none"/>
+    <video id="cameraStoryPreviewVideo" playsinline controls style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;display:none"></video>
+
+    <!-- Topo: fechar + indicador de gravação -->
+    <div style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:16px 14px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
+      <div onclick="fecharCameraStory()" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff">&#10005;</div>
+      <div id="cameraStoryGravandoIndicador" style="display:none;align-items:center;gap:6px;background:rgba(192,41,63,.85);border-radius:20px;padding:5px 12px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#fff;animation:pulseRec 1s infinite"></div>
+        <span style="font-size:11.5px;color:#fff;font-weight:700" id="cameraStoryTempoGravado">0s</span>
+      </div>
+    </div>
+
+    <!-- Erro / sem permissão / sem suporte -->
+    <div id="cameraStoryErro" style="display:none;position:absolute;inset:0;z-index:20;background:#1a0810;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 24px">
+      <div style="font-size:44px;margin-bottom:14px">&#128247;&#128683;</div>
+      <div class="serif" style="font-size:20px;font-weight:700;color:#fdf6f2;margin-bottom:8px">Não conseguimos acessar sua câmera</div>
+      <div id="cameraStoryErroTexto" style="font-size:13px;color:#d0a8b8;line-height:1.6;margin-bottom:22px;max-width:280px">Verifique a permissão de câmera do navegador e tente de novo.</div>
+      <button class="btn btn-primary" style="max-width:260px" onclick="usarGaleriaEmVezDeCamera()">&#128444; Escolher da galeria</button>
+      <button class="btn btn-ghost" style="max-width:260px;margin-top:10px" onclick="fecharCameraStory()">Cancelar</button>
+    </div>
+
+    <!-- Controles: modo captura (câmera ligada, esperando o clique) -->
+    <div id="cameraStoryControlesCaptura" style="position:absolute;bottom:0;left:0;right:0;z-index:10;display:flex;flex-direction:column;align-items:center;gap:14px;padding:22px 18px 30px;background:linear-gradient(0deg,rgba(0,0,0,.6),transparent)">
+      <div onclick="alternarCapturaStory()" id="cameraStoryBotaoCaptura" style="width:74px;height:74px;border-radius:50%;background:rgba(255,255,255,.15);border:4px solid #fff;cursor:pointer;display:flex;align-items:center;justify-content:center">
+        <div id="cameraStoryBotaoCapturaMiolo" style="width:58px;height:58px;border-radius:50%;background:#fff;transition:all .2s"></div>
+      </div>
+      <div onclick="usarGaleriaEmVezDeCamera()" style="font-size:12.5px;color:rgba(255,255,255,.85);cursor:pointer;text-decoration:underline">ou escolher da galeria</div>
+    </div>
+
+    <!-- Controles: modo prévia (depois de capturar/gravar) -->
+    <div id="cameraStoryControlesPreview" style="display:none;position:absolute;bottom:0;left:0;right:0;z-index:10;padding:18px;background:linear-gradient(0deg,rgba(0,0,0,.7),transparent)">
+      <button class="btn btn-primary" onclick="confirmarCapturaStory()" id="cameraStoryBtnUsar">Usar essa foto</button>
+      <button class="btn btn-ghost" style="margin-top:10px" onclick="refazerCapturaStory()">Tirar de novo</button>
+    </div>
+
   </div>
 </div>
 
@@ -4024,6 +4071,203 @@ function arquivoRespostaSelecionado(event){
   }
 }
 
+/* ===== Câmera ao vivo pro story (foto/vídeo), via getUserMedia ===== */
+let cameraStoryStream = null;
+let cameraStoryModo = 'foto'; // 'foto' ou 'video'
+let cameraStoryGravando = false;
+let cameraStoryMediaRecorder = null;
+let cameraStoryChunks = [];
+let cameraStoryBlobCapturado = null;
+let cameraStoryTimerId = null;
+let cameraStoryTempoDecorrido = 0;
+const CAMERA_STORY_DURACAO_MAXIMA_VIDEO = 20; // segundos
+
+async function abrirCameraStory(tipo){
+  cameraStoryModo = tipo;
+  cameraStoryBlobCapturado = null;
+  cameraStoryGravando = false;
+  cameraStoryChunks = [];
+  cameraStoryTempoDecorrido = 0;
+
+  document.getElementById('cameraStoryErro').style.display = 'none';
+  document.getElementById('cameraStoryControlesPreview').style.display = 'none';
+  document.getElementById('cameraStoryControlesCaptura').style.display = 'flex';
+  document.getElementById('cameraStoryGravandoIndicador').style.display = 'none';
+  document.getElementById('cameraStoryPreviewImg').style.display = 'none';
+  document.getElementById('cameraStoryPreviewVideo').style.display = 'none';
+  document.getElementById('cameraStoryVideoPreview').style.display = 'block';
+  document.getElementById('cameraStoryBotaoCapturaMiolo').style.cssText = 'width:58px;height:58px;border-radius:50%;background:#fff;transition:all .2s';
+  document.getElementById('cameraStoryBtnUsar').textContent = tipo === 'foto' ? 'Usar essa foto' : 'Usar esse vídeo';
+
+  openModal('camera-story');
+
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    mostrarErroCameraStory('Seu navegador não suporta acesso à câmera pelo app.');
+    return;
+  }
+
+  try{
+    const restricoes = { video: { facingMode: 'environment' }, audio: tipo === 'video' };
+    cameraStoryStream = await navigator.mediaDevices.getUserMedia(restricoes);
+    document.getElementById('cameraStoryVideoPreview').srcObject = cameraStoryStream;
+  } catch(e){
+    mostrarErroCameraStory('Não conseguimos acessar sua câmera. Verifique a permissão do navegador e tente de novo.');
+  }
+}
+
+function mostrarErroCameraStory(msg){
+  document.getElementById('cameraStoryErroTexto').textContent = msg;
+  document.getElementById('cameraStoryErro').style.display = 'flex';
+  document.getElementById('cameraStoryControlesCaptura').style.display = 'none';
+}
+
+function pararStreamCameraStory(){
+  if(cameraStoryStream){
+    cameraStoryStream.getTracks().forEach(track => track.stop());
+    cameraStoryStream = null;
+  }
+  if(cameraStoryMediaRecorder && cameraStoryMediaRecorder.state !== 'inactive'){
+    try{ cameraStoryMediaRecorder.stop(); } catch(e){}
+  }
+  cameraStoryMediaRecorder = null;
+  cameraStoryGravando = false;
+  pararTimerGravacaoStory();
+}
+
+function fecharCameraStory(){
+  pararStreamCameraStory();
+  cameraStoryBlobCapturado = null;
+  closeModal('camera-story');
+}
+
+// Fallback: se a câmera falhar/não tiver permissão, ou o usuário preferir,
+// reaproveita o input de arquivo antigo (galeria) que já funcionava.
+function usarGaleriaEmVezDeCamera(){
+  fecharCameraStory();
+  document.getElementById('respostaArquivoInput').click();
+}
+
+function alternarCapturaStory(){
+  if(!cameraStoryStream) return;
+  if(cameraStoryModo === 'foto'){
+    tirarFotoStory();
+  } else if(!cameraStoryGravando){
+    iniciarGravacaoStory();
+  } else {
+    pararGravacaoStory();
+  }
+}
+
+function tirarFotoStory(){
+  const videoPreview = document.getElementById('cameraStoryVideoPreview');
+  if(!videoPreview.videoWidth) return; // câmera ainda carregando o primeiro frame
+  const canvas = document.createElement('canvas');
+  canvas.width = videoPreview.videoWidth;
+  canvas.height = videoPreview.videoHeight;
+  canvas.getContext('2d').drawImage(videoPreview, 0, 0, canvas.width, canvas.height);
+  canvas.toBlob((blob) => {
+    if(!blob) return;
+    cameraStoryBlobCapturado = new File([blob], 'story-foto-' + Date.now() + '.jpg', { type: 'image/jpeg' });
+    document.getElementById('cameraStoryPreviewImg').src = URL.createObjectURL(blob);
+    mostrarPreviewCapturaStory();
+  }, 'image/jpeg', 0.9);
+}
+
+function escolherMimeTypeVideoStory(){
+  const candidatos = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'];
+  for(const tipo of candidatos){
+    if(window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(tipo)) return tipo;
+  }
+  return '';
+}
+
+function iniciarGravacaoStory(){
+  if(!cameraStoryStream || !window.MediaRecorder){
+    mostrarErroCameraStory('Gravação de vídeo não é suportada nesse navegador.');
+    return;
+  }
+  cameraStoryChunks = [];
+  const mimeType = escolherMimeTypeVideoStory();
+  try{
+    cameraStoryMediaRecorder = mimeType ? new MediaRecorder(cameraStoryStream, { mimeType }) : new MediaRecorder(cameraStoryStream);
+  } catch(e){
+    mostrarErroCameraStory('Não foi possível iniciar a gravação nesse navegador.');
+    return;
+  }
+  cameraStoryMediaRecorder.ondataavailable = (ev) => { if(ev.data && ev.data.size > 0) cameraStoryChunks.push(ev.data); };
+  cameraStoryMediaRecorder.onstop = () => {
+    const tipoFinal = cameraStoryMediaRecorder.mimeType || mimeType || 'video/webm';
+    const blob = new Blob(cameraStoryChunks, { type: tipoFinal });
+    const ext = tipoFinal.includes('mp4') ? 'mp4' : 'webm';
+    cameraStoryBlobCapturado = new File([blob], 'story-video-' + Date.now() + '.' + ext, { type: tipoFinal });
+    document.getElementById('cameraStoryPreviewVideo').src = URL.createObjectURL(blob);
+    mostrarPreviewCapturaStory();
+  };
+  cameraStoryMediaRecorder.start();
+  cameraStoryGravando = true;
+  document.getElementById('cameraStoryGravandoIndicador').style.display = 'flex';
+  document.getElementById('cameraStoryBotaoCapturaMiolo').style.cssText = 'width:28px;height:28px;border-radius:6px;background:#c0293f;transition:all .2s';
+  iniciarTimerGravacaoStory();
+}
+
+function pararGravacaoStory(){
+  if(cameraStoryMediaRecorder && cameraStoryMediaRecorder.state !== 'inactive'){
+    cameraStoryMediaRecorder.stop();
+  }
+  cameraStoryGravando = false;
+  document.getElementById('cameraStoryGravandoIndicador').style.display = 'none';
+  pararTimerGravacaoStory();
+}
+
+function iniciarTimerGravacaoStory(){
+  cameraStoryTempoDecorrido = 0;
+  document.getElementById('cameraStoryTempoGravado').textContent = '0s';
+  cameraStoryTimerId = setInterval(() => {
+    cameraStoryTempoDecorrido++;
+    document.getElementById('cameraStoryTempoGravado').textContent = cameraStoryTempoDecorrido + 's';
+    if(cameraStoryTempoDecorrido >= CAMERA_STORY_DURACAO_MAXIMA_VIDEO){
+      pararGravacaoStory();
+    }
+  }, 1000);
+}
+
+function pararTimerGravacaoStory(){
+  if(cameraStoryTimerId){ clearInterval(cameraStoryTimerId); cameraStoryTimerId = null; }
+}
+
+function mostrarPreviewCapturaStory(){
+  document.getElementById('cameraStoryVideoPreview').style.display = 'none';
+  document.getElementById('cameraStoryControlesCaptura').style.display = 'none';
+  document.getElementById('cameraStoryControlesPreview').style.display = 'block';
+  if(cameraStoryModo === 'foto'){
+    document.getElementById('cameraStoryPreviewImg').style.display = 'block';
+  } else {
+    document.getElementById('cameraStoryPreviewVideo').style.display = 'block';
+  }
+  // Desliga só a track de vídeo (sem encerrar o stream) enquanto o usuário decide —
+  // a câmera só é liberada de verdade ao confirmar, refazer ou fechar o modal.
+  if(cameraStoryStream) cameraStoryStream.getTracks().forEach(t => { if(t.kind === 'video') t.enabled = false; });
+}
+
+function refazerCapturaStory(){
+  cameraStoryBlobCapturado = null;
+  document.getElementById('cameraStoryPreviewImg').style.display = 'none';
+  document.getElementById('cameraStoryPreviewVideo').style.display = 'none';
+  document.getElementById('cameraStoryVideoPreview').style.display = 'block';
+  document.getElementById('cameraStoryControlesPreview').style.display = 'none';
+  document.getElementById('cameraStoryControlesCaptura').style.display = 'flex';
+  document.getElementById('cameraStoryBotaoCapturaMiolo').style.cssText = 'width:58px;height:58px;border-radius:50%;background:#fff;transition:all .2s';
+  if(cameraStoryStream) cameraStoryStream.getTracks().forEach(t => { t.enabled = true; });
+}
+
+function confirmarCapturaStory(){
+  if(!cameraStoryBlobCapturado) return;
+  arquivoRespostaSelecionadoVar = cameraStoryBlobCapturado;
+  document.getElementById('respostaArquivoPreview').style.display = 'block';
+  pararStreamCameraStory();
+  closeModal('camera-story');
+}
+
 async function publicarRespostaPergunta(){
   const erroEl = document.getElementById('perguntaDoDiaErro');
   erroEl.textContent = '';
@@ -4983,6 +5227,9 @@ function closeModal(name){
   document.getElementById('overlay-'+name).classList.remove('open');
   if(name==='view-story'){
     pararAutoAvancoStory();
+  }
+  if(name==='camera-story'){
+    pararStreamCameraStory();
   }
   if(name==='excluir-conta'){
     setTimeout(()=>{
