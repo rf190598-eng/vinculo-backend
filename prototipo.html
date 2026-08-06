@@ -565,7 +565,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <!-- Badge "+" sempre visível, sobreposto à borda inferior direita — clique
              independente da bolinha (sempre abre postar novo story), então tem que
              segurar o próprio clique antes que ele suba pro onclick da bolinha. -->
-        <div onclick="event.stopPropagation(); abrirNovoStoryDireto()" style="position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#e0607a,#c9a06b);border:2px solid #1a0810;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;cursor:pointer;z-index:2">&#43;</div>
+        <div onclick="event.stopPropagation(); abrirComposerStory()" style="position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#e0607a,#c9a06b);border:2px solid #1a0810;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;cursor:pointer;z-index:2">&#43;</div>
       </div>
       <div style="font-size:10px;color:#d0a8b8;font-weight:600">Seu story</div>
     </div>
@@ -576,8 +576,8 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="font-size:10px;font-weight:800;color:#d4b87a;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">&#127775; Pergunta do dia</div>
     <div style="font-size:13.5px;font-weight:700;color:#fdf6f2;margin-bottom:8px" id="perguntaDoDiaTexto">Carregando...</div>
     <div style="display:flex;gap:8px" id="perguntaDoDiaAcao">
-      <input style="flex:1;min-width:0;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:10px;padding:8px 12px;font-size:13px;color:#fdf6f2;outline:none;font-family:inherit;text-overflow:ellipsis;overflow:hidden;white-space:nowrap" placeholder="Sua resposta aparece no seu perfil..." readonly onclick="abrirModalPerguntaDiaSelecao()"/>
-      <button style="background:linear-gradient(135deg,#e0607a,#c9a06b);border:none;border-radius:10px;padding:8px 14px;color:#fff;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap" onclick="abrirModalPerguntaDiaSelecao()">Responder</button>
+      <input style="flex:1;min-width:0;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:10px;padding:8px 12px;font-size:13px;color:#fdf6f2;outline:none;font-family:inherit;text-overflow:ellipsis;overflow:hidden;white-space:nowrap" placeholder="Sua resposta aparece no seu perfil..." readonly onclick="abrirComposerStory()"/>
+      <button style="background:linear-gradient(135deg,#e0607a,#c9a06b);border:none;border-radius:10px;padding:8px 14px;color:#fff;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap" onclick="abrirComposerStory()">Responder</button>
     </div>
   </div>
 
@@ -2060,143 +2060,136 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 </div>
 
 <!-- MODAL PERGUNTA DO DIA -->
-<div class="overlay" id="overlay-pergunta-dia" onclick="if(event.target===this)closeModal('pergunta-dia')">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div style="font-size:11px;font-weight:800;color:#d4b87a;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">&#127775; Pergunta do dia</div>
-    <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:#fdf6f2;margin-bottom:16px" id="perguntaDoDiaModalTexto">Carregando...</div>
-
-    <div style="display:flex;gap:8px;margin-bottom:14px">
-      <button id="tipoRespTexto" onclick="selecionarTipoResposta('texto')" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid #d4839a;background:rgba(212,131,154,.15);color:#fdf6f2;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit">&#9997; Texto</button>
-      <button id="tipoRespFoto" onclick="selecionarTipoResposta('foto')" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fdf6f2;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit">&#128247; Foto</button>
-      <button id="tipoRespVideo" onclick="selecionarTipoResposta('video')" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fdf6f2;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit">&#127909; Vídeo</button>
-    </div>
-
-    <textarea id="respostaTextoArea" style="width:100%;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:12px;padding:14px;font-size:14px;color:#fdf6f2;outline:none;font-family:inherit;resize:none;min-height:100px" placeholder="Escreva sua resposta... ela aparecerá no seu perfil por 24h"></textarea>
-
-    <div id="respostaEscolherArea" onclick="abrirCameraStory(tipoRespostaEscolhido)" style="display:none;text-align:center;padding:24px;background:rgba(255,255,255,.05);border:2px dashed rgba(255,255,255,.2);border-radius:12px;cursor:pointer;margin-bottom:6px">
-      <div style="font-size:28px;margin-bottom:6px" id="respostaEscolherIcone">&#128247;</div>
-      <div style="font-size:12.5px;color:#d0a8b8" id="respostaEscolherTexto">Toque para abrir a câmera</div>
-    </div>
-
-    <input type="file" id="respostaArquivoInput" accept="image/*" style="display:none" onchange="arquivoRespostaSelecionado(event)"/>
-    <div id="respostaArquivoPreview" style="display:none;text-align:center;color:#6dcc6d;font-size:13px;padding:20px;background:rgba(255,255,255,.05);border-radius:12px;margin-bottom:6px">Arquivo selecionado ✓</div>
-
-    <div id="perguntaDoDiaErro" style="color:#ff8fa3;font-size:12.5px;margin:8px 0 0;min-height:14px"></div>
-    <div style="font-size:11.5px;color:#d0a8b8;margin:8px 0 14px;line-height:1.5">&#128161; Quem responde aparece em destaque no Descobrir por 24 horas.</div>
-    <button class="btn btn-primary" onclick="publicarRespostaPergunta()">Publicar resposta</button>
-    <button class="btn btn-ghost" onclick="closeModal('pergunta-dia')">Cancelar</button>
-  </div>
-</div>
-
-<!-- MODAL CÂMERA AO VIVO (foto/vídeo pro story) -->
-<div class="overlay" id="overlay-camera-story" style="align-items:center;z-index:600">
+<!-- COMPOSER DE STORY: câmera + editor unificados numa tela cheia só (sem
+     modais empilhados). Duas camadas alternadas por display, nunca as duas
+     abertas via openModal/closeModal ao mesmo tempo — só uma delas visível
+     por vez dentro do mesmo overlay. -->
+<div class="overlay" id="overlay-story-composer" style="align-items:center;z-index:600">
   <div style="background:#000;width:100%;max-width:430px;height:100vh;position:relative;display:flex;flex-direction:column;overflow:hidden">
 
-    <!-- Preview ao vivo da câmera -->
-    <video id="cameraStoryVideoPreview" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;background:#000"></video>
+    <!-- ===== CAMADA CÂMERA ===== -->
+    <div id="composerCameraLayer" style="position:absolute;inset:0;display:flex;flex-direction:column">
+      <video id="cameraStoryVideoPreview" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;background:#000"></video>
 
-    <!-- Prévia do que foi capturado -->
-    <img id="cameraStoryPreviewImg" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;display:none"/>
-    <video id="cameraStoryPreviewVideo" playsinline loop disablePictureInPicture controlsList="nodownload noplaybackrate nofullscreen" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;display:none"></video>
+      <!-- Topo: fechar + badge da pergunta do dia (dispensável) + atalho "Aa" pro modo texto -->
+      <div style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:flex-start;justify-content:space-between;padding:16px 14px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
+        <div onclick="fecharComposerStory()" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff;flex-shrink:0">&#10005;</div>
 
-    <!-- Topo: fechar + indicador de gravação -->
-    <div style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:16px 14px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
-      <div onclick="fecharCameraStory()" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff">&#10005;</div>
-      <div id="cameraStoryGravandoIndicador" style="display:none;align-items:center;gap:6px;background:rgba(192,41,63,.85);border-radius:20px;padding:5px 12px">
-        <div style="width:8px;height:8px;border-radius:50%;background:#fff;animation:pulseRec 1s infinite"></div>
-        <span style="font-size:11.5px;color:#fff;font-weight:700" id="cameraStoryTempoGravado">0s</span>
+        <div id="composerPerguntaBadge" style="display:none;align-items:center;gap:8px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:7px 10px 7px 14px;max-width:230px;margin:0 8px">
+          <span id="composerPerguntaTexto" style="font-size:11.5px;color:#fdf6f2;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical"></span>
+          <div onclick="dispensarPerguntaBadgeComposer()" style="flex-shrink:0;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;color:#fff">&#10005;</div>
+        </div>
+
+        <div onclick="abrirModoTextoComposer()" style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;cursor:pointer;color:#fff">Aa</div>
+      </div>
+
+      <!-- Erro / sem permissão / sem suporte -->
+      <div id="cameraStoryErro" style="display:none;position:absolute;inset:0;z-index:20;background:#1a0810;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 24px">
+        <div style="font-size:44px;margin-bottom:14px">&#128247;&#128683;</div>
+        <div class="serif" style="font-size:20px;font-weight:700;color:#fdf6f2;margin-bottom:8px">Não conseguimos acessar sua câmera</div>
+        <div id="cameraStoryErroTexto" style="font-size:13px;color:#d0a8b8;line-height:1.6;margin-bottom:22px;max-width:280px">Verifique a permissão de câmera do navegador e tente de novo.</div>
+        <button class="btn btn-primary" style="max-width:260px" onclick="usarGaleriaEmVezDeCamera()">&#128444; Escolher da galeria</button>
+        <button class="btn btn-ghost" style="max-width:260px;margin-top:10px" onclick="fecharComposerStory()">Cancelar</button>
+      </div>
+
+      <!-- Controles inferiores: indicador de gravação, seletor de duração, botão de captura, galeria -->
+      <div id="cameraStoryControlesCaptura" style="position:absolute;bottom:0;left:0;right:0;z-index:10;display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px 18px 30px;background:linear-gradient(0deg,rgba(0,0,0,.6),transparent)">
+        <div id="cameraStoryGravandoIndicador" style="display:none;align-items:center;gap:6px;background:rgba(192,41,63,.85);border-radius:20px;padding:5px 12px">
+          <div style="width:8px;height:8px;border-radius:50%;background:#fff;animation:pulseRec 1s infinite"></div>
+          <span style="font-size:11.5px;color:#fff;font-weight:700" id="cameraStoryTempoGravado">0s</span>
+        </div>
+
+        <!-- Seletor de duração mãos-livres (estilo TikTok/Reels): escolher um
+             tempo faz 1 toque no botão de captura iniciar a gravação sozinha
+             até o limite escolhido; tocar de novo para antes. Sem nada
+             selecionado, o botão volta ao padrão (toque=foto, segurar=grava). -->
+        <div id="composerDuracaoSeletor" style="display:flex;gap:7px;justify-content:center">
+          <div class="composer-duracao-btn" data-seg="5" onclick="selecionarDuracaoComposer(5)" style="padding:5px 11px;border-radius:14px;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:#fff;font-size:11.5px;font-weight:700;cursor:pointer">5s</div>
+          <div class="composer-duracao-btn" data-seg="10" onclick="selecionarDuracaoComposer(10)" style="padding:5px 11px;border-radius:14px;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:#fff;font-size:11.5px;font-weight:700;cursor:pointer">10s</div>
+          <div class="composer-duracao-btn" data-seg="15" onclick="selecionarDuracaoComposer(15)" style="padding:5px 11px;border-radius:14px;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:#fff;font-size:11.5px;font-weight:700;cursor:pointer">15s</div>
+          <div class="composer-duracao-btn" data-seg="20" onclick="selecionarDuracaoComposer(20)" style="padding:5px 11px;border-radius:14px;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:#fff;font-size:11.5px;font-weight:700;cursor:pointer">20s</div>
+          <div class="composer-duracao-btn" data-seg="30" onclick="selecionarDuracaoComposer(30)" style="padding:5px 11px;border-radius:14px;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:#fff;font-size:11.5px;font-weight:700;cursor:pointer">30s</div>
+        </div>
+
+        <!-- Toque rápido = foto, segurar = grava (limite 30s). Com uma duração
+             acima selecionada, vira toggle de 1 toque (modo mãos-livres). O
+             anel ao redor preenche com o progresso da gravação. -->
+        <div id="composerAnelProgresso" style="width:82px;height:82px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:conic-gradient(#e0607a 0deg, rgba(255,255,255,.25) 0deg)">
+          <div id="cameraStoryBotaoCaptura" style="width:74px;height:74px;border-radius:50%;background:rgba(255,255,255,.15);border:4px solid #fff;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:none">
+            <div id="cameraStoryBotaoCapturaMiolo" style="width:58px;height:58px;border-radius:50%;background:#fff;transition:all .2s"></div>
+          </div>
+        </div>
+
+        <div onclick="usarGaleriaEmVezDeCamera()" style="font-size:12.5px;color:rgba(255,255,255,.85);cursor:pointer;text-decoration:underline">ou escolher da galeria</div>
       </div>
     </div>
 
-    <!-- Erro / sem permissão / sem suporte -->
-    <div id="cameraStoryErro" style="display:none;position:absolute;inset:0;z-index:20;background:#1a0810;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 24px">
-      <div style="font-size:44px;margin-bottom:14px">&#128247;&#128683;</div>
-      <div class="serif" style="font-size:20px;font-weight:700;color:#fdf6f2;margin-bottom:8px">Não conseguimos acessar sua câmera</div>
-      <div id="cameraStoryErroTexto" style="font-size:13px;color:#d0a8b8;line-height:1.6;margin-bottom:22px;max-width:280px">Verifique a permissão de câmera do navegador e tente de novo.</div>
-      <button class="btn btn-primary" style="max-width:260px" onclick="usarGaleriaEmVezDeCamera()">&#128444; Escolher da galeria</button>
-      <button class="btn btn-ghost" style="max-width:260px;margin-top:10px" onclick="fecharCameraStory()">Cancelar</button>
-    </div>
+    <!-- ===== CAMADA EDIÇÃO (texto arrastável/redimensionável/rotacionável) ===== -->
+    <div id="composerEditLayer" style="display:none;position:absolute;inset:0">
 
-    <!-- Controles: modo captura (câmera ligada, esperando o clique) -->
-    <div id="cameraStoryControlesCaptura" style="position:absolute;bottom:0;left:0;right:0;z-index:10;display:flex;flex-direction:column;align-items:center;gap:14px;padding:22px 18px 30px;background:linear-gradient(0deg,rgba(0,0,0,.6),transparent)">
-      <div onclick="alternarCapturaStory()" id="cameraStoryBotaoCaptura" style="width:74px;height:74px;border-radius:50%;background:rgba(255,255,255,.15);border:4px solid #fff;cursor:pointer;display:flex;align-items:center;justify-content:center">
-        <div id="cameraStoryBotaoCapturaMiolo" style="width:58px;height:58px;border-radius:50%;background:#fff;transition:all .2s"></div>
+      <!-- Fundo: foto, vídeo ou gradiente -->
+      <div id="editorStoryFundoWrap" style="position:absolute;inset:0;overflow:hidden">
+        <img id="editorStoryFundoImg" style="width:100%;height:100%;object-fit:cover;display:none"/>
+        <video id="editorStoryFundoVideo" style="width:100%;height:100%;object-fit:cover;display:none" loop muted playsinline autoplay></video>
+        <div id="editorStoryFundoGradiente" style="width:100%;height:100%;display:none;background:linear-gradient(160deg,#7a2a4a,#4a1428,#1a0810)"></div>
       </div>
-      <div onclick="usarGaleriaEmVezDeCamera()" style="font-size:12.5px;color:rgba(255,255,255,.85);cursor:pointer;text-decoration:underline">ou escolher da galeria</div>
-    </div>
 
-    <!-- Controles: modo prévia (depois de capturar/gravar) -->
-    <div id="cameraStoryControlesPreview" style="display:none;position:absolute;bottom:0;left:0;right:0;z-index:10;padding:18px;background:linear-gradient(0deg,rgba(0,0,0,.7),transparent)">
-      <button class="btn btn-primary" onclick="confirmarCapturaStory()" id="cameraStoryBtnUsar">Usar essa foto</button>
-      <button class="btn btn-ghost" style="margin-top:10px" onclick="refazerCapturaStory()">Tirar de novo</button>
+      <!-- Camada de caixas de texto arrastáveis. bottom é ajustado por JS
+           (ajustarAreaArrasteEditorStory) pra excluir exatamente a altura real
+           do rodapé — assim a área de arraste nunca fica atrás dos controles,
+           nem quando o painel de texto expande a barra. O valor aqui é só um
+           fallback antes do primeiro ajuste. -->
+      <div id="editorStoryCamadaTextos" style="position:absolute;top:0;left:0;right:0;bottom:150px;z-index:6"></div>
+
+      <!-- Topo: voltar — pra câmera, se a foto/vídeo veio dela (ou da galeria);
+           fecha o composer inteiro se era modo texto puro (nunca passou pela câmera). -->
+      <div style="position:absolute;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;padding:16px 14px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
+        <div onclick="cancelarEdicaoStory()" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff">&#10005;</div>
+      </div>
+
+      <!-- Rodapé: painel de edição de texto (contextual, aparece com uma caixa
+           selecionada), barra de ferramentas inferior estilo Instagram, e o
+           botão único de publicar (substitui o antigo Continuar + Publicar
+           separados). -->
+      <div id="editorStoryRodape" style="position:absolute;bottom:0;left:0;right:0;z-index:20;display:flex;flex-direction:column;border-top:1px solid rgba(255,255,255,.14);background:linear-gradient(0deg,rgba(0,0,0,.72),rgba(0,0,0,.3) 65%,transparent)">
+
+        <div id="editorStoryPainelTexto" style="display:none;padding:12px 14px 2px">
+          <div id="editorStoryPaleta" style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
+          <div id="editorStoryFontes" style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:10px">
+            <div onclick="ajustarTamanhoFonteStory(-4)" style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;cursor:pointer">A-</div>
+            <span id="editorStoryTamanhoLabel" style="color:#fff;font-size:12px;min-width:44px;text-align:center">28px</span>
+            <div onclick="ajustarTamanhoFonteStory(4)" style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;cursor:pointer">A+</div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;margin-bottom:4px">
+            <label style="color:#fff;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;background:rgba(255,255,255,.1);padding:6px 12px;border-radius:16px">
+              <input type="checkbox" id="editorStoryFundoToggle" onchange="alternarFundoCaixaStory(this.checked)" style="cursor:pointer"/> Fundo atrás do texto
+            </label>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:center;gap:26px;padding:10px 14px 4px">
+          <div onclick="adicionarCaixaTextoStory()" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:#fff">
+            <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:19px">&#128221;</div>
+            <span style="font-size:10px;font-weight:600">Texto</span>
+          </div>
+          <div onclick="showToastVinculo('Filtros chegando em breve! ✨')" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:rgba(255,255,255,.45)">
+            <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:19px">&#127912;</div>
+            <span style="font-size:10px;font-weight:600">Em breve</span>
+          </div>
+        </div>
+
+        <div id="composerErro" style="color:#ff8fa3;font-size:12.5px;text-align:center;padding:0 18px;min-height:14px"></div>
+        <div style="padding:10px 18px 18px">
+          <button class="btn btn-primary" onclick="finalizarEEnviarStory()">Enviar</button>
+        </div>
+      </div>
     </div>
 
   </div>
 </div>
 
-<!-- MODAL EDITOR DE STORY (texto arrastável/redimensionável/rotacionável) -->
-<div class="overlay" id="overlay-editor-story" style="align-items:center;z-index:610">
-  <div style="background:#000;width:100%;max-width:430px;height:100vh;position:relative;display:flex;flex-direction:column;overflow:hidden">
-
-    <!-- Fundo: foto, vídeo ou gradiente -->
-    <div id="editorStoryFundoWrap" style="position:absolute;inset:0;overflow:hidden">
-      <img id="editorStoryFundoImg" style="width:100%;height:100%;object-fit:cover;display:none"/>
-      <video id="editorStoryFundoVideo" style="width:100%;height:100%;object-fit:cover;display:none" loop muted playsinline autoplay></video>
-      <div id="editorStoryFundoGradiente" style="width:100%;height:100%;display:none;background:linear-gradient(160deg,#7a2a4a,#4a1428,#1a0810)"></div>
-    </div>
-
-    <!-- Camada de caixas de texto arrastáveis. bottom é ajustado por JS
-         (ajustarAreaArrasteEditorStory) pra excluir exatamente a altura real
-         do rodapé — assim a área de arraste nunca fica atrás dos controles,
-         nem quando o painel de texto expande a barra. O valor aqui é só um
-         fallback antes do primeiro ajuste. -->
-    <div id="editorStoryCamadaTextos" style="position:absolute;top:0;left:0;right:0;bottom:150px;z-index:6"></div>
-
-    <!-- Topo: só o botão de voltar/cancelar (as ferramentas foram pra barra inferior) -->
-    <div style="position:absolute;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;padding:16px 14px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
-      <div onclick="cancelarEdicaoStory()" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff">&#10005;</div>
-    </div>
-
-    <!-- Rodapé: painel de edição de texto (contextual, aparece com uma caixa selecionada),
-         barra de ferramentas inferior estilo Instagram, e botão continuar.
-         Borda superior sutil pra marcar visualmente onde a área de arraste
-         termina e a barra de controles começa. -->
-    <div id="editorStoryRodape" style="position:absolute;bottom:0;left:0;right:0;z-index:20;display:flex;flex-direction:column;border-top:1px solid rgba(255,255,255,.14);background:linear-gradient(0deg,rgba(0,0,0,.72),rgba(0,0,0,.3) 65%,transparent)">
-
-      <div id="editorStoryPainelTexto" style="display:none;padding:12px 14px 2px">
-        <div id="editorStoryPaleta" style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
-        <div id="editorStoryFontes" style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
-        <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:10px">
-          <div onclick="ajustarTamanhoFonteStory(-4)" style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;cursor:pointer">A-</div>
-          <span id="editorStoryTamanhoLabel" style="color:#fff;font-size:12px;min-width:44px;text-align:center">28px</span>
-          <div onclick="ajustarTamanhoFonteStory(4)" style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;cursor:pointer">A+</div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:center;margin-bottom:4px">
-          <label style="color:#fff;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;background:rgba(255,255,255,.1);padding:6px 12px;border-radius:16px">
-            <input type="checkbox" id="editorStoryFundoToggle" onchange="alternarFundoCaixaStory(this.checked)" style="cursor:pointer"/> Fundo atrás do texto
-          </label>
-        </div>
-      </div>
-
-      <div style="display:flex;justify-content:center;gap:26px;padding:10px 14px 4px">
-        <div onclick="adicionarCaixaTextoStory()" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:#fff">
-          <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:19px">&#128221;</div>
-          <span style="font-size:10px;font-weight:600">Texto</span>
-        </div>
-        <div onclick="showToastVinculo('Filtros chegando em breve! ✨')" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:rgba(255,255,255,.45)">
-          <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:19px">&#127912;</div>
-          <span style="font-size:10px;font-weight:600">Em breve</span>
-        </div>
-      </div>
-
-      <div style="padding:14px 18px 18px">
-        <button class="btn btn-primary" onclick="continuarDaEdicaoStory()">Continuar</button>
-      </div>
-    </div>
-
-  </div>
-</div>
+<input type="file" id="respostaArquivoInput" accept="image/*,video/*" style="display:none" onchange="arquivoRespostaSelecionado(event)"/>
 
 <!-- MODAL EVENTO CONFIRMAR -->
 <div class="overlay" id="overlay-evento-confirmar" onclick="if(event.target===this)closeModal('evento-confirmar')">
@@ -4085,20 +4078,20 @@ function obterLocalizacaoAtual(){
   });
 }
 
-let tipoRespostaEscolhido = 'texto';
+let tipoRespostaEscolhido = null;
 let arquivoRespostaSelecionadoVar = null;
 let feedStoriesCache = [];
+let perguntaDoDiaTextoAtual = ''; // cache do texto puro (sem aspas), usado no badge do composer
 
 async function carregarPerguntaDoDia(){
   try{
     const resp = await fetch(`${API_URL}/api/status/pergunta-do-dia`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
     const dados = await resp.json();
     if(!resp.ok){ throw new Error(dados.erro || 'Erro ao buscar pergunta do dia'); }
+    perguntaDoDiaTextoAtual = dados.pergunta || '';
     const textoFormatado = `"${dados.pergunta}"`;
     const cardEl = document.getElementById('perguntaDoDiaTexto');
-    const modalEl = document.getElementById('perguntaDoDiaModalTexto');
     if(cardEl) cardEl.textContent = dados.ja_respondi ? 'Você já respondeu a pergunta de hoje! ✓' : textoFormatado;
-    if(modalEl) modalEl.textContent = textoFormatado;
 
     // A linha de "responder" (input + botão) nunca era escondida depois de já
     // ter respondido — ficava ali embaixo do aviso "Você já respondeu",
@@ -4167,40 +4160,82 @@ async function atualizarMeuStoryRingComMiniatura(ring){
   ring.innerHTML = `<div style="width:100%;height:100%;border-radius:50%;border:2px solid #1a0810;${miniaturaEstilo}">${conteudoMiniatura}</div>`;
 }
 
-function selecionarTipoResposta(tipo){
-  tipoRespostaEscolhido = tipo;
-  arquivoRespostaSelecionadoVar = null;
-  overlayTextosStoryVar = null;
-  document.getElementById('respostaArquivoPreview').style.display = 'none';
-  ['texto','foto','video'].forEach(t=>{
-    const btn = document.getElementById('tipoResp'+t.charAt(0).toUpperCase()+t.slice(1));
-    if(t===tipo){ btn.style.borderColor='#d4839a'; btn.style.background='rgba(212,131,154,.15)'; }
-    else { btn.style.borderColor='rgba(255,255,255,.15)'; btn.style.background='rgba(255,255,255,.05)'; }
-  });
+/* ===== Composer de story unificado (câmera + editor numa tela só) =====
+   Substitui os 3 modais empilhados de antes (pergunta-dia com abas, câmera
+   como modal separado, editor como modal separado) por UM overlay
+   (overlay-story-composer) com 2 camadas alternadas via display — nunca
+   openModal/closeModal encavalados, sempre no máximo 1 "tela" visível por
+   vez. Isso elimina de raiz a classe de bug de z-index/empilhamento e o
+   vídeo de prévia "preso" tocando em segundo plano (não existe mais prévia
+   separada: capturar já leva direto pro editor, que serve como revisão). */
 
-  const textoArea = document.getElementById('respostaTextoArea');
-  const escolherArea = document.getElementById('respostaEscolherArea');
-  const input = document.getElementById('respostaArquivoInput');
-  if(tipo === 'texto'){
-    // Story de texto agora passa pelo editor visual (fundo gradiente + caixas
-    // de texto arrastáveis), em vez da textarea simples de antes.
-    textoArea.style.display = 'none';
-    escolherArea.style.display = 'none';
-    abrirEditorStory('texto', null);
-  } else {
-    textoArea.style.display = 'none';
-    escolherArea.style.display = 'block';
-    document.getElementById('respostaEscolherIcone').textContent = tipo === 'foto' ? '📷' : '🎥';
-    input.accept = tipo === 'foto' ? 'image/*' : 'video/*';
-    input.setAttribute('capture', 'environment');
-  }
+// Ponto de entrada único: bolinha "Seu story" (sem story ativo), badge "+",
+// e o atalho "Responder" do card da pergunta do dia — todos abrem direto a
+// câmera em tela cheia, pulando a etapa de escolher Texto/Foto/Vídeo.
+async function abrirComposerStory(){
+  console.log('[composer] abrirComposerStory chamada');
+  resetarEstadoComposer();
+  mostrarCamadaCameraComposer();
+  openModal('story-composer');
+  await iniciarStreamCameraComposer();
 }
 
-function arquivoRespostaSelecionado(event){
-  const arquivo = event.target.files[0];
-  event.target.value = ''; // permite escolher o mesmo arquivo de novo depois, se quiser refazer
-  if(!arquivo) return;
-  abrirEditorStory(tipoRespostaEscolhido === 'video' ? 'video' : 'foto', arquivo);
+function resetarEstadoComposer(){
+  cameraStoryModo = 'foto';
+  cameraStoryGravando = false;
+  cameraStoryChunks = [];
+  cameraStoryTempoDecorrido = 0;
+  cameraStoryDuracaoSelecionada = null;
+  tipoRespostaEscolhido = null;
+  arquivoRespostaSelecionadoVar = null;
+  overlayTextosStoryVar = null;
+
+  document.getElementById('cameraStoryErro').style.display = 'none';
+  document.getElementById('cameraStoryGravandoIndicador').style.display = 'none';
+  document.getElementById('composerDuracaoSeletor').style.display = 'flex';
+  document.querySelectorAll('.composer-duracao-btn').forEach(btn=>{
+    btn.style.background = 'rgba(255,255,255,.12)';
+    btn.style.borderColor = 'rgba(255,255,255,.25)';
+  });
+  document.getElementById('composerErro').textContent = '';
+  atualizarAnelProgressoComposer(0);
+
+  const badgeTextoEl = document.getElementById('composerPerguntaTexto');
+  const badgeEl = document.getElementById('composerPerguntaBadge');
+  if(perguntaDoDiaTextoAtual){
+    badgeTextoEl.textContent = '💭 ' + perguntaDoDiaTextoAtual;
+    badgeEl.style.display = 'flex';
+  } else {
+    badgeEl.style.display = 'none';
+  }
+
+  configurarBotaoCapturaComposer();
+}
+
+function mostrarCamadaCameraComposer(){
+  document.getElementById('composerCameraLayer').style.display = 'flex';
+  document.getElementById('composerEditLayer').style.display = 'none';
+}
+
+function mostrarCamadaEdicaoComposer(){
+  document.getElementById('composerCameraLayer').style.display = 'none';
+  document.getElementById('composerEditLayer').style.display = 'flex';
+}
+
+function dispensarPerguntaBadgeComposer(){
+  document.getElementById('composerPerguntaBadge').style.display = 'none';
+}
+
+// Atalho "Aa": pula a câmera de vez e vai direto pro editor em modo texto
+// puro (fundo gradiente) — a câmera é liberada já que não vai ser usada.
+function abrirModoTextoComposer(){
+  pararStreamCameraStory();
+  abrirEditorStory('texto', null);
+}
+
+function fecharComposerStory(){
+  pararStreamCameraStory();
+  closeModal('story-composer');
 }
 
 /* ===== Câmera ao vivo pro story (foto/vídeo), via getUserMedia ===== */
@@ -4209,38 +4244,24 @@ let cameraStoryModo = 'foto'; // 'foto' ou 'video'
 let cameraStoryGravando = false;
 let cameraStoryMediaRecorder = null;
 let cameraStoryChunks = [];
-let cameraStoryBlobCapturado = null;
 let cameraStoryTimerId = null;
 let cameraStoryTempoDecorrido = 0;
-const CAMERA_STORY_DURACAO_MAXIMA_VIDEO = 20; // segundos
+let cameraStoryDuracaoMaximaAtual = 30;
+let cameraStoryDuracaoSelecionada = null; // 5/10/15/20/30 (mãos-livres) ou null (padrão: toque=foto, segurar=grava)
+let capturaPressTimer = null;
+const CAMERA_STORY_DURACAO_MAXIMA_HOLD = 30; // segundos, modo "segurar pra gravar"
+const CAMERA_STORY_LIMIAR_SEGURAR_MS = 250; // acima disso, pointerdown vira "segurando" em vez de toque
 
-async function abrirCameraStory(tipo){
-  cameraStoryModo = tipo;
-  cameraStoryBlobCapturado = null;
-  cameraStoryGravando = false;
-  cameraStoryChunks = [];
-  cameraStoryTempoDecorrido = 0;
-
-  document.getElementById('cameraStoryErro').style.display = 'none';
-  document.getElementById('cameraStoryControlesPreview').style.display = 'none';
-  document.getElementById('cameraStoryControlesCaptura').style.display = 'flex';
-  document.getElementById('cameraStoryGravandoIndicador').style.display = 'none';
-  document.getElementById('cameraStoryPreviewImg').style.display = 'none';
-  document.getElementById('cameraStoryPreviewVideo').style.display = 'none';
-  document.getElementById('cameraStoryVideoPreview').style.display = 'block';
-  document.getElementById('cameraStoryBotaoCapturaMiolo').style.cssText = 'width:58px;height:58px;border-radius:50%;background:#fff;transition:all .2s';
-  document.getElementById('cameraStoryBtnUsar').textContent = tipo === 'foto' ? 'Usar essa foto' : 'Usar esse vídeo';
-
-  openModal('camera-story');
-
+async function iniciarStreamCameraComposer(){
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
     mostrarErroCameraStory('Seu navegador não suporta acesso à câmera pelo app.');
     return;
   }
-
   try{
-    const restricoes = { video: { facingMode: 'environment' }, audio: tipo === 'video' };
-    cameraStoryStream = await navigator.mediaDevices.getUserMedia(restricoes);
+    // audio:true sempre — nesse fluxo não dá mais pra saber de antemão se o
+    // usuário vai tirar foto ou gravar vídeo (não existe mais a etapa de
+    // escolher o tipo antes de abrir a câmera).
+    cameraStoryStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: true });
     document.getElementById('cameraStoryVideoPreview').srcObject = cameraStoryStream;
   } catch(e){
     mostrarErroCameraStory('Não conseguimos acessar sua câmera. Verifique a permissão do navegador e tente de novo.');
@@ -4250,9 +4271,85 @@ async function abrirCameraStory(tipo){
 function mostrarErroCameraStory(msg){
   document.getElementById('cameraStoryErroTexto').textContent = msg;
   document.getElementById('cameraStoryErro').style.display = 'flex';
-  document.getElementById('cameraStoryControlesCaptura').style.display = 'none';
+  document.getElementById('composerDuracaoSeletor').style.display = 'none';
 }
 
+// Seletor de duração estilo TikTok/Reels: escolher um tempo faz o botão de
+// captura virar um toggle de 1 toque só (liga/desliga a gravação sozinha até
+// o limite escolhido). Tocar no mesmo valor de novo desmarca, voltando ao
+// padrão (toque rápido = foto, segurar = grava, até 30s).
+function selecionarDuracaoComposer(segundos){
+  cameraStoryDuracaoSelecionada = (cameraStoryDuracaoSelecionada === segundos) ? null : segundos;
+  document.querySelectorAll('.composer-duracao-btn').forEach(btn=>{
+    const ativo = Number(btn.dataset.seg) === cameraStoryDuracaoSelecionada;
+    btn.style.background = ativo ? 'linear-gradient(135deg,#e0607a,#c9a06b)' : 'rgba(255,255,255,.12)';
+    btn.style.borderColor = ativo ? 'transparent' : 'rgba(255,255,255,.25)';
+  });
+}
+
+function atualizarAnelProgressoComposer(fracao){
+  const anel = document.getElementById('composerAnelProgresso');
+  if(!anel) return;
+  const graus = Math.min(1, Math.max(0, fracao)) * 360;
+  anel.style.background = `conic-gradient(#e0607a ${graus}deg, rgba(255,255,255,.25) ${graus}deg)`;
+}
+
+// Gestos do botão de captura via Pointer Events (cobre mouse e touch):
+// - Com uma duração selecionada: 1 toque liga/desliga a gravação mãos-livres.
+// - Sem duração selecionada: toque rápido (< 250ms) = foto; segurar = grava
+//   (limite 30s); soltar o dedo/botão para a gravação e usa o que foi gravado.
+function configurarBotaoCapturaComposer(){
+  const btn = document.getElementById('cameraStoryBotaoCaptura');
+  if(!btn || btn.dataset.configurado) return;
+  btn.addEventListener('pointerdown', aoPressionarBotaoCaptura);
+  btn.addEventListener('pointerup', aoSoltarBotaoCaptura);
+  btn.addEventListener('pointercancel', aoCancelarBotaoCaptura);
+  btn.addEventListener('pointerleave', aoCancelarBotaoCaptura);
+  btn.dataset.configurado = '1';
+}
+
+function aoPressionarBotaoCaptura(){
+  if(!cameraStoryStream) return;
+  if(cameraStoryDuracaoSelecionada){
+    if(cameraStoryGravando){ pararGravacaoStory(); }
+    else { iniciarGravacaoStory(cameraStoryDuracaoSelecionada); }
+    return;
+  }
+  capturaPressTimer = setTimeout(() => {
+    capturaPressTimer = null;
+    iniciarGravacaoStory(CAMERA_STORY_DURACAO_MAXIMA_HOLD);
+  }, CAMERA_STORY_LIMIAR_SEGURAR_MS);
+}
+
+function aoSoltarBotaoCaptura(){
+  if(cameraStoryDuracaoSelecionada) return; // modo mãos-livres já foi tratado no pointerdown
+  if(capturaPressTimer){
+    clearTimeout(capturaPressTimer);
+    capturaPressTimer = null;
+    tirarFotoStory();
+  } else if(cameraStoryGravando){
+    pararGravacaoStory();
+  }
+}
+
+function aoCancelarBotaoCaptura(){
+  if(cameraStoryDuracaoSelecionada) return;
+  if(capturaPressTimer){ clearTimeout(capturaPressTimer); capturaPressTimer = null; }
+  // se o ponteiro saiu do botão ou foi cancelado no meio de uma gravação por
+  // segurar, para por segurança em vez de deixar gravando sem controle
+  if(cameraStoryGravando) pararGravacaoStory();
+}
+
+// Ponto único de "desligar tudo que é câmera" — chamado em TODOS os
+// caminhos que saem da câmera (capturar com sucesso, trocar pro modo texto,
+// fechar o composer, fechar o modal genérico). Antes, só o stream do
+// getUserMedia era parado aqui; o <video> de PRÉVIA pós-captura tinha sua
+// própria vida (blob independente, sem muted, com loop) e ficava tocando
+// escondido pra sempre já que nada além do próprio play() mexia nele. Nesse
+// novo fluxo não existe mais elemento de prévia separado (capturar já leva
+// direto pro editor, que serve de revisão), então essa causa raiz específica
+// deixou de existir estruturalmente — mas a limpeza do stream/gravação
+// continua centralizada aqui.
 function pararStreamCameraStory(){
   console.log('[camera] pararStreamCameraStory chamada');
   if(cameraStoryStream){
@@ -4265,61 +4362,43 @@ function pararStreamCameraStory(){
   cameraStoryMediaRecorder = null;
   cameraStoryGravando = false;
   pararTimerGravacaoStory();
-
-  // CAUSA RAIZ do áudio "preso": o <video> de PRÉVIA (cameraStoryPreviewVideo,
-  // que toca o blob gravado pra revisão) é INDEPENDENTE do getUserMedia stream
-  // acima — ele tem sua própria src (URL.createObjectURL do blob), sem
-  // "muted", e com "loop". Quando o preview é mostrado (mostrarPreviewCapturaStory)
-  // chamamos .play() nele pra funcionar sem os controles nativos do
-  // navegador — mas nada nunca chamava .pause() nele de volta. Parar só o
-  // stream da câmera (acima) não afeta esse elemento, já que ele não usa
-  // srcObject nenhum. Resultado: o vídeo continuava tocando (com áudio) por
-  // trás de qualquer modal que abrisse em cima, indefinidamente, porque
-  // display:none no CSS não pausa um <video> sozinho.
-  const previewVideo = document.getElementById('cameraStoryPreviewVideo');
-  if(previewVideo){
-    previewVideo.pause();
-    previewVideo.removeAttribute('src');
-    previewVideo.load();
-  }
-}
-
-function fecharCameraStory(){
-  pararStreamCameraStory();
-  cameraStoryBlobCapturado = null;
-  closeModal('camera-story');
 }
 
 // Fallback: se a câmera falhar/não tiver permissão, ou o usuário preferir,
-// reaproveita o input de arquivo antigo (galeria) que já funcionava.
+// reaproveita o input de arquivo (galeria). Não para o stream aqui — só ao
+// efetivamente escolher um arquivo (arquivoRespostaSelecionado) ou fechar o
+// composer; se o usuário cancelar o seletor de arquivo, a câmera segue ativa
+// normalmente.
 function usarGaleriaEmVezDeCamera(){
-  fecharCameraStory();
   document.getElementById('respostaArquivoInput').click();
 }
 
-function alternarCapturaStory(){
-  if(!cameraStoryStream) return;
-  if(cameraStoryModo === 'foto'){
-    tirarFotoStory();
-  } else if(!cameraStoryGravando){
-    iniciarGravacaoStory();
-  } else {
-    pararGravacaoStory();
-  }
+function arquivoRespostaSelecionado(event){
+  const arquivo = event.target.files[0];
+  event.target.value = ''; // permite escolher o mesmo arquivo de novo depois
+  if(!arquivo) return;
+  const ehVideo = arquivo.type.startsWith('video/');
+  pararStreamCameraStory();
+  abrirEditorStory(ehVideo ? 'video' : 'foto', arquivo);
 }
 
+// Toque rápido tira a foto e já leva direto pro editor — não existe mais
+// etapa de "Usar essa foto?" separada (o próprio editor, com a foto de
+// fundo, serve de revisão; o X da edição volta pra câmera se quiser repetir).
 function tirarFotoStory(){
   const videoPreview = document.getElementById('cameraStoryVideoPreview');
   if(!videoPreview.videoWidth) return; // câmera ainda carregando o primeiro frame
+  cameraStoryModo = 'foto';
   const canvas = document.createElement('canvas');
   canvas.width = videoPreview.videoWidth;
   canvas.height = videoPreview.videoHeight;
   canvas.getContext('2d').drawImage(videoPreview, 0, 0, canvas.width, canvas.height);
   canvas.toBlob((blob) => {
     if(!blob) return;
-    cameraStoryBlobCapturado = new File([blob], 'story-foto-' + Date.now() + '.jpg', { type: 'image/jpeg' });
-    document.getElementById('cameraStoryPreviewImg').src = URL.createObjectURL(blob);
-    mostrarPreviewCapturaStory();
+    const arquivo = new File([blob], 'story-foto-' + Date.now() + '.jpg', { type: 'image/jpeg' });
+    console.log('[camera] foto capturada, indo direto pro editor');
+    pararStreamCameraStory();
+    abrirEditorStory('foto', arquivo);
   }, 'image/jpeg', 0.9);
 }
 
@@ -4331,11 +4410,15 @@ function escolherMimeTypeVideoStory(){
   return '';
 }
 
-function iniciarGravacaoStory(){
+// duracaoMaxSegundos: 30 no modo "segurar" (CAMERA_STORY_DURACAO_MAXIMA_HOLD),
+// ou o valor escolhido no seletor de duração (modo mãos-livres).
+function iniciarGravacaoStory(duracaoMaxSegundos){
   if(!cameraStoryStream || !window.MediaRecorder){
     mostrarErroCameraStory('Gravação de vídeo não é suportada nesse navegador.');
     return;
   }
+  cameraStoryModo = 'video';
+  cameraStoryDuracaoMaximaAtual = duracaoMaxSegundos;
   cameraStoryChunks = [];
   const mimeType = escolherMimeTypeVideoStory();
   try{
@@ -4349,13 +4432,15 @@ function iniciarGravacaoStory(){
     const tipoFinal = cameraStoryMediaRecorder.mimeType || mimeType || 'video/webm';
     const blob = new Blob(cameraStoryChunks, { type: tipoFinal });
     const ext = tipoFinal.includes('mp4') ? 'mp4' : 'webm';
-    cameraStoryBlobCapturado = new File([blob], 'story-video-' + Date.now() + '.' + ext, { type: tipoFinal });
-    document.getElementById('cameraStoryPreviewVideo').src = URL.createObjectURL(blob);
-    mostrarPreviewCapturaStory();
+    const arquivo = new File([blob], 'story-video-' + Date.now() + '.' + ext, { type: tipoFinal });
+    console.log('[camera] vídeo gravado, indo direto pro editor');
+    pararStreamCameraStory();
+    abrirEditorStory('video', arquivo);
   };
   cameraStoryMediaRecorder.start();
   cameraStoryGravando = true;
   document.getElementById('cameraStoryGravandoIndicador').style.display = 'flex';
+  document.getElementById('composerDuracaoSeletor').style.display = 'none';
   document.getElementById('cameraStoryBotaoCapturaMiolo').style.cssText = 'width:28px;height:28px;border-radius:6px;background:#c0293f;transition:all .2s';
   iniciarTimerGravacaoStory();
 }
@@ -4366,16 +4451,20 @@ function pararGravacaoStory(){
   }
   cameraStoryGravando = false;
   document.getElementById('cameraStoryGravandoIndicador').style.display = 'none';
+  document.getElementById('composerDuracaoSeletor').style.display = 'flex';
+  document.getElementById('cameraStoryBotaoCapturaMiolo').style.cssText = 'width:58px;height:58px;border-radius:50%;background:#fff;transition:all .2s';
   pararTimerGravacaoStory();
 }
 
 function iniciarTimerGravacaoStory(){
   cameraStoryTempoDecorrido = 0;
   document.getElementById('cameraStoryTempoGravado').textContent = '0s';
+  atualizarAnelProgressoComposer(0);
   cameraStoryTimerId = setInterval(() => {
     cameraStoryTempoDecorrido++;
     document.getElementById('cameraStoryTempoGravado').textContent = cameraStoryTempoDecorrido + 's';
-    if(cameraStoryTempoDecorrido >= CAMERA_STORY_DURACAO_MAXIMA_VIDEO){
+    atualizarAnelProgressoComposer(cameraStoryTempoDecorrido / cameraStoryDuracaoMaximaAtual);
+    if(cameraStoryTempoDecorrido >= cameraStoryDuracaoMaximaAtual){
       pararGravacaoStory();
     }
   }, 1000);
@@ -4383,62 +4472,7 @@ function iniciarTimerGravacaoStory(){
 
 function pararTimerGravacaoStory(){
   if(cameraStoryTimerId){ clearInterval(cameraStoryTimerId); cameraStoryTimerId = null; }
-}
-
-function mostrarPreviewCapturaStory(){
-  document.getElementById('cameraStoryVideoPreview').style.display = 'none';
-  document.getElementById('cameraStoryControlesCaptura').style.display = 'none';
-  document.getElementById('cameraStoryControlesPreview').style.display = 'block';
-  if(cameraStoryModo === 'foto'){
-    document.getElementById('cameraStoryPreviewImg').style.display = 'block';
-  } else {
-    // Sem os controles nativos do navegador (removidos por causa do menu de
-    // Picture-in-Picture indesejado), o play precisa ser disparado por JS —
-    // senão o vídeo fica congelado no primeiro frame, sem nenhum jeito de ver
-    // a gravação antes de confirmar.
-    const previewVideo = document.getElementById('cameraStoryPreviewVideo');
-    previewVideo.style.display = 'block';
-    previewVideo.play().catch(()=>{});
-  }
-  // Desliga só a track de vídeo (sem encerrar o stream) enquanto o usuário decide —
-  // a câmera só é liberada de verdade ao confirmar, refazer ou fechar o modal.
-  if(cameraStoryStream) cameraStoryStream.getTracks().forEach(t => { if(t.kind === 'video') t.enabled = false; });
-}
-
-function refazerCapturaStory(){
-  cameraStoryBlobCapturado = null;
-  document.getElementById('cameraStoryPreviewImg').style.display = 'none';
-  // "Tirar de novo" não passa por pararStreamCameraStory (a câmera ao vivo
-  // continua ligada de propósito), então o pause do vídeo de prévia precisa
-  // ser feito aqui também — senão ele fica tocando escondido igual ao caso
-  // de confirmar/fechar.
-  const previewVideoRefazer = document.getElementById('cameraStoryPreviewVideo');
-  previewVideoRefazer.pause();
-  previewVideoRefazer.removeAttribute('src');
-  previewVideoRefazer.load();
-  previewVideoRefazer.style.display = 'none';
-  document.getElementById('cameraStoryVideoPreview').style.display = 'block';
-  document.getElementById('cameraStoryControlesPreview').style.display = 'none';
-  document.getElementById('cameraStoryControlesCaptura').style.display = 'flex';
-  document.getElementById('cameraStoryBotaoCapturaMiolo').style.cssText = 'width:58px;height:58px;border-radius:50%;background:#fff;transition:all .2s';
-  if(cameraStoryStream) cameraStoryStream.getTracks().forEach(t => { t.enabled = true; });
-}
-
-function confirmarCapturaStory(){
-  console.log('[camera] confirmarCapturaStory chamada, blob capturado?', !!cameraStoryBlobCapturado);
-  if(!cameraStoryBlobCapturado) return;
-  const arquivo = cameraStoryBlobCapturado;
-  const tipoCapturado = cameraStoryModo;
-
-  // Fecha e limpa a câmera POR COMPLETO (stream, mediaRecorder, e o <video>
-  // de prévia que tocava independente do stream — ver comentário em
-  // pararStreamCameraStory) ANTES de abrir o editor. Os dois modais nunca
-  // devem ficar abertos ao mesmo tempo — isso é explícito aqui, não só
-  // implícito via z-index.
-  pararStreamCameraStory();
-  closeModal('camera-story');
-  console.log('[camera] camera-story fechado, abrindo editor com tipo:', tipoCapturado);
-  abrirEditorStory(tipoCapturado, arquivo);
+  atualizarAnelProgressoComposer(0);
 }
 
 /* ===== Editor de story: texto arrastável/redimensionável/rotacionável ===== */
@@ -4499,9 +4533,9 @@ function abrirEditorStory(tipo, arquivo){
     gradiente.style.display = 'block';
   }
 
-  openModal('editor-story');
+  mostrarCamadaEdicaoComposer();
   ajustarAreaArrasteEditorStory();
-  console.log('[editor] modal editor-story aberto. classe "open" presente?', document.getElementById('overlay-editor-story').classList.contains('open'));
+  console.log('[editor] camada de edição do composer aberta. display atual:', document.getElementById('composerEditLayer').style.display);
 }
 
 // A camada onde as caixas de texto são arrastadas (editorStoryCamadaTextos)
@@ -4518,8 +4552,24 @@ function ajustarAreaArrasteEditorStory(){
   camada.style.bottom = (rodape.offsetHeight + 16) + 'px';
 }
 
+// Voltar da edição: se veio do modo texto puro (sem câmera envolvida), fecha
+// o composer inteiro (não tem "câmera" pra voltar). Se veio de foto/vídeo
+// capturado, volta pra tela de câmera (refazer a captura), reiniciando o
+// stream do zero — em vez de fechar tudo.
 function cancelarEdicaoStory(){
-  closeModal('editor-story');
+  const video = document.getElementById('editorStoryFundoVideo');
+  video.pause();
+  video.removeAttribute('src');
+  document.getElementById('editorStoryCamadaTextos').innerHTML = '';
+  document.getElementById('editorStoryPainelTexto').style.display = 'none';
+
+  if(editorStoryTipoFundo === 'texto'){
+    fecharComposerStory();
+  } else {
+    resetarEstadoComposer();
+    mostrarCamadaCameraComposer();
+    iniciarStreamCameraComposer();
+  }
 }
 
 function adicionarCaixaTextoStory(){
@@ -4785,7 +4835,10 @@ function configurarInteracaoCaixaStory(caixa){
   alcaRotate.addEventListener('pointercancel', pararRotate);
 }
 
-async function continuarDaEdicaoStory(){
+// Único botão "Enviar" no rodapé da edição: prepara o arquivo final (igual
+// antes) E já publica em seguida (antes eram 2 passos: "Continuar" preparava
+// e voltava pro modal da pergunta, aí um botão "Publicar" separado enviava).
+async function finalizarEEnviarStory(){
   const camada = document.getElementById('editorStoryCamadaTextos');
   const caixas = Array.from(camada.querySelectorAll('.editor-story-caixa-texto'));
   const camadaRect = camada.getBoundingClientRect();
@@ -4807,8 +4860,7 @@ async function continuarDaEdicaoStory(){
     tipoRespostaEscolhido = 'video';
     arquivoRespostaSelecionadoVar = editorStoryArquivoFundo;
     overlayTextosStoryVar = dadosCaixas.length ? dadosCaixas : null;
-    document.getElementById('respostaArquivoPreview').style.display = 'block';
-    closeModal('editor-story');
+    await enviarStoryComposer();
     return;
   }
 
@@ -4823,14 +4875,16 @@ async function continuarDaEdicaoStory(){
   await desenharFundoNoCanvas(ctx, LARGURA_CANVAS, ALTURA_CANVAS);
   desenharTextosNoCanvas(ctx, dadosCaixas, LARGURA_CANVAS, ALTURA_CANVAS, fatorEscalaCanvas);
 
-  canvas.toBlob((blob) => {
-    if(!blob) return;
-    arquivoRespostaSelecionadoVar = new File([blob], 'story-' + Date.now() + '.jpg', { type: 'image/jpeg' });
-    tipoRespostaEscolhido = 'foto'; // inclusive story só-de-texto vira imagem gerada (ver aviso no resumo)
-    overlayTextosStoryVar = null;
-    document.getElementById('respostaArquivoPreview').style.display = 'block';
-    closeModal('editor-story');
-  }, 'image/jpeg', 0.92);
+  await new Promise((resolve) => {
+    canvas.toBlob(async (blob) => {
+      if(!blob){ resolve(); return; }
+      arquivoRespostaSelecionadoVar = new File([blob], 'story-' + Date.now() + '.jpg', { type: 'image/jpeg' });
+      tipoRespostaEscolhido = 'foto'; // inclusive story só-de-texto vira imagem gerada (ver aviso no resumo)
+      overlayTextosStoryVar = null;
+      await enviarStoryComposer();
+      resolve();
+    }, 'image/jpeg', 0.92);
+  });
 }
 
 // A cor da caixa vem via style.color (o navegador normaliza pra rgb(...) quando
@@ -4922,23 +4976,20 @@ function renderizarOverlaysTextoStory(item, media){
   });
 }
 
-async function publicarRespostaPergunta(){
-  const erroEl = document.getElementById('perguntaDoDiaErro');
+// Envio de fato pro backend — POST /api/status inalterado (mesma rota/campos
+// de antes), só a origem dos erros/sucesso mudou de perguntaDoDiaErro/modal
+// pergunta-dia pra composerErro/composer unificado.
+async function enviarStoryComposer(){
+  const erroEl = document.getElementById('composerErro');
   erroEl.textContent = '';
 
   const formData = new FormData();
   formData.append('tipo', tipoRespostaEscolhido);
 
-  if(tipoRespostaEscolhido === 'texto'){
-    const texto = document.getElementById('respostaTextoArea').value.trim();
-    if(!texto){ erroEl.textContent = 'Escreve sua resposta.'; return; }
-    formData.append('conteudo_texto', texto);
-  } else {
-    if(!arquivoRespostaSelecionadoVar){ erroEl.textContent = 'Escolhe um arquivo.'; return; }
-    formData.append('arquivo', arquivoRespostaSelecionadoVar);
-    if(tipoRespostaEscolhido === 'video' && overlayTextosStoryVar && overlayTextosStoryVar.length){
-      formData.append('overlays_texto', JSON.stringify(overlayTextosStoryVar));
-    }
+  if(!arquivoRespostaSelecionadoVar){ erroEl.textContent = 'Nada pra enviar ainda.'; return; }
+  formData.append('arquivo', arquivoRespostaSelecionadoVar);
+  if(tipoRespostaEscolhido === 'video' && overlayTextosStoryVar && overlayTextosStoryVar.length){
+    formData.append('overlays_texto', JSON.stringify(overlayTextosStoryVar));
   }
 
   try{
@@ -4949,7 +5000,7 @@ async function publicarRespostaPergunta(){
     });
     const dados = await resp.json();
     if(!resp.ok){ erroEl.textContent = dados.erro || 'Erro ao publicar.'; return; }
-    closeModal('pergunta-dia');
+    fecharComposerStory();
     showToastVinculo('Resposta publicada! ✨');
     carregarPerguntaDoDia();
     carregarStoriesBar();
@@ -5033,40 +5084,7 @@ async function aoClicarMeuStory(){
       return;
     }
   } catch(e){ /* se der erro, cai no fallback de criar novo abaixo */ }
-  abrirNovoStoryDireto();
-}
-
-// Chamada só pelo badge "+" sobreposto na bolinha "Seu story": sempre abre a
-// tela de postar um story novo, independente de já ter respondido a pergunta
-// de hoje ou já ter stories ativos — é o que faltava depois que a linha
-// "Responder" do card foi escondida quando ja_respondi vira true (bug da
-// rodada anterior), que sem querer tirou a única forma de postar um segundo
-// story no mesmo dia.
-function abrirNovoStoryDireto(){
-  abrirModalPerguntaDiaSelecao();
-}
-
-// Abre o modal 'pergunta-dia' num estado NEUTRO, com as 3 abas (Texto/Foto/
-// Vídeo) visíveis e nenhuma escolhida ainda — diferente de chamar
-// selecionarTipoResposta('texto') direto, que tem o efeito colateral de já
-// abrir o editor (é o comportamento certo quando o usuário TOCA na aba
-// Texto, mas errado como "estado inicial" do modal: pulava a escolha do
-// tipo direto pro editor vazio). Usada sempre que o modal é aberto sem um
-// tipo pré-determinado pelo usuário (badge "+", bolinha sem story, e o
-// atalho "Responder" do card da pergunta do dia).
-function abrirModalPerguntaDiaSelecao(){
-  tipoRespostaEscolhido = null;
-  arquivoRespostaSelecionadoVar = null;
-  overlayTextosStoryVar = null;
-  document.getElementById('respostaArquivoPreview').style.display = 'none';
-  document.getElementById('respostaTextoArea').style.display = 'none';
-  document.getElementById('respostaEscolherArea').style.display = 'none';
-  ['texto','foto','video'].forEach(t=>{
-    const btn = document.getElementById('tipoResp'+t.charAt(0).toUpperCase()+t.slice(1));
-    btn.style.borderColor = 'rgba(255,255,255,.15)';
-    btn.style.background = 'rgba(255,255,255,.05)';
-  });
-  openModal('pergunta-dia');
+  abrirComposerStory();
 }
 
 // pessoaIndice/storyIndice podem "estourar" pros dois lados (negativo ou além
@@ -5985,14 +6003,16 @@ function closeModal(name){
   if(name==='view-story'){
     pararAutoAvancoStory();
   }
-  if(name==='camera-story'){
+  if(name==='story-composer'){
+    // Cobre os dois estados possíveis do composer (câmera ligada ou editor
+    // aberto) — chamado em qualquer caminho de fechamento, não só o botão X.
     pararStreamCameraStory();
-  }
-  if(name==='editor-story'){
     const video = document.getElementById('editorStoryFundoVideo');
-    video.pause();
-    video.removeAttribute('src');
-    video.load();
+    if(video){
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    }
     document.getElementById('editorStoryCamadaTextos').innerHTML = '';
     document.getElementById('editorStoryPainelTexto').style.display = 'none';
   }
