@@ -560,7 +560,13 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <!-- STORIES -->
   <div style="display:flex;gap:14px;padding:6px 18px 12px;overflow-x:auto;scrollbar-width:none" id="storiesBar">
     <div style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;flex-shrink:0" onclick="aoClicarMeuStory()">
-      <div id="meuStoryRing" style="width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.08);border:2px dashed rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:24px">&#43;</div>
+      <div style="position:relative;width:58px;height:58px">
+        <div id="meuStoryRing" style="width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.08);border:2px dashed rgba(255,255,255,.3)"></div>
+        <!-- Badge "+" sempre visível, sobreposto à borda inferior direita — clique
+             independente da bolinha (sempre abre postar novo story), então tem que
+             segurar o próprio clique antes que ele suba pro onclick da bolinha. -->
+        <div onclick="event.stopPropagation(); abrirNovoStoryDireto()" style="position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#e0607a,#c9a06b);border:2px solid #1a0810;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;cursor:pointer;z-index:2">&#43;</div>
+      </div>
       <div style="font-size:10px;color:#d0a8b8;font-weight:600">Seu story</div>
     </div>
   </div>
@@ -4134,9 +4140,19 @@ async function atualizarMeuStoryRingComMiniatura(ring){
   } catch(e){}
 
   if(!stories.length){
-    ring.style.background = 'rgba(255,255,255,.08)';
-    ring.style.border = '2px dashed rgba(255,255,255,.3)';
-    ring.innerHTML = '&#43;';
+    // O badge "+" no canto já comunica "adicionar story", então não faz mais
+    // sentido repetir um "+" grande no centro do círculo — mostra a própria
+    // foto de perfil se tiver (padrão Instagram: avatar + badge), ou o
+    // círculo tracejado neutro se ainda não tiver foto nenhuma.
+    if(usuarioAtual && usuarioAtual.foto_url){
+      ring.style.background = 'none';
+      ring.style.border = '2px solid rgba(255,255,255,.3)';
+      ring.innerHTML = `<div style="width:100%;height:100%;border-radius:50%;background-image:url(${API_URL}${usuarioAtual.foto_url});background-size:cover;background-position:center"></div>`;
+    } else {
+      ring.style.background = 'rgba(255,255,255,.08)';
+      ring.style.border = '2px dashed rgba(255,255,255,.3)';
+      ring.innerHTML = '';
+    }
     return;
   }
 
@@ -4968,9 +4984,9 @@ function verStoryReal(indice){
   abrirPessoaEmIndice(indice, 0);
 }
 
-// Chamada ao tocar na bolinha "Seu story". Se já existem stories ativos, mostra
-// eles (mesmo modal de visualização); se não existe nenhum, cai no formulário
-// de criar novo.
+// Chamada ao tocar na bolinha "Seu story" (fora do badge "+"). Se já existem
+// stories ativos, mostra eles (mesmo modal de visualização); se não existe
+// nenhum, cai no formulário de criar novo — mesmo destino do badge "+".
 async function aoClicarMeuStory(){
   try{
     const resp = await fetch(`${API_URL}/api/status/meu`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
@@ -4981,6 +4997,16 @@ async function aoClicarMeuStory(){
       return;
     }
   } catch(e){ /* se der erro, cai no fallback de criar novo abaixo */ }
+  abrirNovoStoryDireto();
+}
+
+// Chamada só pelo badge "+" sobreposto na bolinha "Seu story": sempre abre a
+// tela de postar um story novo, independente de já ter respondido a pergunta
+// de hoje ou já ter stories ativos — é o que faltava depois que a linha
+// "Responder" do card foi escondida quando ja_respondi vira true (bug da
+// rodada anterior), que sem querer tirou a única forma de postar um segundo
+// story no mesmo dia.
+function abrirNovoStoryDireto(){
   selecionarTipoResposta('texto');
   openModal('pergunta-dia');
 }
