@@ -570,7 +570,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="font-size:10px;font-weight:800;color:#d4b87a;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">&#127775; Pergunta do dia</div>
     <div style="font-size:13.5px;font-weight:700;color:#fdf6f2;margin-bottom:8px" id="perguntaDoDiaTexto">Carregando...</div>
     <div style="display:flex;gap:8px" id="perguntaDoDiaAcao">
-      <input style="flex:1;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:10px;padding:8px 12px;font-size:13px;color:#fdf6f2;outline:none;font-family:inherit" placeholder="Sua resposta aparece no seu perfil..." readonly onclick="selecionarTipoResposta('texto');openModal('pergunta-dia')"/>
+      <input style="flex:1;min-width:0;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:10px;padding:8px 12px;font-size:13px;color:#fdf6f2;outline:none;font-family:inherit;text-overflow:ellipsis;overflow:hidden;white-space:nowrap" placeholder="Sua resposta aparece no seu perfil..." readonly onclick="selecionarTipoResposta('texto');openModal('pergunta-dia')"/>
       <button style="background:linear-gradient(135deg,#e0607a,#c9a06b);border:none;border-radius:10px;padding:8px 14px;color:#fff;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap" onclick="selecionarTipoResposta('texto');openModal('pergunta-dia')">Responder</button>
     </div>
   </div>
@@ -2092,7 +2092,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 
     <!-- Prévia do que foi capturado -->
     <img id="cameraStoryPreviewImg" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;display:none"/>
-    <video id="cameraStoryPreviewVideo" playsinline controls style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;display:none"></video>
+    <video id="cameraStoryPreviewVideo" playsinline loop disablePictureInPicture controlsList="nodownload noplaybackrate nofullscreen" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;display:none"></video>
 
     <!-- Topo: fechar + indicador de gravação -->
     <div style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:16px 14px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
@@ -2140,8 +2140,12 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div id="editorStoryFundoGradiente" style="width:100%;height:100%;display:none;background:linear-gradient(160deg,#7a2a4a,#4a1428,#1a0810)"></div>
     </div>
 
-    <!-- Camada de caixas de texto arrastáveis -->
-    <div id="editorStoryCamadaTextos" style="position:absolute;inset:0;z-index:6"></div>
+    <!-- Camada de caixas de texto arrastáveis. bottom é ajustado por JS
+         (ajustarAreaArrasteEditorStory) pra excluir exatamente a altura real
+         do rodapé — assim a área de arraste nunca fica atrás dos controles,
+         nem quando o painel de texto expande a barra. O valor aqui é só um
+         fallback antes do primeiro ajuste. -->
+    <div id="editorStoryCamadaTextos" style="position:absolute;top:0;left:0;right:0;bottom:150px;z-index:6"></div>
 
     <!-- Topo: só o botão de voltar/cancelar (as ferramentas foram pra barra inferior) -->
     <div style="position:absolute;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;padding:16px 14px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
@@ -2149,8 +2153,10 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     </div>
 
     <!-- Rodapé: painel de edição de texto (contextual, aparece com uma caixa selecionada),
-         barra de ferramentas inferior estilo Instagram, e botão continuar -->
-    <div style="position:absolute;bottom:0;left:0;right:0;z-index:20;display:flex;flex-direction:column;background:linear-gradient(0deg,rgba(0,0,0,.72),rgba(0,0,0,.3) 65%,transparent)">
+         barra de ferramentas inferior estilo Instagram, e botão continuar.
+         Borda superior sutil pra marcar visualmente onde a área de arraste
+         termina e a barra de controles começa. -->
+    <div id="editorStoryRodape" style="position:absolute;bottom:0;left:0;right:0;z-index:20;display:flex;flex-direction:column;border-top:1px solid rgba(255,255,255,.14);background:linear-gradient(0deg,rgba(0,0,0,.72),rgba(0,0,0,.3) 65%,transparent)">
 
       <div id="editorStoryPainelTexto" style="display:none;padding:12px 14px 2px">
         <div id="editorStoryPaleta" style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
@@ -4088,19 +4094,38 @@ async function carregarPerguntaDoDia(){
     if(cardEl) cardEl.textContent = dados.ja_respondi ? 'Você já respondeu a pergunta de hoje! ✓' : textoFormatado;
     if(modalEl) modalEl.textContent = textoFormatado;
 
+    // A linha de "responder" (input + botão) nunca era escondida depois de já
+    // ter respondido — ficava ali embaixo do aviso "Você já respondeu",
+    // ocupando espaço com um convite que não fazia mais sentido, e é o campo
+    // cujo placeholder ("Sua resposta aparece no seu perfil...") aparecia
+    // cortado (a largura disponível ao lado do botão "Responder" nunca foi
+    // suficiente pro texto inteiro).
+    const acaoEl = document.getElementById('perguntaDoDiaAcao');
+    if(acaoEl) acaoEl.style.display = dados.ja_respondi ? 'none' : 'flex';
+
     const ring = document.getElementById('meuStoryRing');
-    if(ring && dados.ja_respondi){
+    if(ring){
       atualizarMeuStoryRingComMiniatura(ring);
     }
   } catch(e){}
 }
 
-// Busca o status ativo do próprio usuário pra desenhar a mesma miniatura real
-// (background-image com media_url) usada pros stories dos outros em carregarStoriesBar,
-// em vez do ícone fixo de check que ficava sem refletir o conteúdo publicado.
+// Busca o status ATIVO do próprio usuário (não "respondeu a pergunta de hoje")
+// pra decidir entre mostrar a miniatura real (background-image com media_url,
+// igual carregarStoriesBar) ou o círculo padrão tracejado "+".
+//
+// Importante: antes do Bloco 1 (multi-story), "respondeu a pergunta de hoje"
+// (ja_respondi, de /api/status/pergunta-do-dia) e "tem story ativo" eram
+// sempre a mesma coisa — só existia 1 story por usuário, então responder e
+// ter story ativo eram equivalentes. Com múltiplos stories e expira_em de
+// 24h (que pode atravessar a virada do dia), isso deixou de ser verdade: um
+// story postado ontem à noite pode continuar ativo hoje de manhã, mas
+// "ja_respondi" já teria virado false porque compara contra a pergunta_texto
+// de HOJE especificamente. Por isso essa função busca /api/status/meu
+// diretamente (a fonte de verdade sobre stories ativos) em vez de depender
+// do ja_respondi de outro endpoint — se dependesse de ja_respondi, esse
+// círculo voltaria a ficar vazio sempre que houvesse essa divergência.
 async function atualizarMeuStoryRingComMiniatura(ring){
-  ring.style.background = 'linear-gradient(135deg,#f0a0b8,#c9a06b,#e0607a)';
-  ring.style.border = 'none';
   let stories = [];
   try{
     const resp = await fetch(`${API_URL}/api/status/meu`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
@@ -4108,9 +4133,18 @@ async function atualizarMeuStoryRingComMiniatura(ring){
     if(resp.ok) stories = dados.stories || [];
   } catch(e){}
 
+  if(!stories.length){
+    ring.style.background = 'rgba(255,255,255,.08)';
+    ring.style.border = '2px dashed rgba(255,255,255,.3)';
+    ring.innerHTML = '&#43;';
+    return;
+  }
+
+  ring.style.background = 'linear-gradient(135deg,#f0a0b8,#c9a06b,#e0607a)';
+  ring.style.border = 'none';
   const ultimo = stories[stories.length - 1];
-  const ehVideo = ultimo && ultimo.tipo === 'video';
-  const miniaturaEstilo = (ultimo && !ehVideo && ultimo.media_url)
+  const ehVideo = ultimo.tipo === 'video';
+  const miniaturaEstilo = (!ehVideo && ultimo.media_url)
     ? `background-image:url(${API_URL}${ultimo.media_url});background-size:cover;background-position:center`
     : 'display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(160deg,#7a2a4a,#4a1428)';
   const conteudoMiniatura = ehVideo ? '&#127909;' : '';
@@ -4324,7 +4358,13 @@ function mostrarPreviewCapturaStory(){
   if(cameraStoryModo === 'foto'){
     document.getElementById('cameraStoryPreviewImg').style.display = 'block';
   } else {
-    document.getElementById('cameraStoryPreviewVideo').style.display = 'block';
+    // Sem os controles nativos do navegador (removidos por causa do menu de
+    // Picture-in-Picture indesejado), o play precisa ser disparado por JS —
+    // senão o vídeo fica congelado no primeiro frame, sem nenhum jeito de ver
+    // a gravação antes de confirmar.
+    const previewVideo = document.getElementById('cameraStoryPreviewVideo');
+    previewVideo.style.display = 'block';
+    previewVideo.play().catch(()=>{});
   }
   // Desliga só a track de vídeo (sem encerrar o stream) enquanto o usuário decide —
   // a câmera só é liberada de verdade ao confirmar, refazer ou fechar o modal.
@@ -4409,6 +4449,21 @@ function abrirEditorStory(tipo, arquivo){
   }
 
   openModal('editor-story');
+  ajustarAreaArrasteEditorStory();
+}
+
+// A camada onde as caixas de texto são arrastadas (editorStoryCamadaTextos)
+// tinha bottom fixo, então ficava sobreposta pelo rodapé de controles sempre
+// que ele crescia (com o painel de texto expandido, o rodapé passa a ocupar
+// bem mais altura). Isso fazia caixa de texto, paleta, fontes e tamanho
+// aparecerem "empilhados" na mesma região da tela. Aqui a altura real do
+// rodapé é medida e a camada é encolhida pra terminar exatamente onde o
+// rodapé começa — nunca mais atrás dele, com uma margem extra de respiro.
+function ajustarAreaArrasteEditorStory(){
+  const camada = document.getElementById('editorStoryCamadaTextos');
+  const rodape = document.getElementById('editorStoryRodape');
+  if(!camada || !rodape) return;
+  camada.style.bottom = (rodape.offsetHeight + 16) + 'px';
 }
 
 function cancelarEdicaoStory(){
@@ -4459,6 +4514,7 @@ function selecionarCaixaStory(caixa){
   montarFontesStory(caixa);
   atualizarPainelTamanhoStory(caixa);
   atualizarToggleFundoStory(caixa);
+  ajustarAreaArrasteEditorStory();
 }
 
 function montarPaletaCoresStory(caixa){
@@ -4530,6 +4586,7 @@ function removerCaixaStory(caixa){
   if(editorStoryCaixaAtiva === caixa){
     editorStoryCaixaAtiva = null;
     document.getElementById('editorStoryPainelTexto').style.display = 'none';
+    ajustarAreaArrasteEditorStory();
   }
   caixa.remove();
 }
