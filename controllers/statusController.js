@@ -135,4 +135,26 @@ const listarStatusFeed = async (req, res) => {
   }
 };
 
-module.exports = { obterPerguntaDoDia, criarResposta, listarStatusFeed, uploadStatus };
+const meuStatusAtivo = async (req, res) => {
+  try {
+    const { Op } = require('sequelize');
+    const status = await StatusResposta.findOne({
+      where: { usuario_id: req.usuarioId, expira_em: { [Op.gt]: new Date() } },
+      order: [['createdAt', 'DESC']]
+    });
+
+    if (!status) return res.json({ status: null });
+
+    const usuario = await Usuario.findByPk(req.usuarioId, { attributes: ['id', 'nome', 'foto_url'] });
+    res.json({
+      status: {
+        id: status.id, tipo: status.tipo, conteudo_texto: status.conteudo_texto, media_url: status.media_url,
+        pergunta_texto: status.pergunta_texto, usuario
+      }
+    });
+  } catch (erro) {
+    res.status(500).json({ erro: 'Erro ao buscar seu status: ' + erro.message });
+  }
+};
+
+module.exports = { obterPerguntaDoDia, criarResposta, listarStatusFeed, meuStatusAtivo, uploadStatus };

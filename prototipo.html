@@ -558,7 +558,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   </div>
   <!-- STORIES -->
   <div style="display:flex;gap:14px;padding:6px 18px 12px;overflow-x:auto;scrollbar-width:none" id="storiesBar">
-    <div style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;flex-shrink:0" onclick="selecionarTipoResposta('texto');openModal('pergunta-dia')">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;flex-shrink:0" onclick="aoClicarMeuStory()">
       <div id="meuStoryRing" style="width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.08);border:2px dashed rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:24px">&#43;</div>
       <div style="font-size:10px;color:#d0a8b8;font-weight:600">Seu story</div>
     </div>
@@ -2006,12 +2006,8 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 <!-- MODAL VIEW STORY -->
 <div class="overlay" id="overlay-view-story" onclick="if(event.target===this)closeModal('view-story')" style="align-items:center">
   <div style="background:#1a0810;width:100%;max-width:430px;height:100vh;position:relative;display:flex;flex-direction:column">
-    <!-- Barra de progresso -->
-    <div style="display:flex;gap:3px;padding:12px 14px 8px;position:absolute;top:26px;left:0;right:0;z-index:10">
-      <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.9)"></div>
-      <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.3)"></div>
-      <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.3)"></div>
-    </div>
+    <!-- Barra de progresso (montada dinamicamente por montarBarraProgressoStory()) -->
+    <div id="viewStoryBarraProgresso" style="display:flex;gap:3px;padding:12px 14px 8px;position:absolute;top:26px;left:0;right:0;z-index:10"></div>
     <!-- Header -->
     <div style="position:absolute;top:42px;left:0;right:0;z-index:10;display:flex;align-items:center;gap:10px;padding:0 14px">
       <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7a2a4a,#4a1428);display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid rgba(255,255,255,.4)">&#128100;</div>
@@ -2022,10 +2018,15 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div onclick="closeModal('view-story')" style="margin-left:auto;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff">&#10005;</div>
     </div>
     <!-- Conteúdo do story -->
-    <div id="viewStoryConteudoWrap" style="flex:1;background:linear-gradient(160deg,#8a2a4a,#4a1428,#1a0810);display:flex;align-items:center;justify-content:center;font-size:80px;overflow:hidden"></div>
+    <div id="viewStoryConteudoWrap" style="flex:1;background:linear-gradient(160deg,#8a2a4a,#4a1428,#1a0810);display:flex;align-items:center;justify-content:center;font-size:80px;overflow:hidden;position:relative">
+      <div id="viewStoryMedia" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center"></div>
+      <!-- Zonas de toque: terço esquerdo volta, terço direito avança (o terço do meio não faz nada) -->
+      <div id="viewStoryTapEsquerda" style="position:absolute;top:0;left:0;width:33.33%;height:100%;z-index:5"></div>
+      <div id="viewStoryTapDireita" style="position:absolute;top:0;right:0;width:33.33%;height:100%;z-index:5"></div>
+    </div>
     <!-- Texto do story (quando o tipo é foto/vídeo, mostra a pergunta como legenda) -->
-    <div style="position:absolute;bottom:80px;left:0;right:0;padding:0 18px;text-align:center">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:#fdf6f2;text-shadow:0 2px 12px rgba(0,0,0,.8)" id="viewStoryTexto"></div>
+    <div style="position:absolute;bottom:80px;left:0;right:0;padding:0 18px;text-align:center;pointer-events:none">
+      <div style="font-family:'Cormorant Garamond',serif;font-weight:700;color:#fdf6f2;text-shadow:0 2px 12px rgba(0,0,0,.8);max-height:38vh;overflow-y:auto;pointer-events:auto;font-size:clamp(13px,4vw,20px);line-height:1.35;word-break:break-word" id="viewStoryTexto"></div>
     </div>
     <!-- Reações -->
     <div style="padding:14px 18px;background:rgba(0,0,0,.6);display:flex;gap:10px;align-items:center">
@@ -4076,30 +4077,191 @@ async function carregarStoriesBar(){
   } catch(e){}
 }
 
+/* ===== Visualização de stories: navegação, auto-avanço e barra de progresso ===== */
+let storyViewLista = [];
+let storyViewIndice = 0;
+let storyAutoAvancoId = null;
+let storyInicioTempo = 0;
+let storyPausado = false;
+let storyPausadoEm = 0;
+let storyPressTimer = null;
+let storyPressIniciouEm = 0;
+const STORY_DURACAO_MS = 6000;
+const STORY_LONG_PRESS_MS = 180;
+
 function verStoryReal(indice){
-  const item = feedStoriesCache[indice];
-  if(!item) return;
+  storyViewLista = feedStoriesCache;
+  abrirStoryEmIndice(indice);
+}
+
+// Chamada ao tocar na bolinha "Seu story". Se já existe status ativo, mostra ele
+// (mesmo modal de visualização); se não existe, cai no formulário de criar novo.
+async function aoClicarMeuStory(){
+  try{
+    const resp = await fetch(`${API_URL}/api/status/meu`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
+    const dados = await resp.json();
+    if(resp.ok && dados.status){
+      storyViewLista = [dados.status];
+      abrirStoryEmIndice(0);
+      return;
+    }
+  } catch(e){ /* se der erro, cai no fallback de criar novo abaixo */ }
+  selecionarTipoResposta('texto');
+  openModal('pergunta-dia');
+}
+
+function abrirStoryEmIndice(indice){
+  if(indice < 0) return; // já está no primeiro, toque na esquerda não faz nada
+  if(indice >= storyViewLista.length){
+    closeModal('view-story');
+    return;
+  }
+  storyViewIndice = indice;
+  const item = storyViewLista[indice];
+
   document.getElementById('viewStoryNome').textContent = item.usuario.nome;
   document.getElementById('viewStoryPergunta').textContent = item.pergunta_texto;
-  const wrap = document.getElementById('viewStoryConteudoWrap');
-  const textoEl = document.getElementById('viewStoryTexto');
-  wrap.innerHTML = '';
-  wrap.style.backgroundImage = '';
 
+  const media = document.getElementById('viewStoryMedia');
+  const textoEl = document.getElementById('viewStoryTexto');
+  media.innerHTML = '';
+  media.style.backgroundImage = '';
+  media.style.background = '';
+
+  let ehVideo = false;
   if(item.tipo === 'foto'){
-    wrap.style.backgroundImage = `url(${API_URL}${item.media_url})`;
-    wrap.style.backgroundSize = 'cover';
-    wrap.style.backgroundPosition = 'center';
+    media.style.backgroundImage = `url(${API_URL}${item.media_url})`;
+    media.style.backgroundSize = 'cover';
+    media.style.backgroundPosition = 'center';
     textoEl.textContent = '';
   } else if(item.tipo === 'video'){
-    wrap.innerHTML = `<video src="${API_URL}${item.media_url}" style="width:100%;height:100%;object-fit:cover" controls autoplay></video>`;
+    ehVideo = true;
+    media.innerHTML = `<video id="viewStoryVideoEl" src="${API_URL}${item.media_url}" style="width:100%;height:100%;object-fit:cover" autoplay playsinline muted></video>`;
     textoEl.textContent = '';
   } else {
-    wrap.style.background = 'linear-gradient(160deg,#7a2a4a,#4a1428,#1a0810)';
-    wrap.innerHTML = '';
+    media.style.background = 'linear-gradient(160deg,#7a2a4a,#4a1428,#1a0810)';
     textoEl.textContent = `"${item.conteudo_texto}"`;
   }
+
+  montarBarraProgressoStory();
+  configurarTapZonasStory();
   openModal('view-story');
+  iniciarAutoAvancoStory(ehVideo);
+}
+
+function avancarStory(direcao){
+  pararAutoAvancoStory();
+  abrirStoryEmIndice(storyViewIndice + direcao);
+}
+
+function montarBarraProgressoStory(){
+  const barra = document.getElementById('viewStoryBarraProgresso');
+  barra.innerHTML = '';
+  storyViewLista.forEach((_, i) => {
+    const seg = document.createElement('div');
+    seg.style.cssText = 'flex:1;height:3px;border-radius:2px;overflow:hidden;background:rgba(255,255,255,.3)';
+    const preenchido = document.createElement('div');
+    preenchido.style.cssText = 'height:100%;background:rgba(255,255,255,.95);width:' + (i < storyViewIndice ? '100%' : '0%');
+    seg.appendChild(preenchido);
+    barra.appendChild(seg);
+  });
+}
+
+function pararAutoAvancoStory(){
+  if(storyAutoAvancoId){ cancelAnimationFrame(storyAutoAvancoId); storyAutoAvancoId = null; }
+  const videoEl = document.getElementById('viewStoryVideoEl');
+  if(videoEl) videoEl.onended = null;
+  storyPausado = false;
+}
+
+function pausarStory(){
+  if(storyPausado) return;
+  storyPausado = true;
+  storyPausadoEm = performance.now();
+  const videoEl = document.getElementById('viewStoryVideoEl');
+  if(videoEl) videoEl.pause();
+}
+
+function retomarStory(){
+  if(!storyPausado) return;
+  storyPausado = false;
+  storyInicioTempo += (performance.now() - storyPausadoEm);
+  const videoEl = document.getElementById('viewStoryVideoEl');
+  if(videoEl) videoEl.play().catch(()=>{});
+}
+
+function iniciarAutoAvancoStory(ehVideo){
+  pararAutoAvancoStory();
+  const segmentos = document.querySelectorAll('#viewStoryBarraProgresso > div');
+  const preenchidoAtual = segmentos[storyViewIndice] && segmentos[storyViewIndice].firstChild;
+  if(preenchidoAtual) preenchidoAtual.style.width = '0%';
+
+  if(ehVideo){
+    const videoEl = document.getElementById('viewStoryVideoEl');
+    if(!videoEl) return;
+    videoEl.addEventListener('timeupdate', () => {
+      if(storyPausado || !videoEl.duration || !preenchidoAtual) return;
+      preenchidoAtual.style.width = (videoEl.currentTime / videoEl.duration * 100) + '%';
+    });
+    videoEl.onended = () => avancarStory(1);
+    return;
+  }
+
+  storyInicioTempo = performance.now();
+  function passo(agora){
+    if(storyPausado){
+      storyAutoAvancoId = requestAnimationFrame(passo);
+      return;
+    }
+    const decorrido = agora - storyInicioTempo;
+    const pct = Math.min(100, (decorrido / STORY_DURACAO_MS) * 100);
+    if(preenchidoAtual) preenchidoAtual.style.width = pct + '%';
+    if(decorrido >= STORY_DURACAO_MS){
+      avancarStory(1);
+      return;
+    }
+    storyAutoAvancoId = requestAnimationFrame(passo);
+  }
+  storyAutoAvancoId = requestAnimationFrame(passo);
+}
+
+// Toque rápido navega (direita avança, esquerda volta); segurar (>180ms) pausa
+// o avanço automático até soltar — igual ao gesto do Instagram.
+function configurarTapZonasStory(){
+  const esquerda = document.getElementById('viewStoryTapEsquerda');
+  const direita = document.getElementById('viewStoryTapDireita');
+  if(!esquerda || !direita || esquerda.dataset.configurado) return;
+
+  function aoPressionar(){
+    storyPressIniciouEm = Date.now();
+    clearTimeout(storyPressTimer);
+    storyPressTimer = setTimeout(() => { pausarStory(); }, STORY_LONG_PRESS_MS);
+  }
+  function aoSoltar(direcao){
+    clearTimeout(storyPressTimer);
+    const durou = Date.now() - storyPressIniciouEm;
+    const estavaSegurando = storyPausado;
+    if(storyPausado) retomarStory();
+    if(estavaSegurando && durou >= STORY_LONG_PRESS_MS) return; // só estava segurando pra pausar, não navega
+    avancarStory(direcao);
+  }
+  function aoCancelar(){
+    clearTimeout(storyPressTimer);
+    if(storyPausado) retomarStory();
+  }
+
+  esquerda.addEventListener('pointerdown', aoPressionar);
+  esquerda.addEventListener('pointerup', () => aoSoltar(-1));
+  esquerda.addEventListener('pointerleave', aoCancelar);
+  esquerda.addEventListener('pointercancel', aoCancelar);
+
+  direita.addEventListener('pointerdown', aoPressionar);
+  direita.addEventListener('pointerup', () => aoSoltar(1));
+  direita.addEventListener('pointerleave', aoCancelar);
+  direita.addEventListener('pointercancel', aoCancelar);
+
+  esquerda.dataset.configurado = '1';
+  direita.dataset.configurado = '1';
 }
 
 function calcularCompletudePerfil(usuario, totalFotos){
@@ -4818,6 +4980,9 @@ function _cancelarConfirmacaoGenerica(){
 }
 function closeModal(name){
   document.getElementById('overlay-'+name).classList.remove('open');
+  if(name==='view-story'){
+    pararAutoAvancoStory();
+  }
   if(name==='excluir-conta'){
     setTimeout(()=>{
       document.getElementById('excluirContaAvisoView').style.display = 'block';
