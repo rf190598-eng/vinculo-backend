@@ -4254,6 +4254,7 @@ function mostrarErroCameraStory(msg){
 }
 
 function pararStreamCameraStory(){
+  console.log('[camera] pararStreamCameraStory chamada');
   if(cameraStoryStream){
     cameraStoryStream.getTracks().forEach(track => track.stop());
     cameraStoryStream = null;
@@ -4264,6 +4265,23 @@ function pararStreamCameraStory(){
   cameraStoryMediaRecorder = null;
   cameraStoryGravando = false;
   pararTimerGravacaoStory();
+
+  // CAUSA RAIZ do áudio "preso": o <video> de PRÉVIA (cameraStoryPreviewVideo,
+  // que toca o blob gravado pra revisão) é INDEPENDENTE do getUserMedia stream
+  // acima — ele tem sua própria src (URL.createObjectURL do blob), sem
+  // "muted", e com "loop". Quando o preview é mostrado (mostrarPreviewCapturaStory)
+  // chamamos .play() nele pra funcionar sem os controles nativos do
+  // navegador — mas nada nunca chamava .pause() nele de volta. Parar só o
+  // stream da câmera (acima) não afeta esse elemento, já que ele não usa
+  // srcObject nenhum. Resultado: o vídeo continuava tocando (com áudio) por
+  // trás de qualquer modal que abrisse em cima, indefinidamente, porque
+  // display:none no CSS não pausa um <video> sozinho.
+  const previewVideo = document.getElementById('cameraStoryPreviewVideo');
+  if(previewVideo){
+    previewVideo.pause();
+    previewVideo.removeAttribute('src');
+    previewVideo.load();
+  }
 }
 
 function fecharCameraStory(){
@@ -4390,7 +4408,15 @@ function mostrarPreviewCapturaStory(){
 function refazerCapturaStory(){
   cameraStoryBlobCapturado = null;
   document.getElementById('cameraStoryPreviewImg').style.display = 'none';
-  document.getElementById('cameraStoryPreviewVideo').style.display = 'none';
+  // "Tirar de novo" não passa por pararStreamCameraStory (a câmera ao vivo
+  // continua ligada de propósito), então o pause do vídeo de prévia precisa
+  // ser feito aqui também — senão ele fica tocando escondido igual ao caso
+  // de confirmar/fechar.
+  const previewVideoRefazer = document.getElementById('cameraStoryPreviewVideo');
+  previewVideoRefazer.pause();
+  previewVideoRefazer.removeAttribute('src');
+  previewVideoRefazer.load();
+  previewVideoRefazer.style.display = 'none';
   document.getElementById('cameraStoryVideoPreview').style.display = 'block';
   document.getElementById('cameraStoryControlesPreview').style.display = 'none';
   document.getElementById('cameraStoryControlesCaptura').style.display = 'flex';
@@ -4399,11 +4425,19 @@ function refazerCapturaStory(){
 }
 
 function confirmarCapturaStory(){
+  console.log('[camera] confirmarCapturaStory chamada, blob capturado?', !!cameraStoryBlobCapturado);
   if(!cameraStoryBlobCapturado) return;
   const arquivo = cameraStoryBlobCapturado;
   const tipoCapturado = cameraStoryModo;
+
+  // Fecha e limpa a câmera POR COMPLETO (stream, mediaRecorder, e o <video>
+  // de prévia que tocava independente do stream — ver comentário em
+  // pararStreamCameraStory) ANTES de abrir o editor. Os dois modais nunca
+  // devem ficar abertos ao mesmo tempo — isso é explícito aqui, não só
+  // implícito via z-index.
   pararStreamCameraStory();
   closeModal('camera-story');
+  console.log('[camera] camera-story fechado, abrindo editor com tipo:', tipoCapturado);
   abrirEditorStory(tipoCapturado, arquivo);
 }
 
@@ -4437,6 +4471,7 @@ const EDITOR_STORY_FONTES = [
 ];
 
 function abrirEditorStory(tipo, arquivo){
+  console.log('[editor] abrirEditorStory chamada com tipo:', tipo, 'arquivo:', arquivo);
   editorStoryTipoFundo = tipo;
   editorStoryArquivoFundo = arquivo || null;
   editorStoryCaixaAtiva = null;
@@ -4466,6 +4501,7 @@ function abrirEditorStory(tipo, arquivo){
 
   openModal('editor-story');
   ajustarAreaArrasteEditorStory();
+  console.log('[editor] modal editor-story aberto. classe "open" presente?', document.getElementById('overlay-editor-story').classList.contains('open'));
 }
 
 // A camada onde as caixas de texto são arrastadas (editorStoryCamadaTextos)
