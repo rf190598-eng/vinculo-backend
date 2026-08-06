@@ -2075,9 +2075,9 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:flex-start;justify-content:space-between;padding:16px 14px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
         <div onclick="fecharComposerStory()" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff;flex-shrink:0">&#10005;</div>
 
-        <div id="composerPerguntaBadge" style="display:none;align-items:center;gap:8px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:7px 10px 7px 14px;max-width:230px;margin:0 8px">
+        <div id="composerPerguntaBadge" onclick="tocarBadgePerguntaComposer()" style="display:none;align-items:center;gap:8px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:7px 10px 7px 14px;max-width:230px;margin:0 8px;cursor:pointer">
           <span id="composerPerguntaTexto" style="font-size:11.5px;color:#fdf6f2;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical"></span>
-          <div onclick="dispensarPerguntaBadgeComposer()" style="flex-shrink:0;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;color:#fff">&#10005;</div>
+          <div onclick="event.stopPropagation(); dispensarPerguntaBadgeComposer()" style="flex-shrink:0;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;color:#fff">&#10005;</div>
         </div>
 
         <div onclick="abrirModoTextoComposer()" style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;cursor:pointer;color:#fff">Aa</div>
@@ -4226,6 +4226,21 @@ function dispensarPerguntaBadgeComposer(){
   document.getElementById('composerPerguntaBadge').style.display = 'none';
 }
 
+// Tocar no badge (fora do X) transforma a pergunta do dia num STICKER de
+// texto de verdade: some o badge (não existe mais como badge — virou uma
+// caixa de texto normal, editável/arrastável/removível como qualquer outra)
+// e entra no modo de edição já com essa caixa pré-preenchida no centro.
+// Importante pro comportamento pedido: se a pessoa nunca tocar aqui (só
+// dispensar com X ou ignorar), nada disso roda — a pergunta nunca vira
+// conteúdo visual do story, mesmo continuando salva em pergunta_texto no
+// banco (isso é feito pelo backend, independente do que acontece na tela).
+function tocarBadgePerguntaComposer(){
+  document.getElementById('composerPerguntaBadge').style.display = 'none';
+  pararStreamCameraStory();
+  abrirEditorStory('texto', null);
+  adicionarCaixaTextoStory(perguntaDoDiaTextoAtual);
+}
+
 // Atalho "Aa": pula a câmera de vez e vai direto pro editor em modo texto
 // puro (fundo gradiente) — a câmera é liberada já que não vai ser usada.
 function abrirModoTextoComposer(){
@@ -4547,7 +4562,16 @@ function abrirEditorStory(tipo, arquivo){
     video.src = URL.createObjectURL(arquivo);
     video.style.display = 'block';
     video.load();
-    video.play().catch(()=>{});
+    // O <video> começa com o atributo "muted" no HTML de propósito — é o que
+    // garante que o autoplay funcione sem exigir gesto do usuário (política
+    // de autoplay dos navegadores só bloqueia autoplay COM SOM, não mudo).
+    // Aqui, já dentro de uma cadeia iniciada por um toque real no botão de
+    // captura, tentamos religar o som logo em seguida — na prática os
+    // navegadores permitem desmutar um vídeo que já está tocando sem exigir
+    // um novo gesto. Se ainda assim for bloqueado, cai de volta pra mudo em
+    // vez de travar a prévia.
+    video.muted = false;
+    video.play().catch(()=>{ video.muted = true; video.play().catch(()=>{}); });
   } else {
     gradiente.style.display = 'block';
   }
@@ -4591,7 +4615,12 @@ function cancelarEdicaoStory(){
   }
 }
 
-function adicionarCaixaTextoStory(){
+// textoInicial: opcional — usado pelo sticker da pergunta do dia
+// (tocarBadgePerguntaComposer) pra criar a caixa já preenchida com o texto
+// real em vez do placeholder "Toque para editar". Sem argumento, comportamento
+// idêntico ao de antes (caixa vazia com placeholder, criada pelo botão
+// "+Texto" da barra de ferramentas).
+function adicionarCaixaTextoStory(textoInicial){
   const camada = document.getElementById('editorStoryCamadaTextos');
   const caixa = document.createElement('div');
   caixa.className = 'editor-story-caixa-texto';
@@ -4605,10 +4634,16 @@ function adicionarCaixaTextoStory(){
   caixa.style.cssText = 'position:absolute;touch-action:none;padding:10px 14px;';
   caixa.innerHTML = `
     <span class="editor-story-caixa-del" style="position:absolute;top:-11px;left:-11px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2">&times;</span>
-    <div class="editor-story-caixa-conteudo" contenteditable="true" style="color:#fdf6f2;font-family:${EDITOR_STORY_FONTES[0].valor};font-size:${EDITOR_STORY_FONTE_BASE}px;font-weight:700;text-shadow:0 2px 10px rgba(0,0,0,.6);outline:none;min-width:26px;white-space:pre-wrap;text-align:center;cursor:text">Toque para editar</div>
+    <div class="editor-story-caixa-conteudo" contenteditable="true" style="color:#fdf6f2;font-family:${EDITOR_STORY_FONTES[0].valor};font-size:${EDITOR_STORY_FONTE_BASE}px;font-weight:700;text-shadow:0 2px 10px rgba(0,0,0,.6);outline:none;min-width:26px;white-space:pre-wrap;text-align:center;cursor:text"></div>
     <span class="editor-story-caixa-resize" style="position:absolute;bottom:-13px;right:-13px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:nwse-resize;z-index:2">&#8646;</span>
     <span class="editor-story-caixa-rotate" style="position:absolute;top:-13px;right:-13px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:grab;z-index:2">&#8635;</span>
   `;
+  // .textContent em vez de interpolar direto no template: evita que o texto
+  // da pergunta (vindo do backend) seja interpretado como HTML dentro do
+  // contenteditable (mesmo risco de qualquer inserção de texto de usuário/
+  // servidor direto num template — sempre pelo textContent, nunca template).
+  const conteudoEl = caixa.querySelector('.editor-story-caixa-conteudo');
+  conteudoEl.textContent = textoInicial || 'Toque para editar';
   camada.appendChild(caixa);
   aplicarTransformCaixaStory(caixa);
   configurarInteracaoCaixaStory(caixa);
@@ -5033,6 +5068,15 @@ async function enviarStoryComposer(){
     showToastVinculo('Resposta publicada! ✨');
     carregarPerguntaDoDia();
     carregarStoriesBar();
+    // Chamada DIRETA, não só via carregarPerguntaDoDia() (que também acaba
+    // atualizando o mesmo círculo, mas só como efeito colateral de dentro do
+    // seu try/catch — se o fetch de /api/status/pergunta-do-dia falhar por
+    // qualquer motivo, a exceção é engolida e a miniatura nunca é atualizada,
+    // mesmo o story tendo sido publicado com sucesso aqui). Chamando direto
+    // aqui, a atualização da bolinha para de depender do sucesso de uma
+    // requisição que não tem nada a ver com ela.
+    const meuRing = document.getElementById('meuStoryRing');
+    if(meuRing) atualizarMeuStoryRingComMiniatura(meuRing);
   } catch(e){ erroEl.textContent = 'Erro de conexão.'; }
 }
 
@@ -5186,6 +5230,15 @@ function abrirPessoaEmIndice(pessoaIndice, storyIndice){
     media.innerHTML = `<video id="viewStoryVideoEl" src="${API_URL}${item.media_url}" style="width:100%;height:100%;object-fit:cover" autoplay playsinline muted></video>`;
     textoEl.textContent = '';
     renderizarOverlaysTextoStory(item, media);
+    // Mesmo raciocínio do editor: começa mudo pra garantir autoplay (exigido
+    // pelos navegadores sem gesto do usuário), e desmuta logo em seguida —
+    // abrir o story É um toque real do usuário, então o navegador
+    // normalmente permite. Fallback pra mudo se o desmute for recusado.
+    const videoElRecemCriado = document.getElementById('viewStoryVideoEl');
+    if(videoElRecemCriado){
+      videoElRecemCriado.muted = false;
+      videoElRecemCriado.play().catch(()=>{ videoElRecemCriado.muted = true; videoElRecemCriado.play().catch(()=>{}); });
+    }
   } else {
     media.style.background = 'linear-gradient(160deg,#7a2a4a,#4a1428,#1a0810)';
     textoEl.textContent = `"${item.conteudo_texto}"`;
