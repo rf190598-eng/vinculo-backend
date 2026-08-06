@@ -74,7 +74,7 @@ const obterPerguntaDoDia = async (req, res) => {
 
 const criarResposta = async (req, res) => {
   try {
-    const { tipo, conteudo_texto } = req.body;
+    const { tipo, conteudo_texto, overlays_texto } = req.body;
     if (!['foto', 'video', 'texto'].includes(tipo)) {
       return res.status(400).json({ erro: 'Tipo invalido' });
     }
@@ -92,13 +92,37 @@ const criarResposta = async (req, res) => {
       ? String(conteudo_texto).replace(/<[^>]*>/g, '').trim().slice(0, 300)
       : null;
 
+    // Caixas de texto posicionadas sobre um vídeo (editor de story). Não faz
+    // sentido pra foto/texto, já que nesses casos o texto já vem "queimado"
+    // na própria imagem enviada. Validado/saneado aqui pra nunca guardar lixo.
+    let overlaysValidados = null;
+    if (tipo === 'video' && overlays_texto) {
+      try {
+        const parsed = JSON.parse(overlays_texto);
+        if (Array.isArray(parsed)) {
+          overlaysValidados = parsed.slice(0, 20).map(o => ({
+            texto: String(o.texto || '').replace(/<[^>]*>/g, '').slice(0, 200),
+            cor: /^#[0-9a-fA-F]{3,8}$/.test(o.cor) ? o.cor : '#fdf6f2',
+            x: Number.isFinite(o.x) ? Math.max(0, Math.min(100, o.x)) : 50,
+            y: Number.isFinite(o.y) ? Math.max(0, Math.min(100, o.y)) : 50,
+            rot: Number.isFinite(o.rot) ? o.rot : 0,
+            escala: Number.isFinite(o.escala) ? Math.max(0.2, Math.min(5, o.escala)) : 1
+          })).filter(o => o.texto);
+          if (!overlaysValidados.length) overlaysValidados = null;
+        }
+      } catch (erroParse) {
+        overlaysValidados = null;
+      }
+    }
+
     const resposta = await StatusResposta.create({
       usuario_id: req.usuarioId,
       tipo,
       conteudo_texto: textoLimpo,
       media_url,
       pergunta_texto: pergunta,
-      expira_em
+      expira_em,
+      overlays_texto: overlaysValidados
     });
 
     res.status(201).json({ mensagem: 'Status publicado!', resposta });
@@ -126,7 +150,7 @@ const listarStatusFeed = async (req, res) => {
       const usuario = await Usuario.findByPk(r.usuario_id, { attributes: ['id', 'nome', 'foto_url'] });
       feed.push({
         id: r.id, tipo: r.tipo, conteudo_texto: r.conteudo_texto, media_url: r.media_url,
-        pergunta_texto: r.pergunta_texto, usuario
+        pergunta_texto: r.pergunta_texto, overlays_texto: r.overlays_texto, usuario
       });
     }
     res.json({ feed });
@@ -149,7 +173,7 @@ const meuStatusAtivo = async (req, res) => {
     res.json({
       status: {
         id: status.id, tipo: status.tipo, conteudo_texto: status.conteudo_texto, media_url: status.media_url,
-        pergunta_texto: status.pergunta_texto, usuario
+        pergunta_texto: status.pergunta_texto, overlays_texto: status.overlays_texto, usuario
       }
     });
   } catch (erro) {

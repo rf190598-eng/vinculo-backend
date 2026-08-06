@@ -2020,7 +2020,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     </div>
     <!-- Conteúdo do story -->
     <div id="viewStoryConteudoWrap" style="flex:1;background:linear-gradient(160deg,#8a2a4a,#4a1428,#1a0810);display:flex;align-items:center;justify-content:center;font-size:80px;overflow:hidden;position:relative">
-      <div id="viewStoryMedia" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center"></div>
+      <div id="viewStoryMedia" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative"></div>
       <!-- Zonas de toque: terço esquerdo volta, terço direito avança (o terço do meio não faz nada) -->
       <div id="viewStoryTapEsquerda" style="position:absolute;top:0;left:0;width:33.33%;height:100%;z-index:5"></div>
       <div id="viewStoryTapDireita" style="position:absolute;top:0;right:0;width:33.33%;height:100%;z-index:5"></div>
@@ -2124,6 +2124,37 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div id="cameraStoryControlesPreview" style="display:none;position:absolute;bottom:0;left:0;right:0;z-index:10;padding:18px;background:linear-gradient(0deg,rgba(0,0,0,.7),transparent)">
       <button class="btn btn-primary" onclick="confirmarCapturaStory()" id="cameraStoryBtnUsar">Usar essa foto</button>
       <button class="btn btn-ghost" style="margin-top:10px" onclick="refazerCapturaStory()">Tirar de novo</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL EDITOR DE STORY (texto arrastável/redimensionável/rotacionável) -->
+<div class="overlay" id="overlay-editor-story" style="align-items:center">
+  <div style="background:#000;width:100%;max-width:430px;height:100vh;position:relative;display:flex;flex-direction:column;overflow:hidden">
+
+    <!-- Fundo: foto, vídeo ou gradiente -->
+    <div id="editorStoryFundoWrap" style="position:absolute;inset:0;overflow:hidden">
+      <img id="editorStoryFundoImg" style="width:100%;height:100%;object-fit:cover;display:none"/>
+      <video id="editorStoryFundoVideo" style="width:100%;height:100%;object-fit:cover;display:none" loop muted playsinline autoplay></video>
+      <div id="editorStoryFundoGradiente" style="width:100%;height:100%;display:none;background:linear-gradient(160deg,#7a2a4a,#4a1428,#1a0810)"></div>
+    </div>
+
+    <!-- Camada de caixas de texto arrastáveis -->
+    <div id="editorStoryCamadaTextos" style="position:absolute;inset:0;z-index:6"></div>
+
+    <!-- Topo: voltar + adicionar texto -->
+    <div style="position:absolute;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:16px 14px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
+      <div onclick="cancelarEdicaoStory()" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff">&#10005;</div>
+      <div onclick="adicionarCaixaTextoStory()" style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);border-radius:20px;padding:8px 16px;cursor:pointer;color:#fff;font-weight:700;font-size:13px">&#128221; Texto</div>
+    </div>
+
+    <!-- Paleta de cor (aparece com uma caixa selecionada) -->
+    <div id="editorStoryPaleta" style="display:none;position:absolute;top:66px;left:0;right:0;z-index:20;justify-content:center;gap:8px;padding:0 14px;flex-wrap:wrap"></div>
+
+    <!-- Rodapé -->
+    <div style="position:absolute;bottom:0;left:0;right:0;z-index:20;padding:18px;background:linear-gradient(0deg,rgba(0,0,0,.6),transparent)">
+      <button class="btn btn-primary" onclick="continuarDaEdicaoStory()">Continuar</button>
     </div>
 
   </div>
@@ -4042,6 +4073,7 @@ async function carregarPerguntaDoDia(){
 function selecionarTipoResposta(tipo){
   tipoRespostaEscolhido = tipo;
   arquivoRespostaSelecionadoVar = null;
+  overlayTextosStoryVar = null;
   document.getElementById('respostaArquivoPreview').style.display = 'none';
   ['texto','foto','video'].forEach(t=>{
     const btn = document.getElementById('tipoResp'+t.charAt(0).toUpperCase()+t.slice(1));
@@ -4053,8 +4085,11 @@ function selecionarTipoResposta(tipo){
   const escolherArea = document.getElementById('respostaEscolherArea');
   const input = document.getElementById('respostaArquivoInput');
   if(tipo === 'texto'){
-    textoArea.style.display = 'block';
+    // Story de texto agora passa pelo editor visual (fundo gradiente + caixas
+    // de texto arrastáveis), em vez da textarea simples de antes.
+    textoArea.style.display = 'none';
     escolherArea.style.display = 'none';
+    abrirEditorStory('texto', null);
   } else {
     textoArea.style.display = 'none';
     escolherArea.style.display = 'block';
@@ -4065,10 +4100,10 @@ function selecionarTipoResposta(tipo){
 }
 
 function arquivoRespostaSelecionado(event){
-  arquivoRespostaSelecionadoVar = event.target.files[0];
-  if(arquivoRespostaSelecionadoVar){
-    document.getElementById('respostaArquivoPreview').style.display = 'block';
-  }
+  const arquivo = event.target.files[0];
+  event.target.value = ''; // permite escolher o mesmo arquivo de novo depois, se quiser refazer
+  if(!arquivo) return;
+  abrirEditorStory(tipoRespostaEscolhido === 'video' ? 'video' : 'foto', arquivo);
 }
 
 /* ===== Câmera ao vivo pro story (foto/vídeo), via getUserMedia ===== */
@@ -4262,10 +4297,377 @@ function refazerCapturaStory(){
 
 function confirmarCapturaStory(){
   if(!cameraStoryBlobCapturado) return;
-  arquivoRespostaSelecionadoVar = cameraStoryBlobCapturado;
-  document.getElementById('respostaArquivoPreview').style.display = 'block';
+  const arquivo = cameraStoryBlobCapturado;
+  const tipoCapturado = cameraStoryModo;
   pararStreamCameraStory();
   closeModal('camera-story');
+  abrirEditorStory(tipoCapturado, arquivo);
+}
+
+/* ===== Editor de story: texto arrastável/redimensionável/rotacionável ===== */
+// Decisão de arquitetura pro VÍDEO: em vez de "queimar" o texto nos frames do
+// vídeo (o que exigiria recriar o arquivo quadro a quadro via
+// canvas.captureStream() + MediaRecorder — abordagem instável e difícil de
+// validar sem testar em dispositivo real), guardamos as caixas de texto como
+// metadata (overlayTextosStoryVar) e renderizamos como camada HTML por cima
+// do <video> tanto na prévia quanto na exibição real do story
+// (renderizarOverlaysTextoStory, chamada em abrirStoryEmIndice). Pra FOTO e
+// pra story só de TEXTO, o resultado é achatado de verdade num <canvas> e
+// vira um arquivo de imagem único (ver continuarDaEdicaoStory).
+let editorStoryTipoFundo = 'foto'; // 'foto' | 'video' | 'texto'
+let editorStoryArquivoFundo = null;
+let editorStoryCaixaAtiva = null;
+let overlayTextosStoryVar = null; // metadata de texto pro caso de vídeo (não achatado)
+
+const EDITOR_STORY_CORES = ['#fdf6f2', '#f0a0b8', '#d4b87a', '#e0607a', '#c9a06b', '#7a2a4a', '#1a0810', '#6dcc6d'];
+const EDITOR_STORY_FONTE_BASE = 28; // px, tamanho de referência no editor (escala 1)
+
+function abrirEditorStory(tipo, arquivo){
+  editorStoryTipoFundo = tipo;
+  editorStoryArquivoFundo = arquivo || null;
+  editorStoryCaixaAtiva = null;
+  document.getElementById('editorStoryCamadaTextos').innerHTML = '';
+  document.getElementById('editorStoryPaleta').style.display = 'none';
+
+  const img = document.getElementById('editorStoryFundoImg');
+  const video = document.getElementById('editorStoryFundoVideo');
+  const gradiente = document.getElementById('editorStoryFundoGradiente');
+  img.style.display = 'none';
+  video.pause();
+  video.removeAttribute('src');
+  video.style.display = 'none';
+  gradiente.style.display = 'none';
+
+  if(tipo === 'foto'){
+    img.src = URL.createObjectURL(arquivo);
+    img.style.display = 'block';
+  } else if(tipo === 'video'){
+    video.src = URL.createObjectURL(arquivo);
+    video.style.display = 'block';
+    video.load();
+    video.play().catch(()=>{});
+  } else {
+    gradiente.style.display = 'block';
+  }
+
+  openModal('editor-story');
+}
+
+function cancelarEdicaoStory(){
+  closeModal('editor-story');
+}
+
+function adicionarCaixaTextoStory(){
+  const camada = document.getElementById('editorStoryCamadaTextos');
+  const caixa = document.createElement('div');
+  caixa.className = 'editor-story-caixa-texto';
+  caixa.dataset.x = '50';
+  caixa.dataset.y = '50';
+  caixa.dataset.rot = '0';
+  caixa.dataset.escala = '1';
+  caixa.style.cssText = 'position:absolute;touch-action:none;padding:10px 14px;';
+  caixa.innerHTML = `
+    <span class="editor-story-caixa-del" style="position:absolute;top:-11px;left:-11px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2">&times;</span>
+    <div class="editor-story-caixa-conteudo" contenteditable="true" style="color:#fdf6f2;font-family:'Cormorant Garamond',serif;font-size:${EDITOR_STORY_FONTE_BASE}px;font-weight:700;text-shadow:0 2px 10px rgba(0,0,0,.6);outline:none;min-width:26px;white-space:pre-wrap;text-align:center;cursor:text">Toque para editar</div>
+    <span class="editor-story-caixa-resize" style="position:absolute;bottom:-13px;right:-13px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:nwse-resize;z-index:2">&#8646;</span>
+    <span class="editor-story-caixa-rotate" style="position:absolute;top:-13px;right:-13px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:grab;z-index:2">&#8635;</span>
+  `;
+  camada.appendChild(caixa);
+  aplicarTransformCaixaStory(caixa);
+  configurarInteracaoCaixaStory(caixa);
+  selecionarCaixaStory(caixa);
+}
+
+function aplicarTransformCaixaStory(caixa){
+  const x = parseFloat(caixa.dataset.x);
+  const y = parseFloat(caixa.dataset.y);
+  const rot = parseFloat(caixa.dataset.rot);
+  const escala = parseFloat(caixa.dataset.escala);
+  caixa.style.left = x + '%';
+  caixa.style.top = y + '%';
+  caixa.style.transform = `translate(-50%,-50%) rotate(${rot}deg) scale(${escala})`;
+}
+
+function selecionarCaixaStory(caixa){
+  document.querySelectorAll('.editor-story-caixa-texto').forEach(c => { c.style.outline = 'none'; });
+  caixa.style.outline = '1.5px dashed rgba(255,255,255,.55)';
+  caixa.style.outlineOffset = '6px';
+  editorStoryCaixaAtiva = caixa;
+  montarPaletaCoresStory(caixa);
+}
+
+function montarPaletaCoresStory(caixa){
+  const paleta = document.getElementById('editorStoryPaleta');
+  paleta.innerHTML = '';
+  const conteudo = caixa.querySelector('.editor-story-caixa-conteudo');
+  EDITOR_STORY_CORES.forEach(cor => {
+    const sw = document.createElement('div');
+    const ativa = (conteudo.style.color === cor) || (!conteudo.style.color && cor === '#fdf6f2');
+    sw.style.cssText = `width:26px;height:26px;border-radius:50%;background:${cor};border:2px solid ${ativa ? '#fff' : 'rgba(255,255,255,.35)'};cursor:pointer`;
+    sw.onclick = (ev) => { ev.stopPropagation(); conteudo.style.color = cor; montarPaletaCoresStory(caixa); };
+    paleta.appendChild(sw);
+  });
+  paleta.style.display = 'flex';
+}
+
+function removerCaixaStory(caixa){
+  if(editorStoryCaixaAtiva === caixa){
+    editorStoryCaixaAtiva = null;
+    document.getElementById('editorStoryPaleta').style.display = 'none';
+  }
+  caixa.remove();
+}
+
+// Interação da caixa: Pointer Events cobre mouse e touch com a mesma API.
+// - Arrastar: 1 ponteiro na caixa (fora das alças) move a posição.
+// - Redimensionar/rotacionar: alças dedicadas, com mouse ou 1 dedo.
+// - Pinça (2 dedos direto na caixa): escala e rotação juntas, como no Instagram.
+function configurarInteracaoCaixaStory(caixa){
+  const camada = document.getElementById('editorStoryCamadaTextos');
+  const conteudo = caixa.querySelector('.editor-story-caixa-conteudo');
+  const btnDel = caixa.querySelector('.editor-story-caixa-del');
+  const alcaResize = caixa.querySelector('.editor-story-caixa-resize');
+  const alcaRotate = caixa.querySelector('.editor-story-caixa-rotate');
+
+  conteudo.addEventListener('click', (ev) => { ev.stopPropagation(); selecionarCaixaStory(caixa); });
+  btnDel.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+  btnDel.addEventListener('click', (ev) => { ev.stopPropagation(); removerCaixaStory(caixa); });
+
+  function pontoRelativo(ev){
+    const rect = camada.getBoundingClientRect();
+    return { x: ev.clientX - rect.left, y: ev.clientY - rect.top, rectW: rect.width, rectH: rect.height };
+  }
+  function centroCaixaAbs(){
+    const rect = camada.getBoundingClientRect();
+    return {
+      x: parseFloat(caixa.dataset.x) / 100 * rect.width + rect.left,
+      y: parseFloat(caixa.dataset.y) / 100 * rect.height + rect.top
+    };
+  }
+
+  // ---- Arrastar + pinça (corpo da caixa) ----
+  const pointersAtivos = new Map();
+  let arrastarOffset = { x: 0, y: 0 };
+  let pincaEstadoInicial = null;
+
+  function calcularEstadoPinca(){
+    const pts = Array.from(pointersAtivos.values());
+    const dx = pts[1].x - pts[0].x, dy = pts[1].y - pts[0].y;
+    return {
+      dist: Math.hypot(dx, dy) || 1,
+      angulo: Math.atan2(dy, dx) * 180 / Math.PI,
+      escala: parseFloat(caixa.dataset.escala),
+      rot: parseFloat(caixa.dataset.rot)
+    };
+  }
+  function aplicarPinca(){
+    const pts = Array.from(pointersAtivos.values());
+    const dx = pts[1].x - pts[0].x, dy = pts[1].y - pts[0].y;
+    const distAtual = Math.hypot(dx, dy);
+    const anguloAtual = Math.atan2(dy, dx) * 180 / Math.PI;
+    caixa.dataset.escala = Math.max(0.4, Math.min(3.5, pincaEstadoInicial.escala * (distAtual / pincaEstadoInicial.dist)));
+    caixa.dataset.rot = pincaEstadoInicial.rot + (anguloAtual - pincaEstadoInicial.angulo);
+    aplicarTransformCaixaStory(caixa);
+  }
+
+  caixa.addEventListener('pointerdown', (ev) => {
+    if(ev.target === btnDel || ev.target === alcaResize || ev.target === alcaRotate) return;
+    selecionarCaixaStory(caixa);
+    caixa.setPointerCapture(ev.pointerId);
+    const p = pontoRelativo(ev);
+    pointersAtivos.set(ev.pointerId, p);
+
+    if(pointersAtivos.size === 1){
+      const xPx = parseFloat(caixa.dataset.x) / 100 * p.rectW;
+      const yPx = parseFloat(caixa.dataset.y) / 100 * p.rectH;
+      arrastarOffset = { x: p.x - xPx, y: p.y - yPx };
+    } else if(pointersAtivos.size === 2){
+      pincaEstadoInicial = calcularEstadoPinca();
+    }
+  });
+
+  caixa.addEventListener('pointermove', (ev) => {
+    if(!pointersAtivos.has(ev.pointerId)) return;
+    pointersAtivos.set(ev.pointerId, pontoRelativo(ev));
+
+    if(pointersAtivos.size === 1){
+      const p = pointersAtivos.get(ev.pointerId);
+      const xPx = p.x - arrastarOffset.x;
+      const yPx = p.y - arrastarOffset.y;
+      caixa.dataset.x = Math.max(0, Math.min(100, xPx / p.rectW * 100));
+      caixa.dataset.y = Math.max(0, Math.min(100, yPx / p.rectH * 100));
+      aplicarTransformCaixaStory(caixa);
+    } else if(pointersAtivos.size === 2){
+      if(!pincaEstadoInicial) pincaEstadoInicial = calcularEstadoPinca();
+      aplicarPinca();
+    }
+  });
+
+  function finalizarPonteiroCaixa(ev){
+    pointersAtivos.delete(ev.pointerId);
+    pincaEstadoInicial = null;
+    if(pointersAtivos.size === 1){
+      const restante = Array.from(pointersAtivos.entries())[0][1];
+      const xPx = parseFloat(caixa.dataset.x) / 100 * restante.rectW;
+      const yPx = parseFloat(caixa.dataset.y) / 100 * restante.rectH;
+      arrastarOffset = { x: restante.x - xPx, y: restante.y - yPx };
+    }
+  }
+  caixa.addEventListener('pointerup', finalizarPonteiroCaixa);
+  caixa.addEventListener('pointercancel', finalizarPonteiroCaixa);
+
+  // ---- Redimensionar (alça, delta em relação ao início do gesto) ----
+  let resizeEstadoInicial = null;
+  alcaResize.addEventListener('pointerdown', (ev) => {
+    ev.stopPropagation();
+    selecionarCaixaStory(caixa);
+    const centro = centroCaixaAbs();
+    resizeEstadoInicial = { dist: Math.hypot(ev.clientX - centro.x, ev.clientY - centro.y) || 1, escala: parseFloat(caixa.dataset.escala) };
+    alcaResize.setPointerCapture(ev.pointerId);
+  });
+  alcaResize.addEventListener('pointermove', (ev) => {
+    if(!resizeEstadoInicial) return;
+    const centro = centroCaixaAbs();
+    const distAtual = Math.hypot(ev.clientX - centro.x, ev.clientY - centro.y);
+    caixa.dataset.escala = Math.max(0.4, Math.min(3.5, resizeEstadoInicial.escala * (distAtual / resizeEstadoInicial.dist)));
+    aplicarTransformCaixaStory(caixa);
+  });
+  function pararResize(){ resizeEstadoInicial = null; }
+  alcaResize.addEventListener('pointerup', pararResize);
+  alcaResize.addEventListener('pointercancel', pararResize);
+
+  // ---- Rotacionar (alça, delta angular em relação ao início do gesto) ----
+  let rotateEstadoInicial = null;
+  alcaRotate.addEventListener('pointerdown', (ev) => {
+    ev.stopPropagation();
+    selecionarCaixaStory(caixa);
+    const centro = centroCaixaAbs();
+    rotateEstadoInicial = {
+      angulo: Math.atan2(ev.clientY - centro.y, ev.clientX - centro.x) * 180 / Math.PI,
+      rot: parseFloat(caixa.dataset.rot)
+    };
+    alcaRotate.setPointerCapture(ev.pointerId);
+  });
+  alcaRotate.addEventListener('pointermove', (ev) => {
+    if(!rotateEstadoInicial) return;
+    const centro = centroCaixaAbs();
+    const anguloAtual = Math.atan2(ev.clientY - centro.y, ev.clientX - centro.x) * 180 / Math.PI;
+    caixa.dataset.rot = rotateEstadoInicial.rot + (anguloAtual - rotateEstadoInicial.angulo);
+    aplicarTransformCaixaStory(caixa);
+  });
+  function pararRotate(){ rotateEstadoInicial = null; }
+  alcaRotate.addEventListener('pointerup', pararRotate);
+  alcaRotate.addEventListener('pointercancel', pararRotate);
+}
+
+async function continuarDaEdicaoStory(){
+  const camada = document.getElementById('editorStoryCamadaTextos');
+  const caixas = Array.from(camada.querySelectorAll('.editor-story-caixa-texto'));
+  const camadaRect = camada.getBoundingClientRect();
+
+  const dadosCaixas = caixas.map(c => {
+    const conteudo = c.querySelector('.editor-story-caixa-conteudo');
+    return {
+      texto: conteudo.textContent.replace(/ /g, ' ').trim(),
+      cor: conteudo.style.color ? rgbParaHex(conteudo.style.color) : '#fdf6f2',
+      x: parseFloat(c.dataset.x), y: parseFloat(c.dataset.y),
+      rot: parseFloat(c.dataset.rot), escala: parseFloat(c.dataset.escala)
+    };
+  }).filter(d => d.texto);
+
+  if(editorStoryTipoFundo === 'video'){
+    tipoRespostaEscolhido = 'video';
+    arquivoRespostaSelecionadoVar = editorStoryArquivoFundo;
+    overlayTextosStoryVar = dadosCaixas.length ? dadosCaixas : null;
+    document.getElementById('respostaArquivoPreview').style.display = 'block';
+    closeModal('editor-story');
+    return;
+  }
+
+  const LARGURA_CANVAS = 1080, ALTURA_CANVAS = 1920;
+  const fatorEscalaCanvas = LARGURA_CANVAS / camadaRect.width;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = LARGURA_CANVAS;
+  canvas.height = ALTURA_CANVAS;
+  const ctx = canvas.getContext('2d');
+
+  await desenharFundoNoCanvas(ctx, LARGURA_CANVAS, ALTURA_CANVAS);
+  desenharTextosNoCanvas(ctx, dadosCaixas, LARGURA_CANVAS, ALTURA_CANVAS, fatorEscalaCanvas);
+
+  canvas.toBlob((blob) => {
+    if(!blob) return;
+    arquivoRespostaSelecionadoVar = new File([blob], 'story-' + Date.now() + '.jpg', { type: 'image/jpeg' });
+    tipoRespostaEscolhido = 'foto'; // inclusive story só-de-texto vira imagem gerada (ver aviso no resumo)
+    overlayTextosStoryVar = null;
+    document.getElementById('respostaArquivoPreview').style.display = 'block';
+    closeModal('editor-story');
+  }, 'image/jpeg', 0.92);
+}
+
+// A cor da caixa vem via style.color (o navegador normaliza pra rgb(...) quando
+// lida via JS) — converte de volta pra hex, já que é o que o backend espera guardar.
+function rgbParaHex(corRgb){
+  const m = corRgb.match(/\d+/g);
+  if(!m) return '#fdf6f2';
+  return '#' + m.slice(0, 3).map(n => Number(n).toString(16).padStart(2, '0')).join('');
+}
+
+function desenharFundoNoCanvas(ctx, w, h){
+  return new Promise((resolve) => {
+    if(editorStoryTipoFundo === 'foto'){
+      const img = document.getElementById('editorStoryFundoImg');
+      desenharCoverNoCanvas(ctx, img, img.naturalWidth || w, img.naturalHeight || h, w, h);
+      resolve();
+    } else {
+      const grad = ctx.createLinearGradient(w * 0.15, 0, w * 0.55, h);
+      grad.addColorStop(0, '#7a2a4a');
+      grad.addColorStop(0.55, '#4a1428');
+      grad.addColorStop(1, '#1a0810');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+      resolve();
+    }
+  });
+}
+
+function desenharCoverNoCanvas(ctx, elemento, largOrig, altOrig, w, h){
+  const escala = Math.max(w / largOrig, h / altOrig);
+  const larguraDesenhada = largOrig * escala, alturaDesenhada = altOrig * escala;
+  const dx = (w - larguraDesenhada) / 2, dy = (h - alturaDesenhada) / 2;
+  ctx.drawImage(elemento, dx, dy, larguraDesenhada, alturaDesenhada);
+}
+
+function desenharTextosNoCanvas(ctx, dadosCaixas, w, h, fatorEscalaCanvas){
+  dadosCaixas.forEach(d => {
+    ctx.save();
+    ctx.translate((d.x / 100) * w, (d.y / 100) * h);
+    ctx.rotate(d.rot * Math.PI / 180);
+    const tamanhoFonte = EDITOR_STORY_FONTE_BASE * d.escala * fatorEscalaCanvas;
+    ctx.fillStyle = d.cor;
+    ctx.font = `700 ${tamanhoFonte}px 'Cormorant Garamond', serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,.6)';
+    ctx.shadowBlur = 10 * fatorEscalaCanvas;
+    const linhas = d.texto.split('\n');
+    const alturaLinha = tamanhoFonte * 1.2;
+    const inicioY = -((linhas.length - 1) * alturaLinha) / 2;
+    linhas.forEach((linha, i) => ctx.fillText(linha, 0, inicioY + i * alturaLinha));
+    ctx.restore();
+  });
+}
+
+// Renderiza, só pra exibição (sem interação), as caixas de texto salvas como
+// metadata sobre um story de vídeo — usada em abrirStoryEmIndice.
+function renderizarOverlaysTextoStory(item, media){
+  if(!Array.isArray(item.overlays_texto)) return;
+  item.overlays_texto.forEach(o => {
+    const div = document.createElement('div');
+    div.textContent = o.texto;
+    div.style.cssText = `position:absolute;left:${o.x}%;top:${o.y}%;transform:translate(-50%,-50%) rotate(${o.rot}deg) scale(${o.escala});color:${o.cor};font-family:'Cormorant Garamond',serif;font-weight:700;font-size:${EDITOR_STORY_FONTE_BASE}px;text-shadow:0 2px 10px rgba(0,0,0,.6);white-space:pre-wrap;text-align:center;pointer-events:none;max-width:90%`;
+    media.appendChild(div);
+  });
 }
 
 async function publicarRespostaPergunta(){
@@ -4282,6 +4684,9 @@ async function publicarRespostaPergunta(){
   } else {
     if(!arquivoRespostaSelecionadoVar){ erroEl.textContent = 'Escolhe um arquivo.'; return; }
     formData.append('arquivo', arquivoRespostaSelecionadoVar);
+    if(tipoRespostaEscolhido === 'video' && overlayTextosStoryVar && overlayTextosStoryVar.length){
+      formData.append('overlays_texto', JSON.stringify(overlayTextosStoryVar));
+    }
   }
 
   try{
@@ -4311,10 +4716,21 @@ async function carregarStoriesBar(){
       div.className = 'story-item-real';
       div.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;flex-shrink:0';
       div.onclick = () => verStoryReal(i);
-      const icone = item.tipo === 'video' ? '&#127909;' : (item.tipo === 'foto' ? '&#128247;' : '&#9997;');
+
+      // Vídeo mantém o ícone (gerar thumbnail ao vivo pra cada item da barra
+      // significaria pré-carregar N vídeos só pra tirar o 1º frame — custo de
+      // banda/decodificação alto pra algo que o usuário ainda nem pediu pra ver).
+      // Foto (e texto, que agora também vira imagem gerada) usa a própria
+      // media_url como miniatura real, igual Instagram.
+      const ehVideo = item.tipo === 'video';
+      const miniaturaEstilo = (!ehVideo && item.media_url)
+        ? `background-image:url(${API_URL}${item.media_url});background-size:cover;background-position:center`
+        : 'display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(160deg,#7a2a4a,#4a1428)';
+      const conteudoMiniatura = ehVideo ? '&#127909;' : '';
+
       div.innerHTML = `
         <div style="width:58px;height:58px;border-radius:50%;padding:2.5px;background:linear-gradient(135deg,#f0a0b8,#c9a06b,#e0607a)">
-          <div style="width:100%;height:100%;border-radius:50%;background:linear-gradient(160deg,#7a2a4a,#4a1428);display:flex;align-items:center;justify-content:center;font-size:22px;border:2px solid #1a0810">${icone}</div>
+          <div style="width:100%;height:100%;border-radius:50%;border:2px solid #1a0810;${miniaturaEstilo}">${conteudoMiniatura}</div>
         </div>
        <div style="font-size:10px;color:#fdf6f2;font-weight:600">${escapeHtml(item.usuario.nome)}</div>`;
       bar.appendChild(div);
@@ -4383,6 +4799,7 @@ function abrirStoryEmIndice(indice){
     ehVideo = true;
     media.innerHTML = `<video id="viewStoryVideoEl" src="${API_URL}${item.media_url}" style="width:100%;height:100%;object-fit:cover" autoplay playsinline muted></video>`;
     textoEl.textContent = '';
+    renderizarOverlaysTextoStory(item, media);
   } else {
     media.style.background = 'linear-gradient(160deg,#7a2a4a,#4a1428,#1a0810)';
     textoEl.textContent = `"${item.conteudo_texto}"`;
@@ -5230,6 +5647,14 @@ function closeModal(name){
   }
   if(name==='camera-story'){
     pararStreamCameraStory();
+  }
+  if(name==='editor-story'){
+    const video = document.getElementById('editorStoryFundoVideo');
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+    document.getElementById('editorStoryCamadaTextos').innerHTML = '';
+    document.getElementById('editorStoryPaleta').style.display = 'none';
   }
   if(name==='excluir-conta'){
     setTimeout(()=>{

@@ -30,6 +30,13 @@ const StatusResposta = sequelize.define('StatusResposta', {
   expira_em: {
     type: DataTypes.DATE,
     allowNull: false
+  },
+  // Caixas de texto posicionadas sobre um story de vídeo (x/y/rot/escala/cor/texto,
+  // em % relativo ao viewport). Só é usado quando tipo === 'video' — o texto não é
+  // "queimado" no arquivo, é renderizado como camada por cima na hora de exibir.
+  overlays_texto: {
+    type: DataTypes.JSON,
+    allowNull: true
   }
 }, {
   tableName: 'status_respostas',
