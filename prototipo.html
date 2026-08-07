@@ -5326,7 +5326,14 @@ async function excluirStoryAtual(){
   if(!item) return;
 
   pausarStory();
-  const confirmou = confirm('Excluir este story? Essa ação não pode ser desfeita.');
+  // confirmarAcao() é o modal genérico de confirmação já usado no resto do
+  // app (mesmo visual do fluxo de excluir conta: overlay escuro, botão
+  // vermelho de ação perigosa + "Cancelar") — reaproveitado aqui em vez de
+  // um confirm() nativo do navegador, que quebra com o tema do app.
+  const confirmou = await confirmarAcao('Essa ação não pode ser desfeita.', {
+    titulo: 'Excluir este story?',
+    textoBotao: 'Excluir'
+  });
   if(!confirmou){ retomarStory(); return; }
 
   try{
