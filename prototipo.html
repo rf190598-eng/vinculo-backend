@@ -4170,7 +4170,16 @@ function gerarThumbnailDeVideo(urlCompleta, storyId){
       if(finalizado) return;
       finalizado = true;
       clearTimeout(timeoutId);
-      try{ video.remove(); } catch(e){}
+      // Solta o recurso antes de descartar o elemento. Esse vídeo é mudo e
+      // nunca recebe .play(), então não gera áudio fantasma — mas no caminho
+      // do timeout ele pode estar no meio de um download, e só remover do DOM
+      // não garante o cancelamento imediato.
+      try{
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+        video.remove();
+      } catch(e){}
       thumbnailsVideoCache.set(storyId, resultado);
       resolve(resultado);
     };
@@ -4514,6 +4523,15 @@ function pararStreamCameraStory(){
     cameraStoryStream.getTracks().forEach(track => track.stop());
     cameraStoryStream = null;
   }
+  // Desanexa o stream já encerrado do elemento de prévia. Ele é mudo e usa
+  // srcObject (não src), então nunca houve risco de áudio preso aqui — mas
+  // sem isso o elemento segura a referência do stream morto e mantém o último
+  // quadro congelado na tela ao reabrir a câmera.
+  const previewAoVivo = document.getElementById('cameraStoryVideoPreview');
+  if(previewAoVivo){
+    previewAoVivo.pause();
+    previewAoVivo.srcObject = null;
+  }
   if(cameraStoryMediaRecorder && cameraStoryMediaRecorder.state !== 'inactive'){
     try{ cameraStoryMediaRecorder.stop(); } catch(e){}
   }
@@ -4746,6 +4764,8 @@ function cancelarEdicaoStory(){
   const video = document.getElementById('editorStoryFundoVideo');
   video.pause();
   video.removeAttribute('src');
+  video.load(); // faltava aqui (existia nos outros caminhos): sem o load(), o
+                // recurso anterior continua carregado no elemento
   document.getElementById('editorStoryCamadaTextos').innerHTML = '';
   document.getElementById('editorStoryPainelTexto').style.display = 'none';
 
@@ -5370,6 +5390,14 @@ function abrirPessoaEmIndice(pessoaIndice, storyIndice){
 
   const media = document.getElementById('viewStoryMedia');
   const textoEl = document.getElementById('viewStoryTexto');
+  // Pausa o vídeo do story ANTERIOR antes de trocar o conteúdo. Só limpar o
+  // innerHTML desanexa o elemento do DOM, mas a especificação manda o
+  // navegador pausar um <video> removido só "depois de chegar a um estado
+  // estável" — ou seja, não é imediato e não dá pra confiar nisso. Sem esse
+  // pause explícito, o áudio do story anterior sobrepõe o do próximo em toda
+  // troca (toque esquerda/direita, auto-avanço no fim do vídeo, e o avanço
+  // automático depois de excluir o story atual — todos passam por aqui).
+  pararVideoDoViewer();
   media.innerHTML = '';
   media.style.backgroundImage = '';
   media.style.background = '';
@@ -5429,6 +5457,22 @@ function pararAutoAvancoStory(){
   const videoEl = document.getElementById('viewStoryVideoEl');
   if(videoEl) videoEl.onended = null;
   storyPausado = false;
+}
+
+// Desliga de verdade o <video> do viewer. Esconder o modal (tirar a classe
+// .open, que só muda o display) NÃO pausa um <video> — e como esse elemento
+// passou a tocar COM SOM (o muted é removido em abrirPessoaEmIndice pra dar
+// áudio ao story), ele continuava tocando escondido depois de fechar. Mesmo
+// padrão de bug que já apareceu no vídeo de prévia da câmera: a correção
+// certa é sempre pausar explicitamente, nunca contar com o display/remoção
+// do DOM pra parar a reprodução.
+function pararVideoDoViewer(){
+  const videoEl = document.getElementById('viewStoryVideoEl');
+  if(!videoEl) return;
+  videoEl.onended = null;
+  videoEl.pause();
+  videoEl.removeAttribute('src');
+  videoEl.load(); // solta o buffer/decodificador em vez de só desanexar a src
 }
 
 function pausarStory(){
@@ -6308,6 +6352,11 @@ function closeModal(name){
   document.getElementById('overlay-'+name).classList.remove('open');
   if(name==='view-story'){
     pararAutoAvancoStory();
+    // Antes de esconder: pausa o vídeo do story. Cobre TODOS os caminhos de
+    // fechamento de uma vez, já que todos passam por closeModal — o X do
+    // header, o clique no fundo do overlay, e o fechamento automático quando
+    // acabam os stories (abrirPessoaIndice com índice além do fim).
+    pararVideoDoViewer();
   }
   if(name==='story-composer'){
     // Cobre os dois estados possíveis do composer (câmera ligada ou editor
