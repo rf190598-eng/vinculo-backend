@@ -5070,11 +5070,25 @@ function adicionarCaixaTextoStory(textoInicial, origemPergunta){
   configurarInteracaoCaixaStory(caixa);
   selecionarCaixaStory(caixa);
 
-  // No modo resposta, a caixa de RESPOSTA (não a do cartão) já nasce encaixada
-  // logo abaixo do cartão da pergunta. Sem isso ela nascia no centro, em cima
-  // do cartão, e a pessoa precisava descobrir sozinha que tinha que arrastar.
-  if(modoRespostaPerguntaAtivo && !origemPergunta){
+  // Caixa de resposta (não a do próprio cartão) nasce encaixada logo abaixo do
+  // cartão da pergunta, em vez de no centro por cima dele.
+  //
+  // A condição NÃO é só a flag de modo: o gatilho real é existir um cartão da
+  // pergunta na tela. O cartão também aparece quando a pessoa entra pelo fluxo
+  // normal (bolinha/badge "+") e toca no card da pergunta na câmera — nesse
+  // caminho modoRespostaPerguntaAtivo é false, e era exatamente por isso que o
+  // reposicionamento não disparava: a tela ficava idêntica ao modo resposta,
+  // mas a flag não estava ligada. Condicionar à presença do cartão cobre os
+  // dois caminhos e mantém o modo normal SEM cartão intacto (nasce centrado).
+  const temCartaoNaTela = !!camada.querySelector('.editor-story-caixa-texto[data-origem-pergunta="1"]');
+  if(!origemPergunta && (modoRespostaPerguntaAtivo || temCartaoNaTela)){
     posicionarRespostaAbaixoDoCartaoStory(caixa);
+    // Segunda passada no frame seguinte: ao selecionar a caixa, o botão
+    // "Editar estilo" aparece e o rodapé cresce, mudando a altura da camada —
+    // e como a posição do cartão é percentual, ela se desloca junto. A função
+    // recalcula tudo a partir do rect atual do cartão, então rodar de novo é
+    // idempotente e garante o encaixe depois do layout assentar.
+    requestAnimationFrame(() => posicionarRespostaAbaixoDoCartaoStory(caixa));
   }
   return caixa;
 }
