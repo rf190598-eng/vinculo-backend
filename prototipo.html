@@ -201,6 +201,22 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 @keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1;}100%{transform:translateY(100vh) rotate(720deg);opacity:0;}}
 .confetti-piece{position:absolute;width:10px;height:10px;border-radius:2px;animation:confettiFall linear forwards;}
 
+/* Alças de edição de texto/emoji no composer de story: por padrão ESCONDIDAS.
+   Só o elemento com .selecionada mostra borda tracejada + X + alças de
+   redimensionar/rotacionar (padrão Instagram/Canva). Antes, todas as caixas
+   mostravam tudo ao mesmo tempo e a tela virava um amontoado de alças. */
+.editor-story-caixa-del,
+.editor-story-caixa-resize,
+.editor-story-caixa-rotate{display:none !important;}
+.editor-story-caixa-texto.selecionada .editor-story-caixa-del,
+.editor-story-caixa-texto.selecionada .editor-story-caixa-resize,
+.editor-story-caixa-texto.selecionada .editor-story-caixa-rotate{display:flex !important;}
+.editor-story-caixa-texto.selecionada{outline:1.5px dashed rgba(255,255,255,.55);outline-offset:6px;}
+
+/* Spinner do carregamento da câmera — reaproveita a animação girarLiveness
+   já usada na tela de verificação, pra não inventar um segundo padrão. */
+.composer-spinner{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.18);border-top-color:#e0607a;animation:girarLiveness .9s linear infinite;}
+
 /* NOVAS TELAS */
 .likes-blur-card{position:relative;border-radius:18px;overflow:hidden;flex:1;min-width:0;}
 .likes-blur-photo{height:180px;background:linear-gradient(160deg,#7a3a52,#3a1420);display:flex;align-items:center;justify-content:center;font-size:52px;filter:blur(12px);transform:scale(1.05);}
@@ -2081,7 +2097,20 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 
     <!-- ===== CAMADA CÂMERA ===== -->
     <div id="composerCameraLayer" style="position:absolute;inset:0;display:flex;flex-direction:column">
-      <video id="cameraStoryVideoPreview" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;background:#000"></video>
+      <!-- opacity:0 até o primeiro frame real chegar (loadedmetadata). Um
+           <video> sem stream ainda atribuído é uma superfície de vídeo vazia,
+           e é ela que pisca (verde/ícone de placeholder do navegador) nos
+           milissegundos em que o getUserMedia ainda está pendente. Mantendo
+           o elemento invisível até ter conteúdo, não há nada pra piscar. -->
+      <video id="cameraStoryVideoPreview" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;background:#1a0810;opacity:0;transition:opacity .25s ease"></video>
+
+      <!-- Estado de carregando: cobre a tela inteira com o fundo escuro do app
+           enquanto a permissão/stream não resolve. Fica ACIMA do vídeo
+           (z-index 5) e abaixo dos controles (z-index 10). -->
+      <div id="composerCameraCarregando" style="position:absolute;inset:0;z-index:5;background:#1a0810;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px">
+        <div class="composer-spinner"></div>
+        <div style="font-size:12.5px;color:#d0a8b8">Abrindo a câmera...</div>
+      </div>
 
       <!-- Topo: fechar + badge da pergunta do dia (dispensável) + atalho "Aa" pro modo texto -->
       <div style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:flex-start;justify-content:space-between;padding:16px 14px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
@@ -2151,7 +2180,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div id="composerEditLayer" style="display:none;position:absolute;inset:0">
 
       <!-- Fundo: foto, vídeo ou gradiente -->
-      <div id="editorStoryFundoWrap" style="position:absolute;inset:0;overflow:hidden">
+      <div id="editorStoryFundoWrap" onclick="desselecionarTudoStory()" style="position:absolute;inset:0;overflow:hidden">
         <img id="editorStoryFundoImg" style="width:100%;height:100%;object-fit:cover;display:none"/>
         <video id="editorStoryFundoVideo" style="width:100%;height:100%;object-fit:cover;display:none" loop muted playsinline autoplay></video>
         <div id="editorStoryFundoGradiente" style="width:100%;height:100%;display:none;background:linear-gradient(160deg,#7a2a4a,#4a1428,#1a0810)"></div>
@@ -2162,7 +2191,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
            do rodapé — assim a área de arraste nunca fica atrás dos controles,
            nem quando o painel de texto expande a barra. O valor aqui é só um
            fallback antes do primeiro ajuste. -->
-      <div id="editorStoryCamadaTextos" style="position:absolute;top:0;left:0;right:0;bottom:150px;z-index:6"></div>
+      <div id="editorStoryCamadaTextos" onclick="desselecionarTudoStory()" style="position:absolute;top:0;left:0;right:0;bottom:150px;z-index:6"></div>
 
       <!-- Topo: voltar — pra câmera, se a foto/vídeo veio dela (ou da galeria);
            fecha o composer inteiro se era modo texto puro (nunca passou pela câmera). -->
@@ -4436,7 +4465,18 @@ let capturaPressTimer = null;
 const CAMERA_STORY_DURACAO_MAXIMA_HOLD = 30; // segundos, modo "segurar pra gravar"
 const CAMERA_STORY_LIMIAR_SEGURAR_MS = 250; // acima disso, pointerdown vira "segurando" em vez de toque
 
+// Mostra/esconde o estado de carregando da câmera. Enquanto ele está visível,
+// o <video> fica com opacity 0 — é essa combinação que elimina o flash: nunca
+// existe um instante em que a superfície de vídeo vazia aparece na tela.
+function alternarCarregandoCameraComposer(carregando){
+  const carregandoEl = document.getElementById('composerCameraCarregando');
+  const video = document.getElementById('cameraStoryVideoPreview');
+  if(carregandoEl) carregandoEl.style.display = carregando ? 'flex' : 'none';
+  if(video) video.style.opacity = carregando ? '0' : '1';
+}
+
 async function iniciarStreamCameraComposer(){
+  alternarCarregandoCameraComposer(true);
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
     mostrarErroCameraStory('Seu navegador não suporta acesso à câmera pelo app.');
     return;
@@ -4446,13 +4486,30 @@ async function iniciarStreamCameraComposer(){
     // usuário vai tirar foto ou gravar vídeo (não existe mais a etapa de
     // escolher o tipo antes de abrir a câmera).
     cameraStoryStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: true });
-    document.getElementById('cameraStoryVideoPreview').srcObject = cameraStoryStream;
+    const video = document.getElementById('cameraStoryVideoPreview');
+    video.srcObject = cameraStoryStream;
+
+    // Só revela o vídeo quando ele já tem dimensões/primeiro frame prontos.
+    // Revelar junto com o srcObject ainda deixaria uma janela de alguns frames
+    // com a superfície vazia visível. O timeout é uma rede de segurança: se
+    // por algum motivo o evento não disparar, não fica preso no spinner.
+    let revelado = false;
+    const revelar = () => {
+      if(revelado) return;
+      revelado = true;
+      alternarCarregandoCameraComposer(false);
+    };
+    video.addEventListener('loadedmetadata', revelar, { once: true });
+    setTimeout(revelar, 2500);
   } catch(e){
     mostrarErroCameraStory('Não conseguimos acessar sua câmera. Verifique a permissão do navegador e tente de novo.');
   }
 }
 
 function mostrarErroCameraStory(msg){
+  // O painel de erro cobre a tela inteira, então o estado de carregando sai
+  // de cena junto — senão o spinner ficaria girando atrás dele pra sempre.
+  alternarCarregandoCameraComposer(false);
   document.getElementById('cameraStoryErroTexto').textContent = msg;
   document.getElementById('cameraStoryErro').style.display = 'flex';
   document.getElementById('composerDuracaoSeletor').style.display = 'none';
@@ -4548,6 +4605,10 @@ function pararStreamCameraStory(){
   if(previewAoVivo){
     previewAoVivo.pause();
     previewAoVivo.srcObject = null;
+    // Volta pra invisível: sem isso, ao reabrir a câmera o elemento apareceria
+    // por um instante com o último frame congelado da sessão anterior antes do
+    // novo stream assumir — outra forma do mesmo flash.
+    previewAoVivo.style.opacity = '0';
   }
   if(cameraStoryMediaRecorder && cameraStoryMediaRecorder.state !== 'inactive'){
     try{ cameraStoryMediaRecorder.stop(); } catch(e){}
@@ -4721,6 +4782,8 @@ function abrirEditorStory(tipo, arquivo){
   console.log('[editor] abrirEditorStory chamada com tipo:', tipo, 'arquivo:', arquivo);
   editorStoryTipoFundo = tipo;
   editorStoryArquivoFundo = arquivo || null;
+  // Nada selecionado ao abrir a edição: a camada acabou de ser esvaziada, e o
+  // painel de texto só reaparece quando uma caixa for criada/tocada.
   editorStoryCaixaAtiva = null;
   document.getElementById('editorStoryCamadaTextos').innerHTML = '';
   document.getElementById('editorStoryPainelTexto').style.display = 'none';
@@ -5025,10 +5088,15 @@ function aplicarTransformCaixaStory(caixa){
   caixa.style.transform = `translate(-50%,-50%) rotate(${rot}deg) scale(${escala})`;
 }
 
+// Só UM elemento fica selecionado por vez. A classe .selecionada é o único
+// estado visual: o CSS esconde borda/X/alças de todo mundo e mostra só de
+// quem tem a classe. Antes as alças eram sempre visíveis em todas as caixas.
 function selecionarCaixaStory(caixa){
-  document.querySelectorAll('.editor-story-caixa-texto').forEach(c => { c.style.outline = 'none'; });
-  caixa.style.outline = '1.5px dashed rgba(255,255,255,.55)';
-  caixa.style.outlineOffset = '6px';
+  document.querySelectorAll('.editor-story-caixa-texto').forEach(c => {
+    c.classList.remove('selecionada');
+    c.style.outline = 'none'; // limpa resíduo do estilo inline antigo
+  });
+  caixa.classList.add('selecionada');
   editorStoryCaixaAtiva = caixa;
 
   // Emoji não tem cor, fonte nem fundo pra ajustar — só arrastar/redimensionar/
@@ -5046,6 +5114,20 @@ function selecionarCaixaStory(caixa){
   montarFontesStory(caixa);
   atualizarPainelTamanhoStory(caixa);
   atualizarToggleFundoStory(caixa);
+  ajustarAreaArrasteEditorStory();
+}
+
+// Toque no fundo (foto/vídeo/gradiente ou área vazia da camada de arraste):
+// tira a seleção de todo mundo e recolhe o painel de texto, deixando a tela
+// limpa — só o conteúdo final, sem nenhuma alça à mostra.
+function desselecionarTudoStory(){
+  document.querySelectorAll('.editor-story-caixa-texto').forEach(c => {
+    c.classList.remove('selecionada');
+    c.style.outline = 'none';
+  });
+  editorStoryCaixaAtiva = null;
+  const painel = document.getElementById('editorStoryPainelTexto');
+  if(painel) painel.style.display = 'none';
   ajustarAreaArrasteEditorStory();
 }
 
@@ -5134,6 +5216,10 @@ function configurarInteracaoCaixaStory(caixa){
   const alcaResize = caixa.querySelector('.editor-story-caixa-resize');
   const alcaRotate = caixa.querySelector('.editor-story-caixa-rotate');
 
+  // Clique em QUALQUER parte da caixa (não só no conteúdo) seleciona e para a
+  // propagação — sem isso o clique subiria pra camada/fundo e dispararia o
+  // desselecionarTudoStory logo depois, fazendo a seleção "não pegar".
+  caixa.addEventListener('click', (ev) => { ev.stopPropagation(); selecionarCaixaStory(caixa); });
   conteudo.addEventListener('click', (ev) => { ev.stopPropagation(); selecionarCaixaStory(caixa); });
   btnDel.addEventListener('pointerdown', (ev) => ev.stopPropagation());
   btnDel.addEventListener('click', (ev) => { ev.stopPropagation(); removerCaixaStory(caixa); });
