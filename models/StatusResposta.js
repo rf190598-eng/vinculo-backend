@@ -46,6 +46,16 @@ const StatusResposta = sequelize.define('StatusResposta', {
   filtro_css: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  // true só quando a pessoa realmente usou a pergunta do dia neste story
+  // (tocou no atalho da pergunta no composer e a caixa de texto sobreviveu
+  // até o envio). Postar um story qualquer NÃO marca isso — é esse campo,
+  // e não a mera existência de um story do dia, que define o "já respondeu"
+  // em obterPerguntaDoDia.
+  usou_pergunta_dia: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
   }
 }, {
   tableName: 'status_respostas',

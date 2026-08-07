@@ -2195,8 +2195,18 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 
       <!-- Topo: voltar — pra câmera, se a foto/vídeo veio dela (ou da galeria);
            fecha o composer inteiro se era modo texto puro (nunca passou pela câmera). -->
-      <div style="position:absolute;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;padding:16px 14px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
-        <div onclick="cancelarEdicaoStory()" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff">&#10005;</div>
+      <div style="position:absolute;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;gap:10px;padding:16px 14px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
+        <div onclick="cancelarEdicaoStory()" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff;flex-shrink:0">&#10005;</div>
+
+        <!-- Chip da pergunta do dia DENTRO da edição: fica disponível com
+             qualquer fundo (foto da câmera, vídeo, arquivo da galeria ou modo
+             texto puro), já que todos esses caminhos terminam nesta camada.
+             Tocar converte em caixa de texto; o X dispensa. -->
+        <div id="editPerguntaChip" onclick="usarPerguntaComoTextoStory()" style="display:none;align-items:center;gap:8px;flex:1;min-width:0;background:rgba(12,4,8,.62);border:1px solid rgba(255,255,255,.2);border-radius:18px;padding:7px 8px 7px 13px;cursor:pointer">
+          <span style="font-size:14px;flex-shrink:0">&#128173;</span>
+          <span id="editPerguntaChipTexto" style="flex:1;min-width:0;font-size:11.5px;color:#fdf6f2;line-height:1.25;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical"></span>
+          <div onclick="event.stopPropagation(); dispensarPerguntaChipEdicao()" style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;color:#fff">&#10005;</div>
+        </div>
       </div>
 
       <!-- Rodapé: painel de edição de texto (contextual, aparece com uma caixa
@@ -4151,6 +4161,8 @@ let tipoRespostaEscolhido = null;
 let arquivoRespostaSelecionadoVar = null;
 let feedStoriesCache = [];
 let perguntaDoDiaTextoAtual = ''; // cache do texto puro (sem aspas), usado no badge do composer
+let perguntaPendenteParaEditor = false; // tocou no card na câmera: adicionar a pergunta ao abrir a edição
+let perguntaDispensadaNoComposer = false; // dispensou com X (na câmera ou na edição): não oferecer mais nesta sessão
 
 async function carregarPerguntaDoDia(){
   try{
@@ -4384,6 +4396,11 @@ function resetarEstadoComposer(){
   tipoRespostaEscolhido = null;
   arquivoRespostaSelecionadoVar = null;
   overlayTextosStoryVar = null;
+  // Estado da pergunta é por SESSÃO do composer: abrir de novo volta a
+  // oferecer, mesmo que a pessoa tenha dispensado na tentativa anterior.
+  perguntaPendenteParaEditor = false;
+  perguntaDispensadaNoComposer = false;
+  perguntaUsadaStoryVar = false;
 
   document.getElementById('cameraStoryErro').style.display = 'none';
   document.getElementById('cameraStoryGravandoIndicador').style.display = 'none';
@@ -4422,6 +4439,35 @@ function mostrarCamadaEdicaoComposer(){
 
 function dispensarPerguntaBadgeComposer(){
   document.getElementById('composerPerguntaBadge').style.display = 'none';
+  // Dispensar na câmera dispensa de vez nessa sessão do composer: o chip da
+  // edição também não aparece. "Não quero a pergunta" vale pro fluxo inteiro.
+  perguntaDispensadaNoComposer = true;
+}
+
+function dispensarPerguntaChipEdicao(){
+  document.getElementById('editPerguntaChip').style.display = 'none';
+  perguntaDispensadaNoComposer = true;
+}
+
+// Mostra o chip da pergunta na camada de edição, se ainda fizer sentido:
+// existe pergunta carregada, não foi dispensada, e ainda não virou texto
+// neste story.
+function atualizarChipPerguntaEdicao(){
+  const chip = document.getElementById('editPerguntaChip');
+  if(!chip) return;
+  const jaVirouTexto = !!document.querySelector('.editor-story-caixa-texto[data-origem-pergunta="1"]');
+  const deveMostrar = !!perguntaDoDiaTextoAtual && !perguntaDispensadaNoComposer && !jaVirouTexto;
+  document.getElementById('editPerguntaChipTexto').textContent = perguntaDoDiaTextoAtual || '';
+  chip.style.display = deveMostrar ? 'flex' : 'none';
+}
+
+// Converte a pergunta numa caixa de texto de verdade, no centro. Chamada tanto
+// pelo chip da edição quanto automaticamente na chegada ao editor, quando a
+// pessoa já tinha tocado no card lá na câmera.
+function usarPerguntaComoTextoStory(){
+  if(!perguntaDoDiaTextoAtual) return;
+  adicionarCaixaTextoStory(perguntaDoDiaTextoAtual, true);
+  atualizarChipPerguntaEdicao();
 }
 
 // Tocar no badge (fora do X) transforma a pergunta do dia num STICKER de
@@ -4433,10 +4479,14 @@ function dispensarPerguntaBadgeComposer(){
 // conteúdo visual do story, mesmo continuando salva em pergunta_texto no
 // banco (isso é feito pelo backend, independente do que acontece na tela).
 function tocarBadgePerguntaComposer(){
+  // ANTES: isso largava a câmera e pulava pro modo texto puro (fundo
+  // gradiente), o que impedia combinar a pergunta com uma foto/vídeo. AGORA
+  // é só um atalho: marca a intenção, esconde o card e deixa a pessoa
+  // capturar normalmente — a pergunta é adicionada sozinha assim que a tela
+  // de edição abrir, com a foto/vídeo já de fundo.
   document.getElementById('composerPerguntaBadge').style.display = 'none';
-  pararStreamCameraStory();
-  abrirEditorStory('texto', null);
-  adicionarCaixaTextoStory(perguntaDoDiaTextoAtual);
+  perguntaPendenteParaEditor = true;
+  showToastVinculo('A pergunta vai aparecer na edição ✨');
 }
 
 // Atalho "Aa": pula a câmera de vez e vai direto pro editor em modo texto
@@ -4763,6 +4813,7 @@ let editorStoryArquivoFundo = null;
 let editorStoryCaixaAtiva = null;
 let overlayTextosStoryVar = null; // metadata de texto/emoji pro caso de vídeo (não achatado)
 let filtroCssStoryVar = '';       // idem pro filtro escolhido (só usado em vídeo)
+let perguntaUsadaStoryVar = false; // a pergunta do dia virou texto NESTE story?
 
 const EDITOR_STORY_CORES = ['#fdf6f2', '#f0a0b8', '#d4b87a', '#e0607a', '#c9a06b', '#7a2a4a', '#1a0810', '#6dcc6d'];
 const EDITOR_STORY_FONTE_BASE = 28; // px, tamanho de referência no editor (escala 1)
@@ -4826,6 +4877,16 @@ function abrirEditorStory(tipo, arquivo){
   }
 
   mostrarCamadaEdicaoComposer();
+
+  // Se a pessoa tocou no card da pergunta lá na câmera, a caixa é criada
+  // agora — com a foto/vídeo já de fundo. Vale pra qualquer origem de mídia
+  // (captura, gravação ou galeria), porque todas passam por aqui.
+  if(perguntaPendenteParaEditor && perguntaDoDiaTextoAtual){
+    perguntaPendenteParaEditor = false;
+    usarPerguntaComoTextoStory();
+  }
+  atualizarChipPerguntaEdicao();
+
   ajustarAreaArrasteEditorStory();
   console.log('[editor] camada de edição do composer aberta. display atual:', document.getElementById('composerEditLayer').style.display);
 }
@@ -4871,7 +4932,11 @@ function cancelarEdicaoStory(){
 // real em vez do placeholder "Toque para editar". Sem argumento, comportamento
 // idêntico ao de antes (caixa vazia com placeholder, criada pelo botão
 // "+Texto" da barra de ferramentas).
-function adicionarCaixaTextoStory(textoInicial){
+// origemPergunta: marca que ESTA caixa nasceu do atalho da pergunta do dia
+// (não de alguém digitando algo parecido do zero). É desse marcador que sai o
+// usou_pergunta_dia enviado ao publicar — e como ele vive no próprio elemento,
+// apagar a caixa some com o marcador junto, sem precisar desfazer flag nenhuma.
+function adicionarCaixaTextoStory(textoInicial, origemPergunta){
   const camada = document.getElementById('editorStoryCamadaTextos');
   const caixa = document.createElement('div');
   caixa.className = 'editor-story-caixa-texto';
@@ -4882,6 +4947,7 @@ function adicionarCaixaTextoStory(textoInicial){
   caixa.dataset.fonte = EDITOR_STORY_FONTES[0].valor;
   caixa.dataset.tamanhoFonte = EDITOR_STORY_FONTE_BASE;
   caixa.dataset.fundo = '0';
+  if(origemPergunta) caixa.dataset.origemPergunta = '1';
   caixa.style.cssText = 'position:absolute;touch-action:none;padding:10px 14px;';
   caixa.innerHTML = `
     <span class="editor-story-caixa-del" style="position:absolute;top:-11px;left:-11px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2">&times;</span>
@@ -5203,6 +5269,10 @@ function removerCaixaStory(caixa){
     ajustarAreaArrasteEditorStory();
   }
   caixa.remove();
+  // Se a caixa apagada era a da pergunta, o chip volta a ser oferecido (e o
+  // story deixa de contar como "respondeu a pergunta" — os dois derivam do
+  // mesmo marcador no elemento, então ficam consistentes automaticamente).
+  atualizarChipPerguntaEdicao();
 }
 
 // Interação da caixa: Pointer Events cobre mouse e touch com a mesma API.
@@ -5377,6 +5447,15 @@ async function finalizarEEnviarStory(){
     };
   }).filter(d => d.texto);
 
+  // "Usou a pergunta do dia" é derivado das caixas que SOBREVIVERAM até o
+  // envio: se a pessoa adicionou e depois apagou, não conta. Vale pros três
+  // tipos de fundo, inclusive foto (onde o texto é achatado no canvas e os
+  // overlays nem chegam a ser enviados).
+  perguntaUsadaStoryVar = caixas.some(c =>
+    c.dataset.origemPergunta === '1' &&
+    (c.querySelector('.editor-story-caixa-conteudo').textContent || '').trim()
+  );
+
   if(editorStoryTipoFundo === 'video'){
     tipoRespostaEscolhido = 'video';
     arquivoRespostaSelecionadoVar = editorStoryArquivoFundo;
@@ -5536,6 +5615,10 @@ async function enviarStoryComposer(){
 
   const formData = new FormData();
   formData.append('tipo', tipoRespostaEscolhido);
+  // Enviado pra TODO tipo de story: é o que decide se o card da tela inicial
+  // vira "Você já respondeu a pergunta de hoje". Postar um story qualquer não
+  // conta mais como responder a pergunta.
+  formData.append('usou_pergunta_dia', perguntaUsadaStoryVar ? 'true' : 'false');
 
   if(!arquivoRespostaSelecionadoVar){ erroEl.textContent = 'Nada pra enviar ainda.'; return; }
 

@@ -89,8 +89,13 @@ const obterPerguntaDoDia = async (req, res) => {
   try {
     const pergunta = getPerguntaDoDia();
     const agora = new Date();
+    // usou_pergunta_dia: true é obrigatório aqui. Antes bastava existir
+    // QUALQUER story do dia (a pergunta_texto é gravada em toda linha, como
+    // metadata, mesmo quando a pessoa nem olhou pra pergunta) — então postar
+    // uma foto qualquer já marcava "você já respondeu". Agora só conta quando
+    // a pergunta virou texto no story de verdade, via o atalho do composer.
     const jaRespondi = await StatusResposta.findOne({
-      where: { usuario_id: req.usuarioId, pergunta_texto: pergunta },
+      where: { usuario_id: req.usuarioId, pergunta_texto: pergunta, usou_pergunta_dia: true },
       order: [['createdAt', 'DESC']]
     });
     const respondiHoje = jaRespondi && new Date(jaRespondi.expira_em) > agora;
@@ -102,7 +107,7 @@ const obterPerguntaDoDia = async (req, res) => {
 
 const criarResposta = async (req, res) => {
   try {
-    const { tipo, conteudo_texto, overlays_texto, filtro_css } = req.body;
+    const { tipo, conteudo_texto, overlays_texto, filtro_css, usou_pergunta_dia } = req.body;
     if (!['foto', 'video', 'texto'].includes(tipo)) {
       return res.status(400).json({ erro: 'Tipo invalido' });
     }
@@ -185,7 +190,11 @@ const criarResposta = async (req, res) => {
       pergunta_texto: pergunta,
       expira_em,
       overlays_texto: overlaysValidados,
-      filtro_css: filtroValidado
+      filtro_css: filtroValidado,
+      // Vem do FormData, então chega como string ('true'/'false') — nunca
+      // como boolean. Comparar contra 'true' evita o clássico Boolean('false')
+      // === true, que marcaria todo story como resposta à pergunta.
+      usou_pergunta_dia: usou_pergunta_dia === 'true' || usou_pergunta_dia === true
     });
 
     res.status(201).json({ mensagem: 'Status publicado!', resposta });
