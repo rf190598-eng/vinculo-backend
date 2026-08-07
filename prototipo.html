@@ -2191,14 +2191,31 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
           </div>
         </div>
 
-        <div style="display:flex;justify-content:center;gap:26px;padding:10px 14px 4px">
+        <!-- Fileira de filtros (estilo Instagram). Cada miniatura mostra o
+             fundo REAL da edição já com o filtro aplicado, então o que se vê
+             aqui é o que sai no story. Montada por montarPainelFiltrosStory(). -->
+        <div id="editorStoryPainelFiltros" style="display:none;padding:10px 0 4px">
+          <div id="editorStoryFiltrosLista" style="display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding:0 14px"></div>
+        </div>
+
+        <!-- Grade de emojis. Cada um vira um sticker arrastável usando o mesmo
+             motor das caixas de texto. Montada por montarPainelEmojisStory(). -->
+        <div id="editorStoryPainelEmojis" style="display:none;padding:10px 14px 4px">
+          <div id="editorStoryEmojisGrade" style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;max-height:132px;overflow-y:auto"></div>
+        </div>
+
+        <div style="display:flex;justify-content:center;gap:24px;padding:10px 14px 4px">
           <div onclick="adicionarCaixaTextoStory()" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:#fff">
             <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:19px">&#128221;</div>
             <span style="font-size:10px;font-weight:600">Texto</span>
           </div>
-          <div onclick="showToastVinculo('Filtros chegando em breve! ✨')" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:rgba(255,255,255,.45)">
-            <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:19px">&#127912;</div>
-            <span style="font-size:10px;font-weight:600">Em breve</span>
+          <div onclick="alternarPainelEmojisStory()" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:#fff">
+            <div id="editorStoryBtnEmojiIcone" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:19px">&#128512;</div>
+            <span style="font-size:10px;font-weight:600">Emoji</span>
+          </div>
+          <div onclick="alternarPainelFiltrosStory()" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:#fff">
+            <div id="editorStoryBtnFiltroIcone" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:19px">&#127912;</div>
+            <span style="font-size:10px;font-weight:600">Filtro</span>
           </div>
         </div>
 
@@ -4683,7 +4700,8 @@ function pararTimerGravacaoStory(){
 let editorStoryTipoFundo = 'foto'; // 'foto' | 'video' | 'texto'
 let editorStoryArquivoFundo = null;
 let editorStoryCaixaAtiva = null;
-let overlayTextosStoryVar = null; // metadata de texto pro caso de vídeo (não achatado)
+let overlayTextosStoryVar = null; // metadata de texto/emoji pro caso de vídeo (não achatado)
+let filtroCssStoryVar = '';       // idem pro filtro escolhido (só usado em vídeo)
 
 const EDITOR_STORY_CORES = ['#fdf6f2', '#f0a0b8', '#d4b87a', '#e0607a', '#c9a06b', '#7a2a4a', '#1a0810', '#6dcc6d'];
 const EDITOR_STORY_FONTE_BASE = 28; // px, tamanho de referência no editor (escala 1)
@@ -4706,6 +4724,13 @@ function abrirEditorStory(tipo, arquivo){
   editorStoryCaixaAtiva = null;
   document.getElementById('editorStoryCamadaTextos').innerHTML = '';
   document.getElementById('editorStoryPainelTexto').style.display = 'none';
+  // Toda edição começa sem filtro e com os painéis fechados — senão o preset
+  // da edição anterior continuaria aplicado na próxima foto/vídeo.
+  editorStoryFiltroId = 'normal';
+  filtroCssStoryVar = '';
+  document.getElementById('editorStoryPainelFiltros').style.display = 'none';
+  document.getElementById('editorStoryPainelEmojis').style.display = 'none';
+  aplicarFiltroNoFundoStory();
 
   const img = document.getElementById('editorStoryFundoImg');
   const video = document.getElementById('editorStoryFundoVideo');
@@ -4813,6 +4838,183 @@ function adicionarCaixaTextoStory(textoInicial){
   selecionarCaixaStory(caixa);
 }
 
+// Sticker de emoji: MESMA classe (.editor-story-caixa-texto) e MESMAS alças
+// das caixas de texto, de propósito — assim reaproveita sem alteração o motor
+// de arrastar/pinça/redimensionar/rotacionar (configurarInteracaoCaixaStory) e
+// entra automaticamente na coleta de overlays do finalizarEEnviarStory.
+// A diferença é só o conteúdo: não é contenteditable, não tem cor/fonte/fundo,
+// e o dataset.tipoOverlay='emoji' marca isso pra quem consome.
+const EDITOR_STORY_EMOJI_TAMANHO_BASE = 48;
+
+function adicionarEmojiStory(emoji){
+  const camada = document.getElementById('editorStoryCamadaTextos');
+  const caixa = document.createElement('div');
+  caixa.className = 'editor-story-caixa-texto';
+  caixa.dataset.tipoOverlay = 'emoji';
+  caixa.dataset.x = '50';
+  caixa.dataset.y = '50';
+  caixa.dataset.rot = '0';
+  caixa.dataset.escala = '1';
+  caixa.dataset.tamanhoFonte = EDITOR_STORY_EMOJI_TAMANHO_BASE;
+  caixa.dataset.fundo = '0';
+  caixa.style.cssText = 'position:absolute;touch-action:none;padding:6px;';
+  caixa.innerHTML = `
+    <span class="editor-story-caixa-del" style="position:absolute;top:-11px;left:-11px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2">&times;</span>
+    <div class="editor-story-caixa-conteudo" style="font-size:${EDITOR_STORY_EMOJI_TAMANHO_BASE}px;line-height:1.1;user-select:none;cursor:grab"></div>
+    <span class="editor-story-caixa-resize" style="position:absolute;bottom:-13px;right:-13px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:nwse-resize;z-index:2">&#8646;</span>
+    <span class="editor-story-caixa-rotate" style="position:absolute;top:-13px;right:-13px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:grab;z-index:2">&#8635;</span>
+  `;
+  caixa.querySelector('.editor-story-caixa-conteudo').textContent = emoji;
+  camada.appendChild(caixa);
+  aplicarTransformCaixaStory(caixa);
+  configurarInteracaoCaixaStory(caixa);
+  selecionarCaixaStory(caixa);
+}
+
+function ehOverlayEmoji(caixa){
+  return caixa.dataset.tipoOverlay === 'emoji';
+}
+
+/* ===== FILTROS =====
+   Cada preset é UMA string de CSS filter, usada nos TRÊS lugares sem
+   variação: (1) preview no editor, (2) ctx.filter do canvas ao queimar a
+   foto, (3) style.filter do <video> no viewer. Manter uma string só evita
+   divergência entre o que a pessoa vê editando e o que sai publicado.
+
+   Por isso os presets usam apenas funções que existem tanto em CSS quanto em
+   canvas ctx.filter (grayscale/sepia/contrast/saturate/brightness/hue-rotate).
+   Deixei a vinheta de fora do "Dramático" de propósito: vinheta não é
+   expressável como filter — precisaria de um gradiente radial desenhado por
+   cima, que teria que ser replicado à mão nos 3 caminhos (e no vídeo viraria
+   mais um dado pra persistir). Trocado por contraste alto + leve
+   escurecimento global, que dá o mesmo clima com 1 string só. */
+const EDITOR_STORY_FILTROS = [
+  { id: 'normal',    label: 'Normal',    css: '' },
+  { id: 'pb',        label: 'P&B',       css: 'grayscale(1) contrast(1.1)' },
+  { id: 'vintage',   label: 'Vintage',   css: 'sepia(.45) contrast(.9) saturate(1.1)' },
+  { id: 'quente',    label: 'Quente',    css: 'saturate(1.35) sepia(.22) hue-rotate(-12deg) brightness(1.05)' },
+  { id: 'frio',      label: 'Frio',      css: 'saturate(.8) hue-rotate(18deg) brightness(1.04) contrast(1.05)' },
+  { id: 'dramatico', label: 'Dramático', css: 'contrast(1.45) saturate(1.15) brightness(.88)' },
+  { id: 'fade',      label: 'Desbotado', css: 'contrast(.82) brightness(1.12) saturate(.85)' }
+];
+
+let editorStoryFiltroId = 'normal';
+
+function cssDoFiltroStory(id){
+  const preset = EDITOR_STORY_FILTROS.find(f => f.id === id);
+  return (preset && preset.css) || '';
+}
+
+// Aplica o filtro atual no elemento de fundo visível (foto, vídeo ou
+// gradiente do modo texto).
+function aplicarFiltroNoFundoStory(){
+  const css = cssDoFiltroStory(editorStoryFiltroId);
+  const valor = css || 'none';
+  ['editorStoryFundoImg','editorStoryFundoVideo','editorStoryFundoGradiente'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.style.filter = valor;
+  });
+}
+
+function alternarPainelFiltrosStory(){
+  const painel = document.getElementById('editorStoryPainelFiltros');
+  const abrindo = painel.style.display === 'none';
+  // Os painéis de filtro e emoji ocupam a mesma região do rodapé — abrir um
+  // fecha o outro, senão o rodapé cresce demais e come a área de arraste.
+  document.getElementById('editorStoryPainelEmojis').style.display = 'none';
+  painel.style.display = abrindo ? 'block' : 'none';
+  if(abrindo) montarPainelFiltrosStory();
+  ajustarAreaArrasteEditorStory();
+}
+
+// Fonte da miniatura: a própria foto em edição; pro vídeo, um frame capturado
+// na hora; pro modo texto, o gradiente. Assim cada preset é visto aplicado
+// sobre o conteúdo real, não sobre uma amostra genérica.
+function obterFundoMiniaturaFiltro(){
+  if(editorStoryTipoFundo === 'foto'){
+    const img = document.getElementById('editorStoryFundoImg');
+    return img && img.src ? `background-image:url(${img.src});background-size:cover;background-position:center` : '';
+  }
+  if(editorStoryTipoFundo === 'video'){
+    const video = document.getElementById('editorStoryFundoVideo');
+    if(video && video.videoWidth){
+      try{
+        const c = document.createElement('canvas');
+        c.width = 80; c.height = 80;
+        const razao = Math.max(80 / video.videoWidth, 80 / video.videoHeight);
+        const lw = video.videoWidth * razao, lh = video.videoHeight * razao;
+        c.getContext('2d').drawImage(video, (80 - lw) / 2, (80 - lh) / 2, lw, lh);
+        return `background-image:url(${c.toDataURL('image/jpeg', 0.7)});background-size:cover;background-position:center`;
+      } catch(e){ /* frame ainda não decodificado — cai no gradiente abaixo */ }
+    }
+  }
+  return 'background:linear-gradient(160deg,#7a2a4a,#4a1428,#1a0810)';
+}
+
+function montarPainelFiltrosStory(){
+  const lista = document.getElementById('editorStoryFiltrosLista');
+  lista.innerHTML = '';
+  const fundoMiniatura = obterFundoMiniaturaFiltro();
+
+  EDITOR_STORY_FILTROS.forEach(preset => {
+    const ativo = preset.id === editorStoryFiltroId;
+    const item = document.createElement('div');
+    item.style.cssText = 'flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer';
+
+    const thumb = document.createElement('div');
+    thumb.style.cssText = `width:54px;height:54px;border-radius:10px;${fundoMiniatura};filter:${preset.css || 'none'};border:2px solid ${ativo ? '#e0607a' : 'rgba(255,255,255,.25)'}`;
+
+    const nome = document.createElement('span');
+    nome.textContent = preset.label;
+    nome.style.cssText = `font-size:10px;font-weight:600;color:${ativo ? '#f0a0b8' : 'rgba(255,255,255,.75)'}`;
+
+    item.appendChild(thumb);
+    item.appendChild(nome);
+    item.onclick = () => {
+      editorStoryFiltroId = preset.id;
+      aplicarFiltroNoFundoStory();
+      montarPainelFiltrosStory(); // remonta só pra atualizar o destaque do ativo
+    };
+    lista.appendChild(item);
+  });
+}
+
+/* ===== EMOJIS =====
+   Lista fixa, sem picker/busca — cobre carinhas, corações, gestos,
+   comemoração e natureza, que é o que a maioria usa em story. */
+const EDITOR_STORY_EMOJIS = [
+  '😀','😂','🥹','😍','🤩','😎','🥳','😭','😱','🤔',
+  '❤️','🧡','💛','💚','💙','💜','🖤','💖','💘','💔',
+  '👍','👏','🙌','🤝','🙏','💪','✌️','🤙',
+  '🎉','🎊','🔥','✨','⭐','🌟','💯','🥂',
+  '🌸','🌺','🌻','🌿','🌙','☀️','🌈','🦋'
+];
+
+function alternarPainelEmojisStory(){
+  const painel = document.getElementById('editorStoryPainelEmojis');
+  const abrindo = painel.style.display === 'none';
+  document.getElementById('editorStoryPainelFiltros').style.display = 'none';
+  painel.style.display = abrindo ? 'block' : 'none';
+  if(abrindo) montarPainelEmojisStory();
+  ajustarAreaArrasteEditorStory();
+}
+
+function montarPainelEmojisStory(){
+  const grade = document.getElementById('editorStoryEmojisGrade');
+  if(grade.childElementCount) return; // lista é fixa, monta uma vez só
+  EDITOR_STORY_EMOJIS.forEach(emoji => {
+    const item = document.createElement('div');
+    item.textContent = emoji;
+    item.style.cssText = 'width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(255,255,255,.1);border-radius:9px;cursor:pointer';
+    item.onclick = () => {
+      adicionarEmojiStory(emoji);
+      document.getElementById('editorStoryPainelEmojis').style.display = 'none';
+      ajustarAreaArrasteEditorStory();
+    };
+    grade.appendChild(item);
+  });
+}
+
 function aplicarTransformCaixaStory(caixa){
   const x = parseFloat(caixa.dataset.x);
   const y = parseFloat(caixa.dataset.y);
@@ -4828,6 +5030,17 @@ function selecionarCaixaStory(caixa){
   caixa.style.outline = '1.5px dashed rgba(255,255,255,.55)';
   caixa.style.outlineOffset = '6px';
   editorStoryCaixaAtiva = caixa;
+
+  // Emoji não tem cor, fonte nem fundo pra ajustar — só arrastar/redimensionar/
+  // girar/deletar, que são gestos diretos no próprio sticker. Então o painel
+  // de texto fica escondido nesse caso (mostrá-lo com controles inertes seria
+  // pior que não mostrar).
+  if(ehOverlayEmoji(caixa)){
+    document.getElementById('editorStoryPainelTexto').style.display = 'none';
+    ajustarAreaArrasteEditorStory();
+    return;
+  }
+
   document.getElementById('editorStoryPainelTexto').style.display = 'block';
   montarPaletaCoresStory(caixa);
   montarFontesStory(caixa);
@@ -5060,14 +5273,19 @@ async function finalizarEEnviarStory(){
   const caixas = Array.from(camada.querySelectorAll('.editor-story-caixa-texto'));
   const camadaRect = camada.getBoundingClientRect();
 
+  // Texto e emoji saem na MESMA lista de overlays, diferenciados pelo campo
+  // "tipo" — do ponto de vista de renderização os dois são a mesma coisa:
+  // um conteúdo posicionado por x/y/rot/escala/tamanho.
   const dadosCaixas = caixas.map(c => {
     const conteudo = c.querySelector('.editor-story-caixa-conteudo');
+    const ehEmoji = ehOverlayEmoji(c);
     return {
+      tipo: ehEmoji ? 'emoji' : 'texto',
       texto: conteudo.textContent.replace(/ /g, ' ').trim(),
-      cor: conteudo.style.color ? rgbParaHex(conteudo.style.color) : '#fdf6f2',
-      fonte: c.dataset.fonte || EDITOR_STORY_FONTES[0].valor,
-      tamanhoFonte: parseFloat(c.dataset.tamanhoFonte) || EDITOR_STORY_FONTE_BASE,
-      fundo: c.dataset.fundo === '1',
+      cor: (!ehEmoji && conteudo.style.color) ? rgbParaHex(conteudo.style.color) : '#fdf6f2',
+      fonte: ehEmoji ? EDITOR_STORY_FONTES[0].valor : (c.dataset.fonte || EDITOR_STORY_FONTES[0].valor),
+      tamanhoFonte: parseFloat(c.dataset.tamanhoFonte) || (ehEmoji ? EDITOR_STORY_EMOJI_TAMANHO_BASE : EDITOR_STORY_FONTE_BASE),
+      fundo: !ehEmoji && c.dataset.fundo === '1',
       x: parseFloat(c.dataset.x), y: parseFloat(c.dataset.y),
       rot: parseFloat(c.dataset.rot), escala: parseFloat(c.dataset.escala)
     };
@@ -5077,6 +5295,9 @@ async function finalizarEEnviarStory(){
     tipoRespostaEscolhido = 'video';
     arquivoRespostaSelecionadoVar = editorStoryArquivoFundo;
     overlayTextosStoryVar = dadosCaixas.length ? dadosCaixas : null;
+    // Vídeo não é reprocessado (mesma decisão já usada pro texto): o filtro
+    // viaja como metadata e é reaplicado via CSS na hora de exibir.
+    filtroCssStoryVar = cssDoFiltroStory(editorStoryFiltroId);
     await enviarStoryComposer();
     return;
   }
@@ -5114,10 +5335,17 @@ function rgbParaHex(corRgb){
 
 function desenharFundoNoCanvas(ctx, w, h){
   return new Promise((resolve) => {
+    // ctx.filter aceita a MESMA sintaxe do CSS filter, então o preset
+    // escolhido é queimado de verdade nos pixels aqui — o arquivo publicado
+    // já sai filtrado, sem depender de nada na hora de exibir. Precisa ser
+    // setado ANTES do draw e zerado depois, senão vazaria pros textos/emojis
+    // desenhados em seguida (eles não devem levar o filtro do fundo).
+    const filtroCss = cssDoFiltroStory(editorStoryFiltroId);
+    ctx.filter = filtroCss || 'none';
+
     if(editorStoryTipoFundo === 'foto'){
       const img = document.getElementById('editorStoryFundoImg');
       desenharCoverNoCanvas(ctx, img, img.naturalWidth || w, img.naturalHeight || h, w, h);
-      resolve();
     } else {
       const grad = ctx.createLinearGradient(w * 0.15, 0, w * 0.55, h);
       grad.addColorStop(0, '#7a2a4a');
@@ -5125,8 +5353,10 @@ function desenharFundoNoCanvas(ctx, w, h){
       grad.addColorStop(1, '#1a0810');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, w, h);
-      resolve();
     }
+
+    ctx.filter = 'none';
+    resolve();
   });
 }
 
@@ -5142,8 +5372,14 @@ function desenharTextosNoCanvas(ctx, dadosCaixas, w, h, fatorEscalaCanvas){
     ctx.save();
     ctx.translate((d.x / 100) * w, (d.y / 100) * h);
     ctx.rotate(d.rot * Math.PI / 180);
-    const tamanhoFonte = (d.tamanhoFonte || EDITOR_STORY_FONTE_BASE) * d.escala * fatorEscalaCanvas;
-    ctx.font = `700 ${tamanhoFonte}px ${d.fonte || EDITOR_STORY_FONTES[0].valor}`;
+    const ehEmoji = d.tipo === 'emoji';
+    const tamanhoFonte = (d.tamanhoFonte || (ehEmoji ? EDITOR_STORY_EMOJI_TAMANHO_BASE : EDITOR_STORY_FONTE_BASE)) * d.escala * fatorEscalaCanvas;
+    // Emoji é desenhado com a fonte padrão do sistema (que resolve pra fonte
+    // de emoji colorida) e sem peso 700 — forçar a serif do app aqui faria
+    // alguns navegadores caírem num glifo monocromático de fallback.
+    ctx.font = ehEmoji
+      ? `${tamanhoFonte}px sans-serif`
+      : `700 ${tamanhoFonte}px ${d.fonte || EDITOR_STORY_FONTES[0].valor}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const linhas = d.texto.split('\n');
@@ -5171,8 +5407,12 @@ function desenharTextosNoCanvas(ctx, dadosCaixas, w, h, fatorEscalaCanvas){
     }
 
     ctx.fillStyle = d.cor;
-    ctx.shadowColor = 'rgba(0,0,0,.6)';
-    ctx.shadowBlur = 10 * fatorEscalaCanvas;
+    // Emoji não leva sombra: a sombra vaza pelas bordas do glifo colorido e
+    // deixa um halo escuro feio em volta.
+    if(!ehEmoji){
+      ctx.shadowColor = 'rgba(0,0,0,.6)';
+      ctx.shadowBlur = 10 * fatorEscalaCanvas;
+    }
     linhas.forEach((linha, i) => ctx.fillText(linha, 0, inicioY + i * alturaLinha));
     ctx.restore();
   });
@@ -5185,10 +5425,18 @@ function renderizarOverlaysTextoStory(item, media){
   item.overlays_texto.forEach(o => {
     const div = document.createElement('div');
     div.textContent = o.texto;
-    const tamanho = o.tamanhoFonte || EDITOR_STORY_FONTE_BASE;
-    const fonte = o.fonte || EDITOR_STORY_FONTES[0].valor;
-    const fundoCss = o.fundo ? 'background:rgba(0,0,0,.42);border-radius:10px;padding:6px 12px;' : '';
-    div.style.cssText = `position:absolute;left:${o.x}%;top:${o.y}%;transform:translate(-50%,-50%) rotate(${o.rot}deg) scale(${o.escala});color:${o.cor};font-family:${fonte};font-weight:700;font-size:${tamanho}px;text-shadow:0 2px 10px rgba(0,0,0,.6);white-space:pre-wrap;text-align:center;pointer-events:none;max-width:90%;${fundoCss}`;
+    const ehEmoji = o.tipo === 'emoji';
+    const tamanho = o.tamanhoFonte || (ehEmoji ? EDITOR_STORY_EMOJI_TAMANHO_BASE : EDITOR_STORY_FONTE_BASE);
+    const base = `position:absolute;left:${o.x}%;top:${o.y}%;transform:translate(-50%,-50%) rotate(${o.rot}deg) scale(${o.escala});font-size:${tamanho}px;white-space:pre-wrap;text-align:center;pointer-events:none;max-width:90%;`;
+    if(ehEmoji){
+      // Sem fonte do app, sem peso e sem sombra — mesma escolha do canvas,
+      // pra emoji renderizar colorido e sem halo escuro em volta.
+      div.style.cssText = base + 'line-height:1.1;';
+    } else {
+      const fonte = o.fonte || EDITOR_STORY_FONTES[0].valor;
+      const fundoCss = o.fundo ? 'background:rgba(0,0,0,.42);border-radius:10px;padding:6px 12px;' : '';
+      div.style.cssText = base + `color:${o.cor};font-family:${fonte};font-weight:700;text-shadow:0 2px 10px rgba(0,0,0,.6);${fundoCss}`;
+    }
     media.appendChild(div);
   });
 }
@@ -5215,8 +5463,12 @@ async function enviarStoryComposer(){
     || ('story-' + Date.now() + (tipoRespostaEscolhido === 'video' ? '.webm' : '.jpg'));
   console.log('[envio] anexando arquivo:', nomeArquivo, '| type:', arquivoRespostaSelecionadoVar.type, '| bytes:', arquivoRespostaSelecionadoVar.size);
   formData.append('arquivo', arquivoRespostaSelecionadoVar, nomeArquivo);
-  if(tipoRespostaEscolhido === 'video' && overlayTextosStoryVar && overlayTextosStoryVar.length){
-    formData.append('overlays_texto', JSON.stringify(overlayTextosStoryVar));
+  if(tipoRespostaEscolhido === 'video'){
+    if(overlayTextosStoryVar && overlayTextosStoryVar.length){
+      formData.append('overlays_texto', JSON.stringify(overlayTextosStoryVar));
+    }
+    // Só pra vídeo: na foto o filtro já foi queimado no canvas.
+    if(filtroCssStoryVar) formData.append('filtro_css', filtroCssStoryVar);
   }
 
   try{
@@ -5419,6 +5671,9 @@ function abrirPessoaEmIndice(pessoaIndice, storyIndice){
     // normalmente permite. Fallback pra mudo se o desmute for recusado.
     const videoElRecemCriado = document.getElementById('viewStoryVideoEl');
     if(videoElRecemCriado){
+      // Filtro do vídeo: só pra tipo 'video'. Pra foto o filtro já está
+      // queimado nos pixels do arquivo — reaplicar aqui filtraria duas vezes.
+      videoElRecemCriado.style.filter = item.filtro_css || 'none';
       videoElRecemCriado.muted = false;
       videoElRecemCriado.play().catch(()=>{ videoElRecemCriado.muted = true; videoElRecemCriado.play().catch(()=>{}); });
     }

@@ -102,7 +102,7 @@ const obterPerguntaDoDia = async (req, res) => {
 
 const criarResposta = async (req, res) => {
   try {
-    const { tipo, conteudo_texto, overlays_texto } = req.body;
+    const { tipo, conteudo_texto, overlays_texto, filtro_css } = req.body;
     if (!['foto', 'video', 'texto'].includes(tipo)) {
       return res.status(400).json({ erro: 'Tipo invalido' });
     }
@@ -139,6 +139,10 @@ const criarResposta = async (req, res) => {
         const parsed = JSON.parse(overlays_texto);
         if (Array.isArray(parsed)) {
           overlaysValidados = parsed.slice(0, 20).map(o => ({
+            // Texto e emoji dividem a mesma estrutura — 'tipo' diz qual é.
+            // Qualquer valor fora da whitelist vira 'texto' (comportamento
+            // dos overlays antigos, salvos antes desse campo existir).
+            tipo: o.tipo === 'emoji' ? 'emoji' : 'texto',
             texto: String(o.texto || '').replace(/<[^>]*>/g, '').slice(0, 200),
             cor: /^#[0-9a-fA-F]{3,8}$/.test(o.cor) ? o.cor : '#fdf6f2',
             fonte: FONTES_OVERLAY_PERMITIDAS.includes(o.fonte) ? o.fonte : FONTES_OVERLAY_PERMITIDAS[0],
@@ -156,6 +160,23 @@ const criarResposta = async (req, res) => {
       }
     }
 
+    // Filtro visual, só pra vídeo (em foto o efeito já vem queimado nos pixels
+    // do arquivo enviado — guardar aqui faria o viewer aplicar duas vezes).
+    // Mesma razão da whitelist de fontes: esse valor vai direto pra dentro de
+    // um style/filter no cliente, então precisa ser um dos presets conhecidos,
+    // nunca uma string arbitrária vinda do request.
+    const FILTROS_PERMITIDOS = [
+      'grayscale(1) contrast(1.1)',
+      'sepia(.45) contrast(.9) saturate(1.1)',
+      'saturate(1.35) sepia(.22) hue-rotate(-12deg) brightness(1.05)',
+      'saturate(.8) hue-rotate(18deg) brightness(1.04) contrast(1.05)',
+      'contrast(1.45) saturate(1.15) brightness(.88)',
+      'contrast(.82) brightness(1.12) saturate(.85)'
+    ];
+    const filtroValidado = (tipo === 'video' && FILTROS_PERMITIDOS.includes(filtro_css))
+      ? filtro_css
+      : null;
+
     const resposta = await StatusResposta.create({
       usuario_id: req.usuarioId,
       tipo,
@@ -163,7 +184,8 @@ const criarResposta = async (req, res) => {
       media_url,
       pergunta_texto: pergunta,
       expira_em,
-      overlays_texto: overlaysValidados
+      overlays_texto: overlaysValidados,
+      filtro_css: filtroValidado
     });
 
     res.status(201).json({ mensagem: 'Status publicado!', resposta });
@@ -193,7 +215,8 @@ const listarStatusFeed = async (req, res) => {
       if (!porUsuario.has(r.usuario_id)) porUsuario.set(r.usuario_id, []);
       porUsuario.get(r.usuario_id).push({
         id: r.id, tipo: r.tipo, conteudo_texto: r.conteudo_texto, media_url: r.media_url,
-        pergunta_texto: r.pergunta_texto, overlays_texto: r.overlays_texto, createdAt: r.createdAt
+        pergunta_texto: r.pergunta_texto, overlays_texto: r.overlays_texto,
+        filtro_css: r.filtro_css, createdAt: r.createdAt
       });
     }
 
@@ -225,7 +248,8 @@ const meuStatusAtivo = async (req, res) => {
     const usuario = await Usuario.findByPk(req.usuarioId, { attributes: ['id', 'nome', 'foto_url'] });
     const stories = respostas.map(status => ({
       id: status.id, tipo: status.tipo, conteudo_texto: status.conteudo_texto, media_url: status.media_url,
-      pergunta_texto: status.pergunta_texto, overlays_texto: status.overlays_texto, createdAt: status.createdAt
+      pergunta_texto: status.pergunta_texto, overlays_texto: status.overlays_texto,
+      filtro_css: status.filtro_css, createdAt: status.createdAt
     }));
     res.json({ stories, usuario });
   } catch (erro) {
