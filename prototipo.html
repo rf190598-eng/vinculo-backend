@@ -5069,6 +5069,47 @@ function adicionarCaixaTextoStory(textoInicial, origemPergunta){
   aplicarTransformCaixaStory(caixa);
   configurarInteracaoCaixaStory(caixa);
   selecionarCaixaStory(caixa);
+
+  // No modo resposta, a caixa de RESPOSTA (não a do cartão) já nasce encaixada
+  // logo abaixo do cartão da pergunta. Sem isso ela nascia no centro, em cima
+  // do cartão, e a pessoa precisava descobrir sozinha que tinha que arrastar.
+  if(modoRespostaPerguntaAtivo && !origemPergunta){
+    posicionarRespostaAbaixoDoCartaoStory(caixa);
+  }
+  return caixa;
+}
+
+// Coloca a caixa logo abaixo do cartão da pergunta, dentro de uma faixa segura:
+// nunca sobre o cartão, nunca colada no rodapé do editor, e com folga inferior
+// suficiente pra não cair atrás da barra "Responder story..." do viewer depois
+// de publicada.
+const EDITOR_STORY_RESPOSTA_LIMITE_INFERIOR = 0.80; // fração da altura da camada
+function posicionarRespostaAbaixoDoCartaoStory(caixa){
+  const camada = document.getElementById('editorStoryCamadaTextos');
+  if(!camada) return;
+  const rectCamada = camada.getBoundingClientRect();
+  if(!rectCamada.height) return;
+
+  const cartao = camada.querySelector('.editor-story-caixa-texto[data-origem-pergunta="1"]');
+  const alturaCaixa = caixa.getBoundingClientRect().height || 40;
+
+  // Topo desejado: logo abaixo do cartão (com respiro). Sem cartão na tela,
+  // usa uma posição padrão no terço inferior.
+  let topoPx;
+  if(cartao){
+    const rc = cartao.getBoundingClientRect();
+    topoPx = (rc.bottom - rectCamada.top) + 26;
+  } else {
+    topoPx = rectCamada.height * 0.58;
+  }
+
+  let centroPx = topoPx + alturaCaixa / 2;
+  const limiteInferior = rectCamada.height * EDITOR_STORY_RESPOSTA_LIMITE_INFERIOR - alturaCaixa / 2;
+  const limiteSuperior = alturaCaixa / 2 + 8;
+  centroPx = Math.max(limiteSuperior, Math.min(centroPx, Math.max(limiteSuperior, limiteInferior)));
+
+  caixa.dataset.y = (centroPx / rectCamada.height) * 100;
+  aplicarTransformCaixaStory(caixa);
 }
 
 // Sticker de emoji: MESMA classe (.editor-story-caixa-texto) e MESMAS alças
@@ -5571,6 +5612,39 @@ function configurarInteracaoCaixaStory(caixa){
   alcaRotate.addEventListener('pointercancel', pararRotate);
 }
 
+/* ===== CAUSA RAIZ do deslocamento vertical na publicação =====
+   As caixas guardam x/y em PORCENTAGEM, mas relativas à CAMADA DE ARRASTE
+   (editorStoryCamadaTextos), que termina onde o rodapé começa
+   (bottom = rodape.offsetHeight + 16) — ou seja, ela é MAIS BAIXA que a tela.
+   Já os dois renderizadores finais interpretam a mesma porcentagem contra o
+   QUADRO INTEIRO do story: o canvas contra 1080x1920, e o viewer contra a
+   área de mídia cheia. Como a camada é mais curta, 60% da camada cai bem mais
+   embaixo quando lido como 60% do quadro inteiro — daí o texto "descer" e
+   acabar atrás da barra de responder.
+
+   A correção converte, no momento do envio, de coordenada-da-camada para
+   coordenada-do-quadro, usando o retângulo real do fundo visível
+   (editorStoryFundoWrap), que é exatamente o quadro que vira o story. */
+function converterPosicaoParaFrameStory(caixa){
+  const camada = document.getElementById('editorStoryCamadaTextos');
+  const fundo = document.getElementById('editorStoryFundoWrap');
+  const xCamada = parseFloat(caixa.dataset.x);
+  const yCamada = parseFloat(caixa.dataset.y);
+  if(!camada || !fundo) return { x: xCamada, y: yCamada };
+
+  const rc = camada.getBoundingClientRect();
+  const rf = fundo.getBoundingClientRect();
+  if(!rc.width || !rc.height || !rf.width || !rf.height) return { x: xCamada, y: yCamada };
+
+  // camada -> pixels absolutos -> % do quadro visível
+  const absX = rc.left + (xCamada / 100) * rc.width;
+  const absY = rc.top + (yCamada / 100) * rc.height;
+  return {
+    x: ((absX - rf.left) / rf.width) * 100,
+    y: ((absY - rf.top) / rf.height) * 100
+  };
+}
+
 // Único botão "Enviar" no rodapé da edição: prepara o arquivo final (igual
 // antes) E já publica em seguida (antes eram 2 passos: "Continuar" preparava
 // e voltava pro modal da pergunta, aí um botão "Publicar" separado enviava).
@@ -5585,6 +5659,10 @@ async function finalizarEEnviarStory(){
   const dadosCaixas = caixas.map(c => {
     const conteudo = c.querySelector('.editor-story-caixa-conteudo');
     const ehEmoji = ehOverlayEmoji(c);
+    // Converte de coordenada-da-camada pra coordenada-do-quadro (ver comentário
+    // em converterPosicaoParaFrameStory) — é isso que faz a posição escolhida
+    // no editor ser exatamente a posição publicada.
+    const pos = converterPosicaoParaFrameStory(c);
     return {
       tipo: ehEmoji ? 'emoji' : 'texto',
       texto: conteudo.textContent.replace(/ /g, ' ').trim(),
@@ -5596,7 +5674,7 @@ async function finalizarEEnviarStory(){
       // do dia. Persistido junto com o resto pra sobreviver ao achatamento em
       // canvas (foto) e ao overlay de metadata (vídeo).
       cartao: !ehEmoji && c.dataset.cartao === '1',
-      x: parseFloat(c.dataset.x), y: parseFloat(c.dataset.y),
+      x: pos.x, y: pos.y,
       rot: parseFloat(c.dataset.rot), escala: parseFloat(c.dataset.escala)
     };
   }).filter(d => d.texto);
