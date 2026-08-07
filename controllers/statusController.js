@@ -153,6 +153,10 @@ const criarResposta = async (req, res) => {
             fonte: FONTES_OVERLAY_PERMITIDAS.includes(o.fonte) ? o.fonte : FONTES_OVERLAY_PERMITIDAS[0],
             tamanhoFonte: Number.isFinite(o.tamanhoFonte) ? Math.max(10, Math.min(96, o.tamanhoFonte)) : 28,
             fundo: !!o.fundo,
+            // Visual de "cartão" da pergunta do dia (rótulo + caixa escura).
+            // Booleano puro, sem string livre — o cliente só decide ligar ou
+            // não; o estilo em si é fixo no front, não vem do request.
+            cartao: !!o.cartao,
             x: Number.isFinite(o.x) ? Math.max(0, Math.min(100, o.x)) : 50,
             y: Number.isFinite(o.y) ? Math.max(0, Math.min(100, o.y)) : 50,
             rot: Number.isFinite(o.rot) ? o.rot : 0,

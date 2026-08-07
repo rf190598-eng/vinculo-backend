@@ -213,6 +213,16 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 .editor-story-caixa-texto.selecionada .editor-story-caixa-rotate{display:flex !important;}
 .editor-story-caixa-texto.selecionada{outline:1.5px dashed rgba(255,255,255,.55);outline-offset:6px;}
 
+/* Container dos ícones da barra de ferramentas do editor de story. Mesma
+   borda sutil e fundo translúcido já usados nos controles do app. */
+.editor-story-tool-ic{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;}
+
+/* Caixa de texto no estilo "cartão" (usada pela pergunta do dia): mesmo
+   visual do card de pré-visualização, mas sendo a caixa real que vai pro
+   story final. */
+.editor-story-caixa-cartao{background:rgba(12,4,8,.62);border:1px solid rgba(255,255,255,.18);border-radius:14px;}
+.editor-story-cartao-rotulo{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#f0a0b8;font-weight:700;margin-bottom:7px;text-align:center;}
+
 /* Spinner do carregamento da câmera — reaproveita a animação girarLiveness
    já usada na tela de verificação, pra não inventar um segundo padrão. */
 .composer-spinner{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.18);border-top-color:#e0607a;animation:girarLiveness .9s linear infinite;}
@@ -2243,17 +2253,39 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
           <div id="editorStoryEmojisGrade" style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;max-height:132px;overflow-y:auto"></div>
         </div>
 
+        <!-- Ícones desenhados na linguagem visual do app (serifada + contorno
+             fino em rosa/dourado), no lugar dos emojis/clipart de antes.
+             Os três compartilham o mesmo container circular, a mesma espessura
+             de traço (1.6) e a mesma paleta, pra lerem como um conjunto. -->
         <div style="display:flex;justify-content:center;gap:24px;padding:10px 14px 4px">
           <div onclick="adicionarCaixaTextoStory()" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:#fff">
-            <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:19px">&#128221;</div>
+            <div class="editor-story-tool-ic"><span class="serif" style="font-size:23px;font-weight:700;color:#f0a0b8;line-height:1;letter-spacing:.5px">Aa</span></div>
             <span style="font-size:10px;font-weight:600">Texto</span>
           </div>
           <div onclick="alternarPainelEmojisStory()" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:#fff">
-            <div id="editorStoryBtnEmojiIcone" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:19px">&#128512;</div>
+            <div id="editorStoryBtnEmojiIcone" class="editor-story-tool-ic">
+              <!-- Sticker: quadrado arredondado com a ponta dobrada + carinha
+                   sugerida por 3 traços, tudo em contorno (nada preenchido). -->
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f0a0b8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.5 3H6a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h6l9-9V6a3 3 0 0 0-3-3Z"/>
+                <path d="M21 12h-6a3 3 0 0 0-3 3v6"/>
+                <circle cx="9" cy="9.5" r=".9" fill="#f0a0b8" stroke="none"/>
+                <circle cx="14" cy="9.5" r=".9" fill="#f0a0b8" stroke="none"/>
+                <path d="M8.6 13.4a3.6 3.6 0 0 0 3.2 1.9"/>
+              </svg>
+            </div>
             <span style="font-size:10px;font-weight:600">Emoji</span>
           </div>
           <div onclick="alternarPainelFiltrosStory()" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:#fff">
-            <div id="editorStoryBtnFiltroIcone" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:19px">&#127912;</div>
+            <div id="editorStoryBtnFiltroIcone" class="editor-story-tool-ic">
+              <!-- Três círculos sobrepostos: linguagem clássica de mistura de
+                   cor/filtro, e o dourado no terceiro amarra com a paleta. -->
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.6">
+                <circle cx="9" cy="9" r="5.4" stroke="#f0a0b8"/>
+                <circle cx="15" cy="9" r="5.4" stroke="#e0607a"/>
+                <circle cx="12" cy="14.6" r="5.4" stroke="#c9a06b"/>
+              </svg>
+            </div>
             <span style="font-size:10px;font-weight:600">Filtro</span>
           </div>
         </div>
@@ -4817,6 +4849,7 @@ let perguntaUsadaStoryVar = false; // a pergunta do dia virou texto NESTE story?
 
 const EDITOR_STORY_CORES = ['#fdf6f2', '#f0a0b8', '#d4b87a', '#e0607a', '#c9a06b', '#7a2a4a', '#1a0810', '#6dcc6d'];
 const EDITOR_STORY_FONTE_BASE = 28; // px, tamanho de referência no editor (escala 1)
+const EDITOR_STORY_PERGUNTA_TAMANHO = 24; // px, texto da pergunta dentro do cartão
 const EDITOR_STORY_FONTE_MIN = 14;
 const EDITOR_STORY_FONTE_MAX = 64;
 // Reaproveita a serif elegante e a sans-serif já usadas no resto do app, mais
@@ -4881,13 +4914,20 @@ function abrirEditorStory(tipo, arquivo){
   // Se a pessoa tocou no card da pergunta lá na câmera, a caixa é criada
   // agora — com a foto/vídeo já de fundo. Vale pra qualquer origem de mídia
   // (captura, gravação ou galeria), porque todas passam por aqui.
+  atualizarChipPerguntaEdicao();
+  ajustarAreaArrasteEditorStory();
+
   if(perguntaPendenteParaEditor && perguntaDoDiaTextoAtual){
     perguntaPendenteParaEditor = false;
-    usarPerguntaComoTextoStory();
+    // Só no próximo frame: a camada de edição acabou de virar visível, e a
+    // altura do rodapé (que define a altura útil da camada de arraste) ainda
+    // não foi recalculada pelo layout. Criar a caixa antes disso posicionava
+    // o cartão em 50% de uma altura provisória — e ele nascia colado no topo.
+    requestAnimationFrame(() => {
+      ajustarAreaArrasteEditorStory();
+      usarPerguntaComoTextoStory();
+    });
   }
-  atualizarChipPerguntaEdicao();
-
-  ajustarAreaArrasteEditorStory();
   console.log('[editor] camada de edição do composer aberta. display atual:', document.getElementById('composerEditLayer').style.display);
 }
 
@@ -4939,19 +4979,30 @@ function cancelarEdicaoStory(){
 function adicionarCaixaTextoStory(textoInicial, origemPergunta){
   const camada = document.getElementById('editorStoryCamadaTextos');
   const caixa = document.createElement('div');
-  caixa.className = 'editor-story-caixa-texto';
+  caixa.className = 'editor-story-caixa-texto' + (origemPergunta ? ' editor-story-caixa-cartao' : '');
   caixa.dataset.x = '50';
   caixa.dataset.y = '50';
   caixa.dataset.rot = '0';
   caixa.dataset.escala = '1';
   caixa.dataset.fonte = EDITOR_STORY_FONTES[0].valor;
-  caixa.dataset.tamanhoFonte = EDITOR_STORY_FONTE_BASE;
+  // A pergunta nasce maior que uma caixa comum: ela é o conteúdo principal
+  // do story quando usada, não uma legenda solta.
+  caixa.dataset.tamanhoFonte = origemPergunta ? EDITOR_STORY_PERGUNTA_TAMANHO : EDITOR_STORY_FONTE_BASE;
   caixa.dataset.fundo = '0';
-  if(origemPergunta) caixa.dataset.origemPergunta = '1';
-  caixa.style.cssText = 'position:absolute;touch-action:none;padding:10px 14px;';
+  if(origemPergunta){
+    caixa.dataset.origemPergunta = '1';
+    caixa.dataset.cartao = '1'; // liga o visual de cartão no canvas e no viewer
+  }
+  const tamanhoInicial = origemPergunta ? EDITOR_STORY_PERGUNTA_TAMANHO : EDITOR_STORY_FONTE_BASE;
+  // Cartão precisa de mais respiro interno e de largura contida, senão a
+  // pergunta vira uma linha só atravessando a tela.
+  caixa.style.cssText = origemPergunta
+    ? 'position:absolute;touch-action:none;padding:16px 18px;max-width:74vw;'
+    : 'position:absolute;touch-action:none;padding:10px 14px;';
   caixa.innerHTML = `
     <span class="editor-story-caixa-del" style="position:absolute;top:-11px;left:-11px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2">&times;</span>
-    <div class="editor-story-caixa-conteudo" contenteditable="true" style="color:#fdf6f2;font-family:${EDITOR_STORY_FONTES[0].valor};font-size:${EDITOR_STORY_FONTE_BASE}px;font-weight:700;text-shadow:0 2px 10px rgba(0,0,0,.6);outline:none;min-width:26px;white-space:pre-wrap;text-align:center;cursor:text"></div>
+    ${origemPergunta ? '<div class="editor-story-cartao-rotulo">Pergunta do dia</div>' : ''}
+    <div class="editor-story-caixa-conteudo" contenteditable="true" style="color:#fdf6f2;font-family:${EDITOR_STORY_FONTES[0].valor};font-size:${tamanhoInicial}px;font-weight:700;text-shadow:0 2px 10px rgba(0,0,0,.6);outline:none;min-width:26px;white-space:pre-wrap;text-align:center;cursor:text"></div>
     <span class="editor-story-caixa-resize" style="position:absolute;bottom:-13px;right:-13px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:nwse-resize;z-index:2">&#8646;</span>
     <span class="editor-story-caixa-rotate" style="position:absolute;top:-13px;right:-13px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:grab;z-index:2">&#8635;</span>
   `;
@@ -5442,6 +5493,10 @@ async function finalizarEEnviarStory(){
       fonte: ehEmoji ? EDITOR_STORY_FONTES[0].valor : (c.dataset.fonte || EDITOR_STORY_FONTES[0].valor),
       tamanhoFonte: parseFloat(c.dataset.tamanhoFonte) || (ehEmoji ? EDITOR_STORY_EMOJI_TAMANHO_BASE : EDITOR_STORY_FONTE_BASE),
       fundo: !ehEmoji && c.dataset.fundo === '1',
+      // Visual de cartão (rótulo rosa + caixa escura arredondada) da pergunta
+      // do dia. Persistido junto com o resto pra sobreviver ao achatamento em
+      // canvas (foto) e ao overlay de metadata (vídeo).
+      cartao: !ehEmoji && c.dataset.cartao === '1',
       x: parseFloat(c.dataset.x), y: parseFloat(c.dataset.y),
       rot: parseFloat(c.dataset.rot), escala: parseFloat(c.dataset.escala)
     };
@@ -5547,8 +5602,24 @@ function desenharTextosNoCanvas(ctx, dadosCaixas, w, h, fatorEscalaCanvas){
       : `700 ${tamanhoFonte}px ${d.fonte || EDITOR_STORY_FONTES[0].valor}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const linhas = d.texto.split('\n');
+
+    const ehCartao = !!d.cartao && !ehEmoji;
     const alturaLinha = tamanhoFonte * 1.2;
+
+    // O cartão da pergunta tem largura limitada no editor (max-width em vw) e
+    // por isso quebra em várias linhas na tela. O canvas não quebra sozinho —
+    // sem isso, a mesma pergunta sairia como UMA linha só atravessando a
+    // imagem publicada, nada parecida com o que a pessoa viu editando.
+    const linhas = ehCartao
+      ? quebrarLinhasNoCanvas(ctx, d.texto, w * 0.74 - (18 * fatorEscalaCanvas) * 2)
+      : d.texto.split('\n');
+
+    if(ehCartao){
+      desenharCartaoPerguntaNoCanvas(ctx, linhas, tamanhoFonte, alturaLinha, fatorEscalaCanvas, d.cor);
+      ctx.restore();
+      return;
+    }
+
     const inicioY = -((linhas.length - 1) * alturaLinha) / 2;
 
     // Fundo semi-transparente atrás do texto (opcional) — desenhado sem sombra,
@@ -5583,6 +5654,85 @@ function desenharTextosNoCanvas(ctx, dadosCaixas, w, h, fatorEscalaCanvas){
   });
 }
 
+// Quebra o texto em linhas que caibam em larguraMax, respeitando as quebras
+// manuais que já existirem. Usa a fonte que já estiver setada no ctx.
+function quebrarLinhasNoCanvas(ctx, texto, larguraMax){
+  const linhas = [];
+  String(texto).split('\n').forEach(paragrafo => {
+    const palavras = paragrafo.split(/\s+/).filter(Boolean);
+    if(!palavras.length){ linhas.push(''); return; }
+    let atual = palavras[0];
+    for(let i = 1; i < palavras.length; i++){
+      const tentativa = atual + ' ' + palavras[i];
+      if(ctx.measureText(tentativa).width <= larguraMax){
+        atual = tentativa;
+      } else {
+        linhas.push(atual);
+        atual = palavras[i];
+      }
+    }
+    linhas.push(atual);
+  });
+  return linhas;
+}
+
+// Desenha o cartão da pergunta do dia (caixa escura arredondada + rótulo rosa
+// "PERGUNTA DO DIA" + a pergunta), replicando no arquivo final exatamente o
+// que aparece no editor. Assume ctx já transladado/rotacionado pro centro da
+// caixa e com a fonte da pergunta setada.
+function desenharCartaoPerguntaNoCanvas(ctx, linhas, tamanhoFonte, alturaLinha, fatorEscalaCanvas, corTexto){
+  const fonteQuestao = ctx.font;
+  const padX = 18 * fatorEscalaCanvas;
+  const padY = 16 * fatorEscalaCanvas;
+  const tamanhoRotulo = Math.max(9 * fatorEscalaCanvas, tamanhoFonte * 0.4);
+  const fonteRotulo = `700 ${tamanhoRotulo}px 'Karla', sans-serif`;
+  const espacoRotulo = tamanhoRotulo * 1.35 + 7 * fatorEscalaCanvas;
+
+  // Largura do bloco = maior entre o rótulo e a linha mais longa da pergunta.
+  let larguraMax = 0;
+  linhas.forEach(l => { larguraMax = Math.max(larguraMax, ctx.measureText(l).width); });
+  ctx.font = fonteRotulo;
+  const textoRotulo = 'PERGUNTA DO DIA';
+  larguraMax = Math.max(larguraMax, ctx.measureText(textoRotulo).width * 1.18); // folga do letter-spacing
+  ctx.font = fonteQuestao;
+
+  const alturaTexto = linhas.length * alturaLinha;
+  const alturaTotal = espacoRotulo + alturaTexto;
+  const topo = -alturaTotal / 2;
+
+  // Caixa
+  const rx = -larguraMax / 2 - padX, ry = topo - padY;
+  const rw = larguraMax + padX * 2, rh = alturaTotal + padY * 2;
+  const raio = 14 * fatorEscalaCanvas;
+  ctx.fillStyle = 'rgba(12,4,8,.62)';
+  ctx.strokeStyle = 'rgba(255,255,255,.18)';
+  ctx.lineWidth = Math.max(1, 1 * fatorEscalaCanvas);
+  if(ctx.roundRect){
+    ctx.beginPath();
+    ctx.roundRect(rx, ry, rw, rh, raio);
+    ctx.fill();
+    ctx.stroke();
+  } else {
+    ctx.fillRect(rx, ry, rw, rh);
+    ctx.strokeRect(rx, ry, rw, rh);
+  }
+
+  // Rótulo rosa
+  ctx.font = fonteRotulo;
+  ctx.fillStyle = '#f0a0b8';
+  if('letterSpacing' in ctx) ctx.letterSpacing = (tamanhoRotulo * 0.16) + 'px';
+  ctx.fillText(textoRotulo, 0, topo + tamanhoRotulo * 0.68);
+  if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+
+  // Pergunta
+  ctx.font = fonteQuestao;
+  ctx.fillStyle = corTexto || '#fdf6f2';
+  ctx.shadowColor = 'rgba(0,0,0,.6)';
+  ctx.shadowBlur = 10 * fatorEscalaCanvas;
+  const inicioTexto = topo + espacoRotulo + alturaLinha / 2;
+  linhas.forEach((linha, i) => ctx.fillText(linha, 0, inicioTexto + i * alturaLinha));
+}
+
 // Renderiza, só pra exibição (sem interação), as caixas de texto salvas como
 // metadata sobre um story de vídeo — usada em abrirPessoaEmIndice.
 function renderizarOverlaysTextoStory(item, media){
@@ -5597,6 +5747,20 @@ function renderizarOverlaysTextoStory(item, media){
       // Sem fonte do app, sem peso e sem sombra — mesma escolha do canvas,
       // pra emoji renderizar colorido e sem halo escuro em volta.
       div.style.cssText = base + 'line-height:1.1;';
+    } else if(o.cartao){
+      // Cartão da pergunta do dia: mesmo visual do editor e do achatamento em
+      // canvas — rótulo rosa por cima, pergunta embaixo, caixa escura.
+      const fonteCartao = o.fonte || EDITOR_STORY_FONTES[0].valor;
+      div.textContent = '';
+      div.style.cssText = base + 'background:rgba(12,4,8,.62);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:16px 18px;max-width:74%;';
+      const rotulo = document.createElement('div');
+      rotulo.textContent = 'Pergunta do dia';
+      rotulo.style.cssText = 'font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#f0a0b8;font-weight:700;margin-bottom:7px;text-align:center;';
+      const corpo = document.createElement('div');
+      corpo.textContent = o.texto;
+      corpo.style.cssText = `color:${o.cor};font-family:${fonteCartao};font-weight:700;text-shadow:0 2px 10px rgba(0,0,0,.6);`;
+      div.appendChild(rotulo);
+      div.appendChild(corpo);
     } else {
       const fonte = o.fonte || EDITOR_STORY_FONTES[0].valor;
       const fundoCss = o.fundo ? 'background:rgba(0,0,0,.42);border-radius:10px;padding:6px 12px;' : '';
