@@ -602,8 +602,8 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="font-size:10px;font-weight:800;color:#d4b87a;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">&#127775; Pergunta do dia</div>
     <div style="font-size:13.5px;font-weight:700;color:#fdf6f2;margin-bottom:8px" id="perguntaDoDiaTexto">Carregando...</div>
     <div style="display:flex;gap:8px" id="perguntaDoDiaAcao">
-      <input style="flex:1;min-width:0;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:10px;padding:8px 12px;font-size:13px;color:#fdf6f2;outline:none;font-family:inherit;text-overflow:ellipsis;overflow:hidden;white-space:nowrap" placeholder="Sua resposta aparece no seu perfil..." readonly onclick="abrirComposerStory()"/>
-      <button style="background:linear-gradient(135deg,#e0607a,#c9a06b);border:none;border-radius:10px;padding:8px 14px;color:#fff;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap" onclick="abrirComposerStory()">Responder</button>
+      <input style="flex:1;min-width:0;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:10px;padding:8px 12px;font-size:13px;color:#fdf6f2;outline:none;font-family:inherit;text-overflow:ellipsis;overflow:hidden;white-space:nowrap" placeholder="Sua resposta aparece no seu perfil..." readonly onclick="abrirComposerStory(true)"/>
+      <button style="background:linear-gradient(135deg,#e0607a,#c9a06b);border:none;border-radius:10px;padding:8px 14px;color:#fff;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap" onclick="abrirComposerStory(true)">Responder</button>
     </div>
   </div>
 
@@ -2138,7 +2138,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
            continue "transparente" ao toque; só o card em si é clicável. -->
       <div style="position:absolute;top:96px;left:0;right:0;bottom:214px;z-index:8;display:flex;align-items:center;justify-content:center;padding:0 26px;pointer-events:none">
         <div id="composerPerguntaBadge" onclick="tocarBadgePerguntaComposer()" style="display:none;position:relative;pointer-events:auto;width:100%;max-width:330px;background:rgba(12,4,8,.6);border:1px solid rgba(255,255,255,.18);border-radius:18px;padding:22px 20px 18px;text-align:center;cursor:pointer;box-shadow:0 10px 34px rgba(0,0,0,.5)">
-          <div onclick="event.stopPropagation(); dispensarPerguntaBadgeComposer()" style="position:absolute;top:-11px;right:-11px;width:30px;height:30px;border-radius:50%;background:#1a0810;border:1px solid rgba(255,255,255,.28);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;color:#fff">&#10005;</div>
+          <div id="composerPerguntaBadgeX" onclick="event.stopPropagation(); dispensarPerguntaBadgeComposer()" style="position:absolute;top:-11px;right:-11px;width:30px;height:30px;border-radius:50%;background:#1a0810;border:1px solid rgba(255,255,255,.28);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;color:#fff">&#10005;</div>
           <div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#f0a0b8;font-weight:700;margin-bottom:10px">Pergunta do dia</div>
           <div id="composerPerguntaTexto" class="serif" style="font-size:20px;line-height:1.35;color:#fdf6f2;font-weight:700;word-break:break-word"></div>
           <div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:14px">Toque para usar no seu story</div>
@@ -2225,7 +2225,22 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
            separados). -->
       <div id="editorStoryRodape" style="position:absolute;bottom:0;left:0;right:0;z-index:20;display:flex;flex-direction:column;border-top:1px solid rgba(255,255,255,.14);background:linear-gradient(0deg,rgba(0,0,0,.72),rgba(0,0,0,.3) 65%,transparent)">
 
-        <div id="editorStoryPainelTexto" style="display:none;padding:12px 14px 2px">
+        <!-- Botão que abre/fecha a barra de estilo. Só aparece com uma caixa de
+             TEXTO selecionada. Fica dentro do rodapé (área reservada), nunca
+             flutuando sobre o story. -->
+        <div id="editorStoryBtnEstiloWrap" style="display:none;justify-content:center;padding:8px 14px 0">
+          <div id="editorStoryBtnEstilo" onclick="alternarPainelEstiloStory()" style="display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:18px;padding:7px 15px;cursor:pointer;color:#fff;font-size:12px;font-weight:600">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f0a0b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+            </svg>
+            <span id="editorStoryBtnEstiloLabel">Editar estilo</span>
+          </div>
+        </div>
+
+        <!-- Barra de estilo: ancorada aqui embaixo, dentro do rodapé, e
+             separada visualmente dos ícones Texto/Emoji/Filtro por uma linha —
+             antes ela abria sozinha ao selecionar e cobria o próprio texto. -->
+        <div id="editorStoryPainelTexto" style="display:none;padding:12px 14px 10px;margin:8px 14px 0;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.12);border-radius:14px">
           <div id="editorStoryPaleta" style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
           <div id="editorStoryFontes" style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
           <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:10px">
@@ -2257,12 +2272,12 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
              fino em rosa/dourado), no lugar dos emojis/clipart de antes.
              Os três compartilham o mesmo container circular, a mesma espessura
              de traço (1.6) e a mesma paleta, pra lerem como um conjunto. -->
-        <div style="display:flex;justify-content:center;gap:24px;padding:10px 14px 4px">
+        <div style="display:flex;justify-content:center;gap:24px;padding:12px 14px 4px;margin-top:8px;border-top:1px solid rgba(255,255,255,.1)">
           <div onclick="adicionarCaixaTextoStory()" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:#fff">
             <div class="editor-story-tool-ic"><span class="serif" style="font-size:23px;font-weight:700;color:#f0a0b8;line-height:1;letter-spacing:.5px">Aa</span></div>
             <span style="font-size:10px;font-weight:600">Texto</span>
           </div>
-          <div onclick="alternarPainelEmojisStory()" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:#fff">
+          <div id="editorStoryFerramentaEmoji" onclick="alternarPainelEmojisStory()" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:#fff">
             <div id="editorStoryBtnEmojiIcone" class="editor-story-tool-ic">
               <!-- Sticker: quadrado arredondado com a ponta dobrada + carinha
                    sugerida por 3 traços, tudo em contorno (nada preenchido). -->
@@ -2276,7 +2291,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
             </div>
             <span style="font-size:10px;font-weight:600">Emoji</span>
           </div>
-          <div onclick="alternarPainelFiltrosStory()" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:#fff">
+          <div id="editorStoryFerramentaFiltro" onclick="alternarPainelFiltrosStory()" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:#fff">
             <div id="editorStoryBtnFiltroIcone" class="editor-story-tool-ic">
               <!-- Três círculos sobrepostos: linguagem clássica de mistura de
                    cor/filtro, e o dourado no terceiro amarra com a paleta. -->
@@ -4194,6 +4209,12 @@ let arquivoRespostaSelecionadoVar = null;
 let feedStoriesCache = [];
 let perguntaDoDiaTextoAtual = ''; // cache do texto puro (sem aspas), usado no badge do composer
 let perguntaPendenteParaEditor = false; // tocou no card na câmera: adicionar a pergunta ao abrir a edição
+// Composer aberto pelo fluxo "responder a pergunta do dia" (e não pelo fluxo
+// normal de criar story). Muda só a CASCA: cartão pré-inserido e barra
+// inferior reduzida. O story publicado é idêntico a qualquer outro (mesma
+// rota, mesma expiração de 24h) — só a origem do fluxo é diferente.
+let modoRespostaPerguntaAtivo = false;
+let painelEstiloAberto = false; // barra de cor/fonte/tamanho aberta?
 let perguntaDispensadaNoComposer = false; // dispensou com X (na câmera ou na edição): não oferecer mais nesta sessão
 
 async function carregarPerguntaDoDia(){
@@ -4411,8 +4432,10 @@ async function atualizarMeuStoryRingComMiniatura(ring){
 // Ponto de entrada único: bolinha "Seu story" (sem story ativo), badge "+",
 // e o atalho "Responder" do card da pergunta do dia — todos abrem direto a
 // câmera em tela cheia, pulando a etapa de escolher Texto/Foto/Vídeo.
-async function abrirComposerStory(){
-  console.log('[composer] abrirComposerStory chamada');
+// modoResposta: true quando veio do card "Pergunta do dia" da tela inicial.
+async function abrirComposerStory(modoResposta){
+  console.log('[composer] abrirComposerStory chamada. modoResposta?', !!modoResposta);
+  modoRespostaPerguntaAtivo = !!modoResposta;
   resetarEstadoComposer();
   mostrarCamadaCameraComposer();
   openModal('story-composer');
@@ -4430,9 +4453,14 @@ function resetarEstadoComposer(){
   overlayTextosStoryVar = null;
   // Estado da pergunta é por SESSÃO do composer: abrir de novo volta a
   // oferecer, mesmo que a pessoa tenha dispensado na tentativa anterior.
-  perguntaPendenteParaEditor = false;
+  // No modo resposta, a pergunta já entra pendente — o cartão aparece sozinho
+  // na edição, sem a pessoa precisar tocar em nada. Como resetarEstadoComposer
+  // também roda ao voltar da edição pra câmera (refazer a captura), isso
+  // garante que o cartão volte a ser inserido na próxima captura.
+  perguntaPendenteParaEditor = modoRespostaPerguntaAtivo;
   perguntaDispensadaNoComposer = false;
   perguntaUsadaStoryVar = false;
+  painelEstiloAberto = false;
 
   document.getElementById('cameraStoryErro').style.display = 'none';
   document.getElementById('cameraStoryGravandoIndicador').style.display = 'none';
@@ -4447,7 +4475,9 @@ function resetarEstadoComposer(){
   const badgeTextoEl = document.getElementById('composerPerguntaTexto');
   const badgeEl = document.getElementById('composerPerguntaBadge');
   if(perguntaDoDiaTextoAtual){
-    // Sem o prefixo 💭 de antes: o card agora tem um rótulo próprio
+    atualizarBarraFerramentasStory();
+
+  // Sem o prefixo 💭 de antes: o card agora tem um rótulo próprio
     // ("PERGUNTA DO DIA") acima do texto, o emoji virou redundante.
     // display:block (não flex) — o card empilha rótulo/pergunta/dica.
     badgeTextoEl.textContent = perguntaDoDiaTextoAtual;
@@ -4455,6 +4485,10 @@ function resetarEstadoComposer(){
   } else {
     badgeEl.style.display = 'none';
   }
+  // No modo resposta a pergunta é o próprio objetivo da tela, então não faz
+  // sentido poder dispensá-la — o X sai de cena (e o card fica fixo).
+  const badgeX = document.getElementById('composerPerguntaBadgeX');
+  if(badgeX) badgeX.style.display = modoRespostaPerguntaAtivo ? 'none' : 'flex';
 
   configurarBotaoCapturaComposer();
 }
@@ -4530,7 +4564,25 @@ function abrirModoTextoComposer(){
 
 function fecharComposerStory(){
   pararStreamCameraStory();
+  // O modo é por sessão: sair zera, senão a próxima abertura pela bolinha/
+  // badge "+" herdaria a barra reduzida do fluxo de resposta.
+  modoRespostaPerguntaAtivo = false;
   closeModal('story-composer');
+}
+
+// No modo resposta, Emoji e Filtro sain de cena: a tela fica focada só em
+// responder a pergunta (vídeo, foto ou texto). No fluxo normal, tudo visível.
+function atualizarBarraFerramentasStory(){
+  const emoji = document.getElementById('editorStoryFerramentaEmoji');
+  const filtro = document.getElementById('editorStoryFerramentaFiltro');
+  const mostrar = modoRespostaPerguntaAtivo ? 'none' : 'flex';
+  if(emoji) emoji.style.display = mostrar;
+  if(filtro) filtro.style.display = mostrar;
+  // Se estavam abertos e o modo mudou, os painéis também somem.
+  if(modoRespostaPerguntaAtivo){
+    document.getElementById('editorStoryPainelEmojis').style.display = 'none';
+    document.getElementById('editorStoryPainelFiltros').style.display = 'none';
+  }
 }
 
 /* ===== Câmera ao vivo pro story (foto/vídeo), via getUserMedia ===== */
@@ -4914,6 +4966,7 @@ function abrirEditorStory(tipo, arquivo){
   // Se a pessoa tocou no card da pergunta lá na câmera, a caixa é criada
   // agora — com a foto/vídeo já de fundo. Vale pra qualquer origem de mídia
   // (captura, gravação ou galeria), porque todas passam por aqui.
+  atualizarBarraFerramentasStory();
   atualizarChipPerguntaEdicao();
   ajustarAreaArrasteEditorStory();
 
@@ -5221,17 +5274,60 @@ function selecionarCaixaStory(caixa){
   // de texto fica escondido nesse caso (mostrá-lo com controles inertes seria
   // pior que não mostrar).
   if(ehOverlayEmoji(caixa)){
+    // Emoji não tem estilo pra editar: nem barra, nem botão.
     document.getElementById('editorStoryPainelTexto').style.display = 'none';
+    document.getElementById('editorStoryBtnEstiloWrap').style.display = 'none';
     ajustarAreaArrasteEditorStory();
     return;
   }
 
-  document.getElementById('editorStoryPainelTexto').style.display = 'block';
+  // A barra de estilo NÃO abre sozinha: só o botão "Editar estilo" aparece.
+  // Antes ela abria a cada seleção e cobria justamente o texto sendo editado.
+  document.getElementById('editorStoryBtnEstiloWrap').style.display = 'flex';
   montarPaletaCoresStory(caixa);
   montarFontesStory(caixa);
   atualizarPainelTamanhoStory(caixa);
   atualizarToggleFundoStory(caixa);
+  aplicarEstadoPainelEstiloStory();
+}
+
+// Abre/fecha a barra de estilo, sempre ancorada no rodapé. Ao abrir, o rodapé
+// cresce e a área útil encolhe — então a caixa selecionada é reposicionada pra
+// continuar inteira dentro da área visível, nunca atrás dos controles.
+function alternarPainelEstiloStory(){
+  painelEstiloAberto = !painelEstiloAberto;
+  aplicarEstadoPainelEstiloStory();
+  if(painelEstiloAberto) manterCaixaVisivelStory(editorStoryCaixaAtiva);
+}
+
+function aplicarEstadoPainelEstiloStory(){
+  const painel = document.getElementById('editorStoryPainelTexto');
+  const label = document.getElementById('editorStoryBtnEstiloLabel');
+  const temTextoSelecionado = !!editorStoryCaixaAtiva && !ehOverlayEmoji(editorStoryCaixaAtiva);
+  const aberto = temTextoSelecionado && painelEstiloAberto;
+  painel.style.display = aberto ? 'block' : 'none';
+  if(label) label.textContent = aberto ? 'Fechar estilo' : 'Editar estilo';
   ajustarAreaArrasteEditorStory();
+}
+
+// Empurra a caixa pra dentro dos limites da área de arraste, se ela estiver
+// (parcialmente) fora — caso típico depois que a barra de estilo abre.
+function manterCaixaVisivelStory(caixa){
+  if(!caixa) return;
+  const camada = document.getElementById('editorStoryCamadaTextos');
+  const rectCamada = camada.getBoundingClientRect();
+  const rectCaixa = caixa.getBoundingClientRect();
+  if(!rectCamada.height || !rectCaixa.height) return;
+
+  const meia = rectCaixa.height / 2;
+  const minPx = meia + 8;
+  const maxPx = rectCamada.height - meia - 8;
+  if(maxPx < minPx) return; // caixa maior que a área útil: mexer só pioraria
+
+  const centroPx = (parseFloat(caixa.dataset.y) / 100) * rectCamada.height;
+  const ajustado = Math.min(maxPx, Math.max(minPx, centroPx));
+  caixa.dataset.y = (ajustado / rectCamada.height) * 100;
+  aplicarTransformCaixaStory(caixa);
 }
 
 // Toque no fundo (foto/vídeo/gradiente ou área vazia da camada de arraste):
@@ -5243,8 +5339,11 @@ function desselecionarTudoStory(){
     c.style.outline = 'none';
   });
   editorStoryCaixaAtiva = null;
+  painelEstiloAberto = false;
   const painel = document.getElementById('editorStoryPainelTexto');
   if(painel) painel.style.display = 'none';
+  const btnEstilo = document.getElementById('editorStoryBtnEstiloWrap');
+  if(btnEstilo) btnEstilo.style.display = 'none';
   ajustarAreaArrasteEditorStory();
 }
 
@@ -6958,6 +7057,9 @@ function closeModal(name){
     }
     document.getElementById('editorStoryCamadaTextos').innerHTML = '';
     document.getElementById('editorStoryPainelTexto').style.display = 'none';
+    document.getElementById('editorStoryBtnEstiloWrap').style.display = 'none';
+    painelEstiloAberto = false;
+    modoRespostaPerguntaAtivo = false; // o modo nunca sobrevive ao fechamento
   }
   if(name==='excluir-conta'){
     setTimeout(()=>{
