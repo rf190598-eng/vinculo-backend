@@ -189,6 +189,16 @@ cor_cabelo: {
   is_admin: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
+  },
+  // Programa de Parceiros: qual parceiro trouxe este usuário. Capturado no
+  // cadastro (a partir do codigo_indicacao do link) e imutável depois — é a
+  // base de quem recebe comissão recorrente por esta conta.
+  // Não confundir com os campos codigo_indicacao/indicado_por já existentes,
+  // que são do programa de indicação ENTRE USUÁRIOS (usuário convida amigo) e
+  // seguem funcionando de forma independente.
+  indicado_por_parceiro_id: {
+    type: DataTypes.UUID,
+    allowNull: true
   }
 }, {
   tableName: 'usuarios',

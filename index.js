@@ -32,6 +32,11 @@ const Notificacao = require('./models/Notificacao');
 const AvaliacaoEncontro = require('./models/AvaliacaoEncontro');
 const FotoPerfil = require('./models/FotoPerfil');
 const UsoRekognition = require('./models/UsoRekognition');
+const Parceiro = require('./models/Parceiro');
+const Indicacao = require('./models/Indicacao');
+const Comissao = require('./models/Comissao');
+const BonusMeta = require('./models/BonusMeta');
+const { registrarAssociacoes } = require('./models/associacoes');
 const authRoutes = require('./routes/auth');
 const swipeRoutes = require('./routes/swipe');
 const chatRoutes = require('./routes/chat');
@@ -165,6 +170,10 @@ let servidor;
 
 const iniciar = async () => {
   await conectarBanco();
+
+  // Antes do sync: declarar as associações não mexe no banco, só ensina ao
+  // Sequelize como os models se relacionam (habilita include/eager loading).
+  registrarAssociacoes();
 
   // ===== SEGURANÇA DE DADOS: alter:true só em desenvolvimento =====
   // sequelize.sync({ alter: true }) muda o schema do banco automaticamente
