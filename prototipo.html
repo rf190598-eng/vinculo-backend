@@ -1577,29 +1577,44 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 <div class="screen" id="screen-indica" style="background:#1a0810;min-height:100vh;">
   <div class="topbar">
     <div class="icon-btn" onclick="goTo('myprofile')">&#8592;</div>
-    <div class="logo serif">Indique um <span>Amigo</span></div>
+    <div class="logo serif">Parceiros <span>Vínculo</span></div>
     <div style="width:38px"></div>
   </div>
   <div style="padding:0 18px 32px">
 
-    <div style="background:linear-gradient(135deg,#3a1a2e,#1a0810);border:1.5px solid rgba(201,160,107,.35);border-radius:20px;padding:24px 18px;text-align:center;margin-bottom:20px;position:relative;overflow:hidden">
+    <!-- Manifesto -->
+    <div style="background:linear-gradient(135deg,#3a1a2e,#1a0810);border:1.5px solid rgba(201,160,107,.35);border-radius:20px;padding:24px 18px;margin-bottom:20px;position:relative;overflow:hidden">
       <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(201,160,107,.12),transparent 70%);pointer-events:none"></div>
-      <div style="font-size:52px;margin-bottom:12px">&#10024;</div>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#fdf6f2;margin-bottom:8px">Convide quem combina com o Vínculo</div>
-      <div style="font-size:13.5px;color:#d0a8b8;line-height:1.7;margin-bottom:16px">Compartilhe seu link com quem você acha que ia gostar daqui. Em breve: conheça o <b style="color:#d4b87a">Programa de Parceiros Vínculo.</b></div>
-      <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap">
-        <div style="text-align:center;background:rgba(255,255,255,.06);border-radius:14px;padding:12px 16px;min-width:90px">
-          <div style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:#fdf6f2" id="statIndicados">0</div>
-          <div style="font-size:11px;color:#d0a8b8">amigos indicados</div>
-        </div>
-        <!-- Contador "dias ganhos" removido junto com a promessa dos 7 dias: o
-             gatilho do bônus foi desligado (ver perfilController.uploadFoto), então
-             esse número seria sempre 0 e pareceria um bug. O id statDiasGanhos
-             deixou de existir — carregarEstatisticasIndicacao já trata ausência. -->
+      <div style="font-size:10px;font-weight:800;color:#d4b87a;text-transform:uppercase;letter-spacing:.14em;text-align:center;margin-bottom:10px;position:relative">Conectando pessoas, relacionamentos e oportunidades</div>
+      <div style="font-size:13.5px;color:#d0a8b8;line-height:1.75;position:relative">
+        <p style="margin:0 0 12px">O Vínculo nasceu com um compromisso: colocar a segurança em primeiro lugar. Verificação de identidade real, botão de pânico, check-in com alerta automático, contatos de confiança — cada recurso do app existe para que você possa se conectar com outras pessoas com tranquilidade. Essa é, e sempre vai ser, nossa prioridade número um.</p>
+        <p style="margin:0">Mas eu decidi que o Vínculo podia ir além de conectar pessoas com segurança. Ele também podia conectar pessoas a oportunidades reais de mudar de vida — inclusive financeiramente. É por isso que existe o <b style="color:#d4b87a">Parceiros Vínculo.</b></p>
       </div>
     </div>
 
-    <div style="font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Seu link de indicacao</div>
+    <!-- Resumo do parceiro (dados reais) -->
+    <div style="font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Seus números</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px">
+      <div style="background:rgba(255,255,255,.06);border-radius:14px;padding:14px 12px;text-align:center">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#fdf6f2" id="statParceiroIndicados">0</div>
+        <div style="font-size:11px;color:#d0a8b8">indicados</div>
+      </div>
+      <div style="background:rgba(255,255,255,.06);border-radius:14px;padding:14px 12px;text-align:center">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#fdf6f2" id="statParceiroAtivos">0</div>
+        <div style="font-size:11px;color:#d0a8b8">ativos (pagando)</div>
+      </div>
+      <div style="background:rgba(201,160,107,.1);border:1.5px solid rgba(201,160,107,.3);border-radius:14px;padding:14px 12px;text-align:center">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#d4b87a" id="statParceiroGanhoTotal">R$ 0,00</div>
+        <div style="font-size:11px;color:#d0a8b8">ganho acumulado</div>
+      </div>
+      <div style="background:rgba(201,160,107,.1);border:1.5px solid rgba(201,160,107,.3);border-radius:14px;padding:14px 12px;text-align:center">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#d4b87a" id="statParceiroGanhoMes">R$ 0,00</div>
+        <div style="font-size:11px;color:#d0a8b8">estimativa deste mês</div>
+      </div>
+    </div>
+
+    <!-- Link do parceiro -->
+    <div style="font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Seu link de parceiro</div>
     <div style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.15);border-radius:14px;padding:14px 16px;margin-bottom:14px">
       <div style="font-size:12px;color:#d0a8b8;margin-bottom:6px">Link exclusivo seu</div>
       <div style="display:flex;align-items:center;gap:10px">
@@ -1608,36 +1623,96 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       </div>
     </div>
 
-    <button onclick="compartilharLinkIndicacao()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(37,211,102,.12);border:1.5px solid rgba(37,211,102,.35);border-radius:12px;padding:15px;color:#fdf6f2;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;margin-bottom:20px">
+    <button onclick="compartilharLinkIndicacao()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(37,211,102,.12);border:1.5px solid rgba(37,211,102,.35);border-radius:12px;padding:15px;color:#fdf6f2;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;margin-bottom:24px">
       <span style="font-size:20px">&#128172;</span> Compartilhar link
     </button>
 
     <!-- Como funciona -->
     <div style="font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">Como funciona</div>
-    <div style="display:flex;flex-direction:column;gap:0">
+    <div style="display:flex;flex-direction:column;gap:0;margin-bottom:14px">
       <div style="display:flex;gap:14px;align-items:flex-start;padding-bottom:14px;position:relative">
         <div style="position:absolute;left:17px;top:36px;bottom:0;width:2px;background:rgba(255,255,255,.1)"></div>
         <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#d4839a,#c9a06b);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#1a0508;flex-shrink:0;z-index:1">1</div>
         <div style="padding-top:6px">
-          <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:3px">Compartilhe seu link</div>
-          <div style="font-size:12.5px;color:#d0a8b8;line-height:1.5">Toque em "Compartilhar" e escolha WhatsApp, Instagram, SMS ou qualquer app</div>
+          <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:3px">Seu código pessoal</div>
+          <div style="font-size:12.5px;color:#d0a8b8;line-height:1.5">Você recebe seu código e link pessoal de indicação</div>
         </div>
       </div>
       <div style="display:flex;gap:14px;align-items:flex-start;padding-bottom:14px;position:relative">
         <div style="position:absolute;left:17px;top:36px;bottom:0;width:2px;background:rgba(255,255,255,.1)"></div>
         <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#d4839a,#c9a06b);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#1a0508;flex-shrink:0;z-index:1">2</div>
         <div style="padding-top:6px">
-          <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:3px">Amigo cria a conta</div>
-          <div style="font-size:12.5px;color:#d0a8b8;line-height:1.5">Ele se cadastra pelo seu link</div>
+          <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:3px">Compartilhe</div>
+          <div style="font-size:12.5px;color:#d0a8b8;line-height:1.5">Com quem quiser, onde quiser</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;padding-bottom:14px;position:relative">
+        <div style="position:absolute;left:17px;top:36px;bottom:0;width:2px;background:rgba(255,255,255,.1)"></div>
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#d4839a,#c9a06b);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#1a0508;flex-shrink:0;z-index:1">3</div>
+        <div style="padding-top:6px">
+          <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:3px">Ela vira sua indicação</div>
+          <div style="font-size:12.5px;color:#d0a8b8;line-height:1.5">Toda pessoa que se cadastrar pelo seu link e assinar um plano pago</div>
         </div>
       </div>
       <div style="display:flex;gap:14px;align-items:flex-start">
-        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#d4839a,#c9a06b);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#1a0508;flex-shrink:0">3</div>
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#d4839a,#c9a06b);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#1a0508;flex-shrink:0">4</div>
         <div style="padding-top:6px">
-          <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:3px">Vocês dois no Vínculo</div>
-          <div style="font-size:12.5px;color:#d0a8b8;line-height:1.5">Sem limite de convites. Em breve o Programa de Parceiros traz recompensas por indicação.</div>
+          <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:3px">Você recebe R$ 5,00/mês</div>
+          <div style="font-size:12.5px;color:#d0a8b8;line-height:1.5">Todo mês que ela continuar ativa</div>
         </div>
       </div>
+    </div>
+
+    <div style="background:rgba(255,255,255,.05);border-left:3px solid rgba(201,160,107,.5);border-radius:0 10px 10px 0;padding:12px 14px;font-size:12.5px;color:#d0a8b8;line-height:1.6;margin-bottom:24px">
+      Essa comissão é <b style="color:#fdf6f2">recorrente</b> enquanto a pessoa continuar assinando. Se ela cancelar, você para de receber por essa pessoa específica — mas continua recebendo normalmente por todas as outras indicações que seguirem ativas. Não tem limite de quantas pessoas você pode indicar, nem de quanto pode ganhar.
+    </div>
+
+    <!-- Projeção -->
+    <div style="font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">Quanto isso pode significar pra você</div>
+    <div style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:14px;overflow:hidden;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08)">
+        <span style="font-size:13px;color:#d0a8b8">10 indicados ativos</span>
+        <span style="font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:700;color:#fdf6f2">R$ 50/mês</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08)">
+        <span style="font-size:13px;color:#d0a8b8">50 indicados ativos</span>
+        <span style="font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:700;color:#fdf6f2">R$ 250/mês</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08)">
+        <span style="font-size:13px;color:#d0a8b8">200 indicados ativos</span>
+        <span style="font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:700;color:#d4b87a">R$ 1.000/mês</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px">
+        <span style="font-size:13px;color:#d0a8b8">1.000 indicados ativos</span>
+        <span style="font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:700;color:#d4b87a">R$ 5.000/mês</span>
+      </div>
+    </div>
+    <div style="font-size:12.5px;color:#d0a8b8;line-height:1.6;margin-bottom:24px">
+      <b style="color:#fdf6f2">Renda recorrente.</b> O dinheiro continua entrando todo mês, enquanto as pessoas que você trouxe continuarem no Vínculo.
+    </div>
+
+    <!-- História do fundador -->
+    <div style="font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">A história por trás do Vínculo</div>
+    <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:18px 16px;font-size:13.5px;color:#d0a8b8;line-height:1.75;margin-bottom:20px">
+      <p style="margin:0 0 12px;color:#fdf6f2;font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700">Eu sou Roberto Ferreira, fundador do Vínculo.</p>
+      <p style="margin:0 0 12px">Eu criei o Vínculo pensando em algo que vai muito além de conectar pessoas. Eu acredito que todo mundo merece ter a oportunidade de encontrar alguém, construir uma relação verdadeira e, principalmente, ter a chance de mudar a própria história.</p>
+      <p style="margin:0 0 12px;color:#fdf6f2;font-weight:700">Eu sei o que é estar do lado difícil da vida.</p>
+      <p style="margin:0 0 12px">Já trabalhei em diferentes áreas, já corri atrás, já construí meu próprio negócio e também já vi tudo desmoronar. Tive uma empresa de pamonha, investi, trabalhei muito, mas chegou um momento em que as coisas não deram certo e eu passei por uma grande quebra financeira.</p>
+      <p style="margin:0 0 12px">Foi uma fase difícil. Você olha para tudo aquilo que construiu e percebe que precisa começar novamente. Mas foi justamente ali que eu aprendi uma das maiores lições da minha vida: uma queda financeira não precisa ser o fim da história.</p>
+      <p style="margin:0 0 12px;color:#fdf6f2;font-weight:700">Eu recomecei.</p>
+      <p style="margin:0 0 12px">E hoje, quando estou construindo o Vínculo, eu não quero criar apenas um aplicativo onde as pessoas possam se conhecer, conversar e encontrar alguém especial.</p>
+      <p style="margin:0 0 12px;color:#d4b87a;font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700">Eu quero criar oportunidades.</p>
+      <p style="margin:0 0 12px">Por isso nasceu também a área de Parceiros Vínculo.</p>
+      <p style="margin:0 0 12px">Se você acredita no projeto e indica pessoas para fazerem parte do Vínculo, você pode receber <b style="color:#fdf6f2">R$ 5 por indicação</b>, sem limite de indicações. Quanto mais pessoas você conseguir trazer, maior pode ser o seu resultado.</p>
+      <p style="margin:0 0 12px">Eu poderia simplesmente criar o aplicativo e ficar apenas com essa oportunidade para mim. Mas eu decidi fazer diferente.</p>
+      <p style="margin:0 0 12px">Porque eu sei que existem muitas pessoas que também estão tentando recomeçar, que precisam de uma oportunidade, que querem construir uma renda e mudar a própria realidade.</p>
+      <p style="margin:0 0 12px">O Vínculo nasceu para conectar pessoas.<br/>Mas eu quero que ele também conecte pessoas a novas oportunidades.</p>
+      <p style="margin:0 0 12px;color:#fdf6f2;font-weight:700">Não existe dinheiro fácil. Existe trabalho, dedicação, divulgação, confiança e vontade de fazer acontecer.</p>
+      <p style="margin:0">Eu já precisei dar a volta por cima.<br/>Agora, quero construir essa nova história junto com vocês.</p>
+    </div>
+
+    <div style="text-align:center;font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:700;color:#d4b87a;line-height:1.5;padding:0 10px">
+      Vínculo: conectando pessoas, relacionamentos e oportunidades.
     </div>
   </div>
 </div>
@@ -1810,7 +1885,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div class="settings-item" onclick="goTo('safety')"><div class="settings-label"><span class="settings-ic">&#128737;</span>Central de Segurança</div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item" onclick="goTo('privacy-prefs')"><div class="settings-label"><span class="settings-ic">&#128274;</span>Privacidade</div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item" onclick="goTo('notif-prefs')"><div class="settings-label"><span class="settings-ic">&#128276;</span>Notificações</div><span style="color:#d0a8b8">&#8250;</span></div>
-  <div class="settings-item" onclick="goTo('indica')"><div class="settings-label"><span class="settings-ic">&#10024;</span>Indicar um amigo</div><span style="background:rgba(201,160,107,.2);border-radius:20px;padding:2px 8px;font-size:10px;color:#d4b87a;font-weight:700">EM BREVE</span></div>
+  <div class="settings-item" onclick="goTo('indica')"><div class="settings-label"><span class="settings-ic">&#129309;</span>Parceiros Vínculo — ganhe por indicação</div><span style="background:rgba(201,160,107,.2);border-radius:20px;padding:2px 8px;font-size:10px;color:#d4b87a;font-weight:700">R$ 5/mês</span></div>
   <div class="settings-item" id="menuPainelAdmin" onclick="goTo('admin')"><div class="settings-label"><span class="settings-ic">&#128202;</span><span style="color:#d4b87a">Painel Admin</span></div><span style="background:rgba(212,131,154,.2);border-radius:20px;padding:2px 8px;font-size:10px;color:#f0a0b8;font-weight:700">ADMIN</span></div>
   <div class="settings-item" onclick="goTo('landing')"><div class="settings-label"><span class="settings-ic">&#127968;</span>Ver landing page</div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item" onclick="sairDaConta()"><div class="settings-label"><span class="settings-ic">&#128682;</span><span style="color:#e8909e">Sair da conta</span></div></div>
@@ -4160,21 +4235,55 @@ function montarLinkIndicacao(){
   return `${API_URL}/prototipo?ref=${usuarioAtual.codigo_indicacao}`;
 }
 
+// Link do Programa de Parceiros. Diferente de montarLinkIndicacao(), que monta
+// o link do sistema ANTIGO (?ref= com o codigo_indicacao do usuário, ainda
+// usado pelas Duplas). Aqui o link vem pronto do backend, com o código do
+// parceiro — são códigos e sistemas distintos.
+let linkParceiroAtual = '';
+
+function formatarReais(valor){
+  return 'R$ ' + Number(valor || 0).toFixed(2).replace('.', ',');
+}
+
 async function carregarEstatisticasIndicacao(){
   const linkEl = document.getElementById('linkIndicacaoTexto');
-  if(linkEl) linkEl.textContent = montarLinkIndicacao().replace('https://','');
+  if(linkEl) linkEl.textContent = 'Carregando...';
   try{
-    const resp = await fetch(`${API_URL}/api/perfil/indicacoes`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
+    // O backend cria o registro de parceiro na primeira visita, então esta
+    // chamada é o que "inscreve" a pessoa no programa — sem tela de cadastro.
+    const resp = await fetch(`${API_URL}/api/parceiros/me`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
     const dados = await resp.json();
-    const elIndicados = document.getElementById('statIndicados');
-    const elDias = document.getElementById('statDiasGanhos');
-    if(elIndicados) elIndicados.textContent = dados.total_indicados ?? 0;
-    if(elDias) elDias.textContent = dados.dias_premium_ganhos ?? 0;
-  }catch(e){}
+    if(!resp.ok) throw new Error(dados.erro || 'Falha ao carregar parceiro');
+
+    linkParceiroAtual = dados.link || '';
+    if(linkEl) linkEl.textContent = linkParceiroAtual.replace(/^https?:\/\//, '');
+
+    const elIndicados = document.getElementById('statParceiroIndicados');
+    const elAtivos = document.getElementById('statParceiroAtivos');
+    const elTotal = document.getElementById('statParceiroGanhoTotal');
+    const elMes = document.getElementById('statParceiroGanhoMes');
+
+    if(elIndicados) elIndicados.textContent = dados.total_indicacoes ?? 0;
+    if(elAtivos) elAtivos.textContent = dados.indicacoes_ativas ?? 0;
+    if(elTotal) elTotal.textContent = formatarReais(dados.ganho_total);
+    // Estimativa (ativos x comissão), não valor apurado — o fechamento mensal
+    // que popula "comissoes" ainda não existe. O rótulo na tela diz
+    // "estimativa deste mês" justamente pra não prometer valor fechado.
+    if(elMes) elMes.textContent = formatarReais(dados.ganho_mes_estimado);
+  }catch(e){
+    if(linkEl) linkEl.textContent = 'Não foi possível carregar seu link';
+  }
+}
+
+// Usa o link do PARCEIRO (carregado de /api/parceiros/me). Só cai no
+// montarLinkIndicacao() antigo se a chamada tiver falhado — assim o botão
+// nunca fica sem nada pra copiar.
+function linkParaCompartilhar(){
+  return linkParceiroAtual || montarLinkIndicacao();
 }
 
 function copiarLinkIndicacao(){
-  const link = montarLinkIndicacao();
+  const link = linkParaCompartilhar();
   if(navigator.clipboard){
     navigator.clipboard.writeText(link).then(()=>showToastVinculo('Link copiado!'));
   } else {
@@ -4183,7 +4292,7 @@ function copiarLinkIndicacao(){
 }
 
 async function compartilharLinkIndicacao(){
-  const link = montarLinkIndicacao();
+  const link = linkParaCompartilhar();
   const texto = 'Vem pro Vínculo comigo! Um app de relacionamento pensado de verdade pra segurança das mulheres.';
   if(navigator.share){
     try{ await navigator.share({ title:'Vínculo', text: texto, url: link }); }

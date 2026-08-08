@@ -50,6 +50,7 @@ const duplaRoutes = require('./routes/dupla');
 const statusRoutes = require('./routes/status');
 const estatisticasRoutes = require('./routes/estatisticas');
 const usuarioRoutes = require('./routes/usuario');
+const parceiroRoutes = require('./routes/parceiros');
 const { verificarCheckinsVencidos } = require('./controllers/segurancaController');
 
 const app = express();
@@ -101,6 +102,14 @@ const limiteAuth = rateLimit({
 });
 app.use('/api/auth', limiteAuth);
 
+// Link curto de parceiro: /r/CODIGO -> abre o app já com o ref na query.
+// É o que faz o link divulgado (app.vinculoapp.com.br/r/pmaria1234) funcionar
+// de verdade — sem isso, o link seria só um texto bonito que dá 404.
+app.get('/r/:codigo', (req, res) => {
+  const codigo = String(req.params.codigo || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 40);
+  res.redirect(302, '/prototipo?ref=' + encodeURIComponent(codigo));
+});
+
 app.get('/prototipo', (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.sendFile(path.join(__dirname, 'prototipo.html'));
@@ -142,6 +151,7 @@ app.use('/api/estatisticas', estatisticasRoutes);
 app.use('/api/denuncia', denunciaRoutes);
 app.use('/api/bloqueio', bloqueioRoutes);
 app.use('/api/usuario', usuarioRoutes);
+app.use('/api/parceiros', parceiroRoutes);
 
 // ===== Rota não encontrada =====
 app.use((req, res) => {

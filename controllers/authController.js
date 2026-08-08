@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Usuario = require('../models/Usuario');
+const { resolverParceiroPorCodigo } = require('./parceiroController');
 
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const GENEROS_VALIDOS = ['masculino', 'feminino', 'nao-binario'];
@@ -14,7 +15,13 @@ function gerarCodigoIndicacao(nome) {
 
 const cadastrar = async (req, res) => {
   try {
+    // 'ref' = código do Programa de Parceiros (novo, comissão em R$).
+    // Aceito também via query string, porque o link curto /r/:codigo pode
+    // chegar como ?ref= dependendo de como o front repassa.
+    // NÃO confundir com codigo_indicacao_usado, que é do sistema antigo entre
+    // usuários e continua funcionando igual (as Duplas dependem dele).
     const { nome, email, senha, data_nascimento, genero, pref_genero, codigo_indicacao_usado } = req.body;
+    const refParceiro = req.body.ref || req.query.ref || null;
 
     if (!nome || !String(nome).trim()) {
       return res.status(400).json({ erro: 'Nome é obrigatório' });
@@ -68,11 +75,23 @@ const cadastrar = async (req, res) => {
       if (referenciador) indicado_por = referenciador.codigo_indicacao;
     }
 
+    // Programa de Parceiros: guarda QUAL parceiro trouxe este usuário. A
+    // indicação em si (linha em "indicacoes") só nasce quando ele confirmar a
+    // identidade — ver registrarIndicacaoSeAplicavel no perfilController.
+    // Um código inválido ou de parceiro suspenso resolve pra null e o cadastro
+    // segue normal: link ruim nunca pode impedir alguém de criar conta.
+    let indicado_por_parceiro_id = null;
+    try {
+      indicado_por_parceiro_id = await resolverParceiroPorCodigo(refParceiro);
+    } catch (erroRef) {
+      console.warn('Falha ao resolver código de parceiro no cadastro:', erroRef.message);
+    }
+
     let usuario;
     try {
       usuario = await Usuario.create({
         nome: nomeLimpo, email: emailNormalizado, senha: senhaCriptografada, data_nascimento, genero, pref_genero,
-        codigo_indicacao, indicado_por
+        codigo_indicacao, indicado_por, indicado_por_parceiro_id
       });
     } catch (erroCriacao) {
       if (erroCriacao.name === 'SequelizeUniqueConstraintError') {

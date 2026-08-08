@@ -5,7 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const { compararRostos } = require('../utils/rekognition');
-const { creditarBonusIndicacaoSeAplicavel } = require('./livenessController');
+const { creditarBonusIndicacaoSeAplicavel } = require('./livenessController'); // referral antigo (gatilho desligado)
+const { registrarIndicacaoSeAplicavel } = require('./parceiroController');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -210,6 +211,20 @@ const uploadFoto = async (req, res) => {
                   //
                   // const usuarioVerificado = await Usuario.findByPk(req.usuarioId);
                   // await creditarBonusIndicacaoSeAplicavel(usuarioVerificado);
+
+                  // ===== PROGRAMA DE PARCEIROS (novo) =====
+                  // Mesmo gatilho de antes — identidade confirmada é o momento
+                  // em que a indicação passa a valer. Envolvido em try/catch
+                  // próprio de propósito: falhar em registrar a indicação não
+                  // pode derrubar o upload da foto, que é o que o usuário veio
+                  // fazer. Se der erro, fica logado e o registro pode ser
+                  // reconciliado depois a partir de indicado_por_parceiro_id.
+                  try {
+                        const usuarioVerificado = await Usuario.findByPk(req.usuarioId);
+                        await registrarIndicacaoSeAplicavel(usuarioVerificado);
+                  } catch (erroIndicacao) {
+                        console.error('Falha ao registrar indicação de parceiro:', erroIndicacao.message);
+                  }
 
                   return res.json({ mensagem: 'Foto atualizada e identidade confirmada!', foto_url });
           }
