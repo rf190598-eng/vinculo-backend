@@ -190,8 +190,26 @@ const uploadFoto = async (req, res) => {
                               );
                   await sincronizarFotoPrincipalNaGaleria(req.usuarioId, foto_url);
 
-                  const usuarioVerificado = await Usuario.findByPk(req.usuarioId);
-                  await creditarBonusIndicacaoSeAplicavel(usuarioVerificado);
+                  // ===== REFERRAL ANTIGO (bônus de 7 dias Premium) — DESLIGADO =====
+                  // Este era o único gatilho que concedia o bônus: ao confirmar a
+                  // identidade, creditava 7 dias de Premium a quem indicou.
+                  // Desativado porque o programa foi substituído pelo Programa de
+                  // Parceiros (comissão em R$). Confirmado no banco antes de
+                  // desligar: total_indicados = 0 e bonus_pendentes = 0, ou seja,
+                  // ninguém perdeu crédito já prometido.
+                  //
+                  // Mantido comentado de propósito (e não removido) porque o resto
+                  // do sistema antigo segue de pé por ora: a função
+                  // creditarBonusIndicacaoSeAplicavel, os campos indicado_por e
+                  // bonus_indicacao_creditado, a rota GET /api/perfil/indicacoes e a
+                  // tela screen-indica. Religar é descomentar esta linha.
+                  //
+                  // ATENÇÃO: codigo_indicacao NÃO faz parte deste desligamento —
+                  // ele continua sendo gerado no cadastro e é usado pelo sistema de
+                  // Duplas (duplaController.convidarParceiro).
+                  //
+                  // const usuarioVerificado = await Usuario.findByPk(req.usuarioId);
+                  // await creditarBonusIndicacaoSeAplicavel(usuarioVerificado);
 
                   return res.json({ mensagem: 'Foto atualizada e identidade confirmada!', foto_url });
           }
