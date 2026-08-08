@@ -207,18 +207,45 @@ const criarResposta = async (req, res) => {
   }
 };
 
+const DURACAO_STORY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Condição de "story ainda visível", usada por TODAS as listagens.
+ *
+ * São duas checagens de propósito, e não uma:
+ *
+ *  - expira_em > agora  → o campo gravado na criação (createdAt + 24h).
+ *  - createdAt > agora - 24h → a REGRA em si, recalculada na hora.
+ *
+ * A segunda existe porque a primeira depende de um valor gravado no passado.
+ * Se alguma linha tiver expira_em errado (registro criado por script, import,
+ * ajuste manual no banco, ou bug antigo), ela nunca expiraria — o filtro
+ * confiaria num dado ruim. Derivando de createdAt, a janela de 24h passa a
+ * ser garantida pelo próprio instante da publicação, que não tem como
+ * divergir. Como as duas condições são combinadas por AND, vale sempre a mais
+ * restritiva, e linhas problemáticas somem na consulta seguinte — sem
+ * limpeza manual no banco.
+ */
+function filtroStoryVisivel(Op) {
+  const agora = new Date();
+  return {
+    expira_em: { [Op.gt]: agora },
+    createdAt: { [Op.gt]: new Date(agora.getTime() - DURACAO_STORY_MS) }
+  };
+}
+
 // Agrupa por usuário: cada pessoa aparece uma vez na barra, mas carrega TODOS
 // os stories ativos dela (não substituídos ao postar de novo, só filtrados
-// por expira_em). Ordena os stories de cada pessoa do mais antigo pro mais
-// novo (pra navegação avançar cronologicamente, igual Instagram), e ordena as
-// pessoas pelo story mais recente delas primeiro (mesmo critério de antes).
+// pela janela de 24h). Ordena os stories de cada pessoa do mais antigo pro
+// mais novo (pra navegação avançar cronologicamente, igual Instagram), e
+// ordena as pessoas pelo story mais recente delas primeiro.
 const listarStatusFeed = async (req, res) => {
   try {
     const { Op } = require('sequelize');
     const respostas = await StatusResposta.findAll({
       where: {
         usuario_id: { [Op.ne]: req.usuarioId },
-        expira_em: { [Op.gt]: new Date() }
+        ...filtroStoryVisivel(Op)
       },
       order: [['createdAt', 'ASC']]
     });
@@ -252,7 +279,7 @@ const meuStatusAtivo = async (req, res) => {
   try {
     const { Op } = require('sequelize');
     const respostas = await StatusResposta.findAll({
-      where: { usuario_id: req.usuarioId, expira_em: { [Op.gt]: new Date() } },
+      where: { usuario_id: req.usuarioId, ...filtroStoryVisivel(Op) },
       order: [['createdAt', 'ASC']]
     });
 
