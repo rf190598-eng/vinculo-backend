@@ -199,6 +199,15 @@ cor_cabelo: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
+  // Identificador estável do Google (claim `sub` do id_token). Preenchido no
+  // primeiro login com Google — inclusive em contas que já existiam por
+  // e-mail/senha. Serve para saber se a conta tem Google vinculado e, no
+  // suporte, distinguir quem NUNCA definiu senha (cadastro veio pelo Google,
+  // senha é um valor aleatório) de quem escolheu uma.
+  google_id: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   // Programa de Parceiros: qual parceiro trouxe este usuário. Capturado no
   // cadastro (a partir do codigo_indicacao do link) e imutável depois — é a
   // base de quem recebe comissão recorrente por esta conta.

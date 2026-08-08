@@ -364,8 +364,10 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <input class="inp" id="cadSenha" type="password" placeholder="Senha"/>
     <div id="cadErro" style="color:#ff8fa3;font-size:12.5px;margin:-6px 0 8px;min-height:14px"></div>
     <button class="btn btn-primary" id="btnCriarConta" onclick="cadastrarUsuario()">Criar conta</button>
-    <div class="divider">ou</div>
-    <button class="btn btn-ghost" onclick="goTo('welcome')">&#128247; Continuar com Google</button>
+    <!-- Aviso mostrado só no 2º passo do cadastro via Google -->
+    <div id="avisoCadastroGoogle" style="display:none;color:#d0a8b8;font-size:12.5px;line-height:1.5;margin-bottom:10px"></div>
+    <div class="divider" id="cadDivisor">ou</div>
+    <button class="btn btn-ghost" id="btnGoogleCadastro" onclick="entrarComGoogle()">&#71;&nbsp; Continuar com Google</button>
     <div class="login-link" onclick="goTo('login')" style="margin-top:16px">Já tenho conta — Entrar</div>
     <div class="auth-foot" style="margin-top:14px">Apenas para maiores de 18 anos. <a href="#">Termos de uso</a></div>
   </div>
@@ -382,7 +384,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div id="loginErro" style="color:#ff8fa3;font-size:12.5px;margin:-6px 0 8px;min-height:14px"></div>
     <button class="btn btn-primary" id="btnEntrar" onclick="fazerLogin()">Entrar</button>
     <div class="divider">ou</div>
-    <button class="btn btn-ghost" onclick="goTo('discover')">&#128247; Entrar com Google</button>
+    <button class="btn btn-ghost" onclick="entrarComGoogle()">&#71;&nbsp; Entrar com Google</button>
     <div style="color:#d8b0c4;font-size:12.5px;margin-top:14px;cursor:pointer" onclick="goTo('esqueci-senha')">Esqueci minha senha</div>
     <div class="login-link" onclick="goTo('auth')" style="margin-top:8px">Não tenho conta — Criar conta</div>
   </div>
@@ -2791,6 +2793,146 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+/* ===== LOGIN / CADASTRO COM GOOGLE =====
+   O fluxo OAuth é uma NAVEGAÇÃO do browser (redirect), não um fetch: sai do
+   app, vai pro Google, e volta em /prototipo com o resultado no fragmento (#).
+   Fragmento e não query porque o # não é enviado ao servidor — o token de
+   sessão não aparece em log de acesso nem no header Referer. */
+let preTokenGoogle = null;
+
+function entrarComGoogle(){
+  // Repassa o código de parceiro, se a pessoa chegou por um link de indicação.
+  // Sem isso, quem se cadastra pelo Google nunca seria atribuído ao parceiro.
+  const ref = new URLSearchParams(window.location.search).get('ref');
+  const destino = `${API_URL}/api/auth/google` + (ref ? ('?ref=' + encodeURIComponent(ref)) : '');
+  window.location.href = destino;
+}
+
+// Segundo passo do cadastro via Google: o Google não fornece data de
+// nascimento, e ela é obrigatória (é o que sustenta a regra de 18+). Reusa a
+// própria tela de cadastro, travando nome e e-mail e escondendo a senha.
+function abrirCompletarCadastroGoogle(preToken){
+  preTokenGoogle = preToken;
+
+  let dados = {};
+  try {
+    // Só para pré-preencher a tela. A fonte de verdade de nome/e-mail é o
+    // próprio token assinado, validado no servidor.
+    dados = JSON.parse(atob(preToken.split('.')[1])) || {};
+  } catch(e){}
+
+  goToBase('auth');
+
+  const nomeEl = document.getElementById('cadNome');
+  const emailEl = document.getElementById('cadEmail');
+  if(nomeEl){ nomeEl.value = dados.nome || ''; nomeEl.readOnly = true; nomeEl.style.opacity = '.7'; }
+  if(emailEl){ emailEl.value = dados.email || ''; emailEl.readOnly = true; emailEl.style.opacity = '.7'; }
+
+  const senhaEl = document.getElementById('cadSenha');
+  if(senhaEl) senhaEl.style.display = 'none';
+  const divisor = document.getElementById('cadDivisor');
+  if(divisor) divisor.style.display = 'none';
+  const btnGoogle = document.getElementById('btnGoogleCadastro');
+  if(btnGoogle) btnGoogle.style.display = 'none';
+
+  const aviso = document.getElementById('avisoCadastroGoogle');
+  if(aviso){
+    aviso.style.display = 'block';
+    aviso.textContent = 'Conectado ao Google como ' + (dados.email || '') + '. Falta só confirmar sua data de nascimento para continuar.';
+  }
+
+  const btn = document.getElementById('btnCriarConta');
+  if(btn){
+    btn.textContent = 'Continuar';
+    btn.setAttribute('onclick', 'finalizarCadastroGoogle()');
+  }
+}
+
+async function finalizarCadastroGoogle(){
+  const erroEl = document.getElementById('cadErro');
+  const btn = document.getElementById('btnCriarConta');
+  erroEl.textContent = '';
+
+  const dia = document.getElementById('cadDia').value;
+  const mes = document.getElementById('cadMes').value;
+  const ano = document.getElementById('cadAno').value;
+  if(!dia || !mes || !ano){ erroEl.textContent = 'Informe sua data de nascimento.'; return; }
+  const data_nascimento = `${ano}-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+
+  btn.disabled = true;
+  btn.textContent = 'Criando conta...';
+  try{
+    const resp = await fetch(`${API_URL}/api/auth/google/finalizar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pre_token: preTokenGoogle,
+        data_nascimento,
+        genero: document.getElementById('cadGenero').value || null,
+        pref_genero: document.getElementById('cadPrefGenero').value || null
+      })
+    });
+    const dados = await resp.json();
+    if(!resp.ok) throw new Error(dados.erro || 'Não foi possível concluir o cadastro.');
+
+    tokenAtual = dados.token;
+    usuarioAtual = dados.usuario;
+    localStorage.setItem('vinculo_token', tokenAtual);
+    localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
+    preTokenGoogle = null;
+    // Mesmo destino do cadastro por e-mail/senha: welcome -> liveness.
+    goTo('welcome');
+  } catch(e){
+    erroEl.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Continuar';
+  }
+}
+
+// Lê o resultado do OAuth assim que a página carrega.
+async function processarRetornoGoogle(){
+  if(!window.location.hash) return false;
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const token = params.get('google_token');
+  const pre = params.get('google_pre');
+  const erro = params.get('google_erro');
+  if(!token && !pre && !erro) return false;
+
+  // Limpa o fragmento pra o token não ficar na barra de endereços nem no
+  // histórico, e pra um F5 não reprocessar o mesmo retorno.
+  history.replaceState(null, '', window.location.pathname + window.location.search);
+
+  if(erro){
+    goToBase('landing');
+    showToastVinculo(erro);
+    return true;
+  }
+
+  if(pre){
+    abrirCompletarCadastroGoogle(pre);
+    return true;
+  }
+
+  // Conta já existente: entra direto. O guard de navegação decide o destino
+  // real (liveness, edit-profile ou discover) conforme o estado da conta.
+  tokenAtual = token;
+  localStorage.setItem('vinculo_token', token);
+  try{
+    const resp = await fetch(`${API_URL}/api/auth/perfil`, { headers:{ 'Authorization': `Bearer ${token}` } });
+    if(!resp.ok) throw new Error('Sessão inválida');
+    usuarioAtual = await resp.json();
+    localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
+    goTo('discover');
+  } catch(e){
+    tokenAtual = null;
+    localStorage.removeItem('vinculo_token');
+    goToBase('landing');
+    showToastVinculo('Não foi possível entrar. Tente novamente.');
+  }
+  return true;
+}
+
 function sairDaConta(){
   localStorage.removeItem('vinculo_token');
   localStorage.removeItem('vinculo_usuario');
@@ -2865,6 +3007,11 @@ async function confirmarExclusaoConta(){
 }
 
 async function verificarSessaoSalva(){
+  // Retorno do Google tem prioridade: ele traz um token novo e decide o
+  // destino. Se rodasse depois, a sessão antiga (ou a falta dela) já teria
+  // navegado e o resultado do OAuth seria sobrescrito.
+  if (await processarRetornoGoogle()) return;
+
   if (!tokenAtual) return; // ninguém logado antes, fica na tela inicial normal
 
   try {
