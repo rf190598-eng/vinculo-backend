@@ -23,16 +23,39 @@ const path = require('path');
 const crypto = require('crypto');
 
 const REGIAO_LIVENESS = process.env.AWS_REKOGNITION_LIVENESS_REGION || 'us-east-1';
-const rekognitionClient = new RekognitionClient({ region: REGIAO_LIVENESS });
+
+// Timeouts explícitos: sem eles, o SDK espera INDEFINIDAMENTE por uma resposta
+// da AWS. Se a Rekognition ficar lenta ou a conexão de saída pendurar, a rota
+// nunca responde, o fetch do app fica aberto para sempre e o usuário trava na
+// tela "preparando a câmera" sem erro nenhum — que é exatamente o sintoma
+// relatado. Com timeout, a chamada falha rápido e vira erro tratável.
+const rekognitionClient = new RekognitionClient({
+  region: REGIAO_LIVENESS,
+  maxAttempts: 3,
+  requestHandler: {
+    connectionTimeout: 5000,
+    requestTimeout: 15000
+  }
+});
 const CONFIANCA_MINIMA = Number(process.env.LIVENESS_CONFIANCA_MINIMA || 90);
 
 async function criarSessaoLiveness(req, res) {
+  const inicio = Date.now();
   try {
     const comando = new CreateFaceLivenessSessionCommand({});
     const resultado = await rekognitionClient.send(comando);
+    console.log(`[liveness] sessão criada em ${Date.now() - inicio}ms para usuário ${req.usuarioId}`);
     return res.json({ sessionId: resultado.SessionId });
   } catch (erro) {
-    console.error('Erro ao criar sessão de liveness:', erro);
+    // Log detalhado: sem um sistema de log persistente no projeto, o stdout do
+    // Railway é a única trilha para diagnosticar travamentos como este.
+    console.error('[liveness] FALHA ao criar sessão', {
+      usuario: req.usuarioId,
+      ms: Date.now() - inicio,
+      nome: erro.name,
+      mensagem: erro.message,
+      regiao: REGIAO_LIVENESS
+    });
     return res.status(500).json({ erro: 'Não foi possível iniciar a verificação de liveness.' });
   }
 }

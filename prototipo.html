@@ -2652,8 +2652,37 @@ window.atualizarUsuarioLocal = function(novoUsuario){
   localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
 };
 
+// Telas acessíveis SEM estar logado. Tudo que não estiver aqui exige sessão.
+// A lista é curta de propósito: é mais seguro liberar explicitamente do que
+// tentar enumerar o que deve ser bloqueado (esquecer um item aqui fecha uma
+// tela pública; esquecer na lista oposta abriria o app inteiro).
+//
+// - landing / auth / login: entrada do app
+// - esqueci-senha / redefinir-senha: recuperação de senha acontece
+//   necessariamente com o usuário deslogado (o link do e-mail cai direto em
+//   redefinir-senha, ver o goTo em trocarSenhaComToken)
+//
+// NÃO estão aqui de propósito: welcome, onboarding e tour1-4. Todas fazem
+// parte do pós-cadastro, quando usuarioAtual JÁ existe (o cadastro grava
+// token e usuário antes de navegar).
+const telasPublicas = ['landing', 'auth', 'login', 'esqueci-senha', 'redefinir-senha'];
+
 const goToBase = goTo;
 goTo = function(name){
+  // ===== Porteiro de sessão =====
+  // Precisa vir ANTES de tudo. Os guards abaixo são todos condicionados a
+  // `usuarioAtual && ...`, então com usuarioAtual nulo eles eram simplesmente
+  // pulados e a navegação caía direto no goToBase(name) do final — deixando
+  // qualquer tela interna (inclusive 'discover') acessível sem login.
+  //
+  // Exige token E usuário: só o objeto do usuário no localStorage não basta,
+  // porque sem token toda chamada de API falha e a pessoa veria uma casca de
+  // app vazia, parecendo bug.
+  if (!usuarioAtual || !tokenAtual) {
+    goToBase(telasPublicas.includes(name) ? name : 'landing');
+    return;
+  }
+
   if (name === 'admin' && (!usuarioAtual || !usuarioAtual.is_admin)) {
     goToBase('myprofile');
     showToastVinculo('Acesso restrito.');
@@ -7468,7 +7497,44 @@ function toggleLsRadio(el){
 
   let livenessRoot = null;
   let livenessTimeoutId = null;
-  const LIVENESS_TIMEOUT_MS = 25000;
+  let livenessEmAndamento = false;
+
+  // Tempo para o app CONSEGUIR abrir a câmera (criar sessão + montar o
+  // componente). Não cobre o tempo que a pessoa leva usando a verificação —
+  // isso é desarmado assim que a câmera aparece. O valor anterior (25s a
+  // partir do render) disparava no meio do uso legítimo, porque ler o aviso,
+  // autorizar a câmera e posicionar o rosto passa fácil de 25s.
+  const LIVENESS_PREPARO_TIMEOUT_MS = 45000;
+  // Teto de cada chamada HTTP isolada.
+  const LIVENESS_FETCH_TIMEOUT_MS = 20000;
+
+  // fetch com AbortController. ESSENCIAL: sem isso, um fetch que nunca
+  // responde (backend pendurado esperando a AWS) deixa o await preso para
+  // sempre — nenhum catch roda, nenhum timeout é armado, e a tela fica no
+  // spinner indefinidamente. Era exatamente esse o caminho do travamento.
+  async function fetchComTimeout(url, opcoes, ms) {
+    const controlador = new AbortController();
+    const id = setTimeout(() => controlador.abort(), ms || LIVENESS_FETCH_TIMEOUT_MS);
+    try {
+      return await fetch(url, Object.assign({}, opcoes, { signal: controlador.signal }));
+    } finally {
+      clearTimeout(id);
+    }
+  }
+
+  function mostrarFalhaLiveness(mensagem) {
+    const erroEl = document.getElementById('livenessErro');
+    const retryBtn = document.getElementById('btnRetentarLiveness');
+    const container = document.getElementById('livenessRoot');
+    if (erroEl) erroEl.textContent = mensagem;
+    if (retryBtn) retryBtn.style.display = 'block';
+    // Devolve o container a um estado neutro: se o componente da AWS ficou
+    // preso ou vazio, o usuário via um retângulo preto sem explicação.
+    if (container) {
+      container.innerHTML = '<div style="color:#d8b0c4;font-size:12.5px;text-align:center;padding:24px">A verificação não pôde continuar.<br/>Use o botão abaixo para tentar de novo.</div>';
+    }
+    livenessEmAndamento = false;
+  }
 
   window.iniciarLivenessCheck = async function () {
     const erroEl = document.getElementById('livenessErro');
@@ -7476,16 +7542,51 @@ function toggleLsRadio(el){
     const container = document.getElementById('livenessRoot');
     if (!container) return;
 
+    // goTo dispara iniciarLivenessCheck em dois pontos (o guard de liveness e
+    // o final da função). Sem esta trava, duas execuções concorrentes criavam
+    // duas sessões e renderizavam duas vezes na mesma raiz React — corrida que
+    // deixa o componente num estado inconsistente.
+    if (livenessEmAndamento) return;
+    livenessEmAndamento = true;
+
     erroEl.textContent = '';
     retryBtn.style.display = 'none';
     if (livenessTimeoutId) { clearTimeout(livenessTimeoutId); livenessTimeoutId = null; }
 
+    // Sempre parte de uma árvore React limpa. Reaproveitar a mesma raiz e só
+    // trocar o sessionId não reinicia a máquina de estados interna do
+    // FaceLivenessDetector — em nova tentativa depois de erro/cancelamento ele
+    // podia remontar em branco e nunca sair do lugar.
+    if (livenessRoot) {
+      try { livenessRoot.unmount(); } catch (e) { /* já desmontado */ }
+      livenessRoot = null;
+    }
+    container.innerHTML = '<div style="color:#d8b0c4;font-size:12.5px;display:flex;flex-direction:column;align-items:center;gap:10px"><div style="width:28px;height:28px;border:3px solid rgba(255,255,255,.25);border-top-color:#c9a06b;border-radius:50%;animation:girarLiveness 0.8s linear infinite"></div><span>Preparando a câmera...</span></div>';
+
+    // Armado ANTES de qualquer rede. Antes ele só era criado depois do fetch
+    // da sessão — se justamente esse fetch travasse, não havia timeout algum.
+    function armarTimeoutSeguranca() {
+      livenessTimeoutId = setTimeout(() => {
+        mostrarFalhaLiveness('Isso está demorando mais que o normal. Confira sua conexão e a permissão de câmera, e tente de novo.');
+      }, LIVENESS_PREPARO_TIMEOUT_MS);
+    }
+
+    function pararTimeoutSeguranca() {
+      if (livenessTimeoutId) { clearTimeout(livenessTimeoutId); livenessTimeoutId = null; }
+    }
+
+    armarTimeoutSeguranca();
+
     const token = localStorage.getItem('vinculo_token');
-    if (!token) { erroEl.textContent = 'Sessão expirada, faça login novamente.'; return; }
+    if (!token) {
+      pararTimeoutSeguranca();
+      mostrarFalhaLiveness('Sessão expirada, faça login novamente.');
+      return;
+    }
 
     let sessionId;
     try {
-      const resp = await fetch(`${API_URL_LIVENESS}/api/perfil/liveness/sessao`, {
+      const resp = await fetchComTimeout(`${API_URL_LIVENESS}/api/perfil/liveness/sessao`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -7493,28 +7594,19 @@ function toggleLsRadio(el){
       if (!resp.ok || !dados.sessionId) throw new Error(dados.erro || 'Não foi possível iniciar a verificação.');
       sessionId = dados.sessionId;
     } catch (e) {
-      erroEl.textContent = 'Erro ao iniciar verificação: ' + e.message;
-      retryBtn.style.display = 'block';
+      pararTimeoutSeguranca();
+      const msg = e.name === 'AbortError'
+        ? 'O servidor não respondeu a tempo. Tente de novo em instantes.'
+        : 'Erro ao iniciar verificação: ' + e.message;
+      mostrarFalhaLiveness(msg);
       return;
-    }
-
-    // Trava de segurança: se não terminar em ~25s (travado, rede ruim, AWS sem
-    // responder), avisa o usuário em vez de deixar a tela esperando pra sempre.
-    function armarTimeoutSeguranca() {
-      livenessTimeoutId = setTimeout(() => {
-        erroEl.textContent = 'Isso está demorando mais que o normal. Confira sua conexão e tente de novo.';
-        retryBtn.style.display = 'block';
-      }, LIVENESS_TIMEOUT_MS);
-    }
-
-    function pararTimeoutSeguranca() {
-      if (livenessTimeoutId) { clearTimeout(livenessTimeoutId); livenessTimeoutId = null; }
     }
 
     async function aoFinalizarAnalise() {
       pararTimeoutSeguranca();
+      livenessEmAndamento = false;
       try {
-        const resp = await fetch(`${API_URL_LIVENESS}/api/perfil/liveness/resultado/${sessionId}`, {
+        const resp = await fetchComTimeout(`${API_URL_LIVENESS}/api/perfil/liveness/resultado/${sessionId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const dados = await resp.json();
@@ -7535,31 +7627,55 @@ function toggleLsRadio(el){
          window.emOnboardingPerfil = true;
           window.goTo('edit-profile');
         } else {
-          erroEl.textContent = 'Não foi possível confirmar sua identidade. Tente novamente em um ambiente bem iluminado.';
-          retryBtn.style.display = 'block';
+          mostrarFalhaLiveness('Não foi possível confirmar sua identidade. Tente novamente em um ambiente bem iluminado.');
         }
       } catch (e) {
-        erroEl.textContent = 'Erro ao buscar resultado: ' + e.message;
-        retryBtn.style.display = 'block';
+        const msg = e.name === 'AbortError'
+          ? 'O servidor demorou para responder. Tente novamente.'
+          : 'Erro ao buscar resultado: ' + e.message;
+        mostrarFalhaLiveness(msg);
       }
     }
 
     function aoDarErro(erro) {
       pararTimeoutSeguranca();
-      console.error('Erro no Face Liveness:', erro);
-      erroEl.textContent = 'Erro na câmera ou na verificação. Confira a permissão de câmera do navegador e tente de novo.';
-      retryBtn.style.display = 'block';
+      console.error('[liveness] erro do FaceLivenessDetector:', erro && erro.state, erro);
+      mostrarFalhaLiveness('Erro na câmera ou na verificação. Confira a permissão de câmera do navegador e tente de novo.');
     }
 
-    armarTimeoutSeguranca();
- if (!livenessRoot) livenessRoot = createRoot(container);
+    // Sem este handler, tocar em "Cancelar verificação" desmontava a interface
+    // da AWS e deixava o container VAZIO, sem erro e sem botão — o usuário
+    // ficava olhando uma área preta sem saída. Outro caminho para a "tela
+    // travada" relatada.
+    function aoCancelar() {
+      pararTimeoutSeguranca();
+      mostrarFalhaLiveness('Verificação cancelada. Você precisa concluí-la para usar o Vínculo.');
+    }
+
+    // A câmera já apareceu: desarma o cronômetro de preparo, pois daqui em
+    // diante o tempo é da pessoa e não pode ser interrompido por timeout.
+    function aoIniciarCaptura() {
+      pararTimeoutSeguranca();
+    }
+
+    livenessRoot = createRoot(container);
     livenessRoot.render(
       React.createElement(ThemeProvider, null,
         React.createElement(FaceLivenessDetector, {
+          // key força uma árvore nova a cada sessão. O componente da AWS não
+          // reinicia a máquina de estados só porque o sessionId mudou.
+          key: sessionId,
           sessionId,
           region: REGIAO_REKOGNITION,
           onAnalysisComplete: aoFinalizarAnalise,
           onError: aoDarErro,
+          onUserCancel: aoCancelar,
+          onUserPermissionDenied: () => {
+            pararTimeoutSeguranca();
+            mostrarFalhaLiveness('Permissão de câmera negada. Libere o acesso à câmera nas configurações do navegador e tente de novo.');
+          },
+          disableStartScreen: false,
+          onCameraStart: aoIniciarCaptura,
           displayText: {
             hintCenterFaceText: 'Centralize seu rosto',
             hintFaceOffCenterText: 'Rosto fora da oval, centralize seu rosto na câmera.',
