@@ -52,6 +52,7 @@ const estatisticasRoutes = require('./routes/estatisticas');
 const usuarioRoutes = require('./routes/usuario');
 const parceiroRoutes = require('./routes/parceiros');
 const { verificarCheckinsVencidos } = require('./controllers/segurancaController');
+const { verificarAssinaturasVencidas } = require('./controllers/pagamentoController');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -210,6 +211,21 @@ const iniciar = async () => {
       console.error('Erro ao verificar check-ins vencidos:', err);
     });
   }, 60 * 1000);
+
+  // Assinaturas vencidas: os pagamentos são PIX avulsos, então o Mercado Pago
+  // NUNCA avisa quando os dias comprados acabam — não existe assinatura do
+  // lado dele pra vencer. Sem esta varredura, quem pagou uma vez continuaria
+  // contando como indicado ativo para sempre e geraria comissão indevida.
+  // Roda de hora em hora (não 1x/dia) pra que a janela de erro seja curta,
+  // e uma vez na subida pra recuperar o tempo em que o processo esteve fora.
+  const UMA_HORA = 60 * 60 * 1000;
+  const rodarVerificacaoAssinaturas = () => {
+    verificarAssinaturasVencidas().catch((err) => {
+      console.error('Erro ao verificar assinaturas vencidas:', err);
+    });
+  };
+  rodarVerificacaoAssinaturas();
+  setInterval(rodarVerificacaoAssinaturas, UMA_HORA);
 };
 
 // ===== Graceful shutdown =====

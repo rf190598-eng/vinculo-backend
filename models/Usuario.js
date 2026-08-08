@@ -84,6 +84,15 @@ const Usuario = sequelize.define('Usuario', {
     type: DataTypes.DATE,
     allowNull: true
   },
+  // Plano pago ATUALMENTE ativo: 'semanal' | 'mensal' | 'anual', ou null se
+  // não há assinatura vigente. Diferente de `premium`, que hoje vem true por
+  // padrão na fase gratuita — este campo só é preenchido por pagamento
+  // confirmado, e é ele que define se uma indicação conta como ativa no
+  // Programa de Parceiros.
+  plano_atual: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   latitude: {
     type: DataTypes.FLOAT,
     allowNull: true

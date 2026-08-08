@@ -140,6 +140,37 @@ CREATE INDEX IF NOT EXISTS idx_usuarios_indicado_por_parceiro
 COMMIT;
 
 -- ============================================================
+-- 6) usuarios: plano_atual (assinatura paga vigente)
+--
+-- Distingue "verificado" de "pagante". Só é preenchido por pagamento
+-- confirmado; volta a NULL quando o plano vence ou é estornado. É este campo
+-- que decide se uma indicação conta como ativa no Programa de Parceiros.
+--
+-- Pode ser rodado isoladamente, fora do bloco acima.
+-- ============================================================
+ALTER TABLE usuarios
+  ADD COLUMN IF NOT EXISTS plano_atual VARCHAR(255);
+
+-- Usado pela varredura horária de assinaturas vencidas
+-- (pagamentoController.verificarAssinaturasVencidas), que filtra por
+-- plano_atual NOT NULL + premium_ate no passado.
+CREATE INDEX IF NOT EXISTS idx_usuarios_plano_atual
+  ON usuarios(plano_atual);
+
+-- ATENÇÃO — retroatividade: quem já pagou ANTES desta coluna existir vai
+-- ficar com plano_atual NULL e, por isso, não gerará comissão até renovar.
+-- Se quiser reconhecer essas assinaturas em curso, rode o UPDATE abaixo. Ele
+-- não tem como saber QUAL plano foi comprado (essa informação só existe no
+-- metadata do Mercado Pago), então assume 'mensal' — revise antes de aplicar:
+--
+-- UPDATE usuarios
+--    SET plano_atual = 'mensal'
+--  WHERE premium = true
+--    AND premium_ate IS NOT NULL
+--    AND premium_ate > NOW()
+--    AND plano_atual IS NULL;
+
+-- ============================================================
 -- Conferência rápida depois de rodar:
 --
 -- SELECT table_name FROM information_schema.tables

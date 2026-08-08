@@ -130,42 +130,92 @@ const meuParceiro = async (req, res) => {
 };
 
 /**
- * Cria a linha em "indicacoes" quando o usuário indicado confirma identidade.
- * Chamada pelo perfilController no mesmo ponto onde ficava o bônus antigo.
+ * Ponto ÚNICO de verdade da relação "usuário pagante <-> indicação ativa".
  *
- * Idempotente: se já existe indicação para esse usuário, não faz nada. Isso
- * também é garantido no banco pelo índice único uq_indicacoes_usuario_indicado.
+ * Regra: a indicação só existe e só fica 'ativo' enquanto o indicado tem
+ * plano_atual preenchido — ou seja, assinatura paga vigente. Verificar
+ * identidade não basta (era o comportamento anterior, e inflava a base de
+ * indicados ativos com gente que nunca pagou).
+ *
+ * Chamada de três lugares, sempre com o mesmo efeito:
+ *  - perfilController, quando a identidade é confirmada
+ *  - pagamentoController, quando um pagamento é aprovado ou expira
+ *  - job diário de vencimento (assinaturaJob)
+ *
+ * Idempotente: pode rodar quantas vezes for, o resultado é o mesmo.
  */
-async function registrarIndicacaoSeAplicavel(usuarioVerificado) {
-  if (!usuarioVerificado || !usuarioVerificado.indicado_por_parceiro_id) return null;
+async function sincronizarIndicacaoDoUsuario(usuarioOuId) {
+  const usuario = typeof usuarioOuId === 'string'
+    ? await Usuario.findByPk(usuarioOuId)
+    : usuarioOuId;
 
-  const jaExiste = await Indicacao.findOne({
-    where: { usuario_indicado_id: usuarioVerificado.id }
+  if (!usuario || !usuario.indicado_por_parceiro_id) return null;
+
+  const estaPagando = !!usuario.plano_atual;
+  const indicacao = await Indicacao.findOne({
+    where: { usuario_indicado_id: usuario.id }
   });
-  if (jaExiste) return jaExiste;
 
-  const parceiro = await Parceiro.findByPk(usuarioVerificado.indicado_por_parceiro_id);
+  // ---- Não está pagando ----
+  if (!estaPagando) {
+    // Nunca existiu indicação: não cria nada. A indicação só nasce no primeiro
+    // pagamento confirmado, nunca na verificação de identidade.
+    if (!indicacao) return null;
+
+    // Existia e estava ativa: virou cancelamento (assinatura acabou).
+    if (indicacao.status === 'ativo') {
+      await indicacao.update({
+        status: 'cancelado',
+        data_cancelamento: new Date(),
+        plano_atual: null
+      });
+    }
+    return indicacao;
+  }
+
+  // ---- Está pagando ----
+  if (indicacao) {
+    // Reativação: a pessoa voltou a assinar depois de ter cancelado/vencido.
+    // Reaproveita a mesma linha em vez de criar outra — o índice único em
+    // usuario_indicado_id impede duplicar, e o histórico fica coerente.
+    if (indicacao.status !== 'ativo' || indicacao.plano_atual !== usuario.plano_atual) {
+      await indicacao.update({
+        status: 'ativo',
+        plano_atual: usuario.plano_atual,
+        data_cancelamento: null
+      });
+    }
+    return indicacao;
+  }
+
+  const parceiro = await Parceiro.findByPk(usuario.indicado_por_parceiro_id);
   if (!parceiro) return null;
 
   try {
     return await Indicacao.create({
       parceiro_id: parceiro.id,
-      usuario_indicado_id: usuarioVerificado.id,
+      usuario_indicado_id: usuario.id,
       status: 'ativo',
-      // usuarios não tem coluna de plano — o plano só existe no metadata do
-      // Mercado Pago e vira premium_ate. Fica null aqui e será preenchido
-      // quando a integração com status de assinatura for feita (próxima etapa).
-      plano_atual: null,
+      plano_atual: usuario.plano_atual,
       data_indicacao: new Date()
     });
   } catch (erroCriacao) {
-    // Corrida entre dois requests de verificação: o índice único resolve,
-    // e aqui só evitamos derrubar o upload da foto por causa disso.
+    // Corrida (webhook duplicado do Mercado Pago é comum): o índice único
+    // resolve e aqui só devolvemos a linha que o outro request criou.
     if (erroCriacao.name === 'SequelizeUniqueConstraintError') {
-      return await Indicacao.findOne({ where: { usuario_indicado_id: usuarioVerificado.id } });
+      return await Indicacao.findOne({ where: { usuario_indicado_id: usuario.id } });
     }
     throw erroCriacao;
   }
+}
+
+/**
+ * Mantido como nome próprio porque é o que o perfilController chama no gatilho
+ * de identidade confirmada. Hoje só cria indicação se a pessoa JÁ estiver
+ * pagando (caso de quem assina antes de completar a verificação).
+ */
+async function registrarIndicacaoSeAplicavel(usuarioVerificado) {
+  return sincronizarIndicacaoDoUsuario(usuarioVerificado);
 }
 
 /**
@@ -183,6 +233,7 @@ async function resolverParceiroPorCodigo(codigo) {
 
 module.exports = {
   meuParceiro,
+  sincronizarIndicacaoDoUsuario,
   registrarIndicacaoSeAplicavel,
   resolverParceiroPorCodigo,
   LINK_BASE_PARCEIRO
