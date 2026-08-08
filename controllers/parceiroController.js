@@ -219,6 +219,116 @@ async function registrarIndicacaoSeAplicavel(usuarioVerificado) {
 }
 
 /**
+ * Fecha as comissões do mês de referência informado (ou do mês corrente).
+ *
+ * Gera UMA linha em "comissoes" por indicação ativa, no valor da comissao_base
+ * DAQUELE parceiro — não um número fixo aqui, porque parceiro institucional
+ * pode ter percentual negociado diferente.
+ *
+ * Idempotente por construção: antes de criar, lê as comissões que já existem
+ * para o mês e pula as indicações já contempladas. Além disso, o índice único
+ * uq_comissoes_indicacao_mes (indicacao_id, mes_referencia) é a rede de
+ * segurança no banco — mesmo se duas execuções rodarem em paralelo, a segunda
+ * esbarra na constraint em vez de duplicar dinheiro a pagar.
+ *
+ * Retorna um resumo pra quem chamou (job ou rota admin) poder logar/responder.
+ */
+async function fecharComissoesDoMes(mesReferencia) {
+  const mes = mesReferencia || primeiroDiaDoMes();
+
+  const indicacoesAtivas = await Indicacao.findAll({
+    where: { status: 'ativo' },
+    attributes: ['id', 'parceiro_id']
+  });
+
+  if (!indicacoesAtivas.length) {
+    return { mes_referencia: mes, criadas: 0, ja_existiam: 0, ignoradas_sem_parceiro: 0, valor_total: 0 };
+  }
+
+  // Uma consulta só pra saber o que já foi fechado neste mês, em vez de um
+  // SELECT por indicação.
+  const jaFechadas = await Comissao.findAll({
+    where: {
+      mes_referencia: mes,
+      indicacao_id: { [Op.in]: indicacoesAtivas.map(i => i.id) }
+    },
+    attributes: ['indicacao_id']
+  });
+  const idsJaFechados = new Set(jaFechadas.map(c => c.indicacao_id));
+
+  // Carrega os parceiros envolvidos de uma vez, pra pegar comissao_base sem
+  // uma consulta por linha.
+  const idsParceiros = [...new Set(indicacoesAtivas.map(i => i.parceiro_id))];
+  const parceiros = await Parceiro.findAll({
+    where: { id: { [Op.in]: idsParceiros } },
+    attributes: ['id', 'comissao_base', 'status']
+  });
+  const mapaParceiros = new Map(parceiros.map(p => [p.id, p]));
+
+  let criadas = 0;
+  let ignoradasSemParceiro = 0;
+  let valorTotal = 0;
+
+  for (const indicacao of indicacoesAtivas) {
+    if (idsJaFechados.has(indicacao.id)) continue;
+
+    const parceiro = mapaParceiros.get(indicacao.parceiro_id);
+    // Parceiro suspenso não acumula comissão nova. A indicação continua ativa
+    // (a pessoa indicada segue pagando), mas o mês não é creditado.
+    if (!parceiro || parceiro.status !== 'ativo') {
+      ignoradasSemParceiro++;
+      continue;
+    }
+
+    const valor = Number(parceiro.comissao_base || COMISSAO_PADRAO);
+
+    try {
+      await Comissao.create({
+        parceiro_id: parceiro.id,
+        indicacao_id: indicacao.id,
+        mes_referencia: mes,
+        valor,
+        status_pagamento: 'pendente'
+      });
+      criadas++;
+      valorTotal += valor;
+    } catch (erroCriacao) {
+      // Execução concorrente já criou esta linha: o índice único barrou.
+      // Não é erro de verdade — só não conta como criada.
+      if (erroCriacao.name !== 'SequelizeUniqueConstraintError') throw erroCriacao;
+    }
+  }
+
+  return {
+    mes_referencia: mes,
+    criadas,
+    ja_existiam: idsJaFechados.size,
+    ignoradas_sem_parceiro: ignoradasSemParceiro,
+    valor_total: Number(valorTotal.toFixed(2))
+  };
+}
+
+/**
+ * POST /api/admin/parceiros/fechar-comissoes-mes
+ * Dispara o fechamento manualmente (teste e plano B se o job falhar).
+ * Aceita { mes_referencia: 'YYYY-MM-DD' } no body pra refazer um mês anterior;
+ * sem isso, usa o mês corrente.
+ */
+const fecharComissoesManualmente = async (req, res) => {
+  try {
+    const mesInformado = req.body && req.body.mes_referencia;
+    if (mesInformado && !/^\d{4}-\d{2}-\d{2}$/.test(mesInformado)) {
+      return res.status(400).json({ erro: 'mes_referencia deve estar no formato YYYY-MM-DD' });
+    }
+    const resumo = await fecharComissoesDoMes(mesInformado || null);
+    res.json({ mensagem: 'Fechamento executado.', ...resumo });
+  } catch (erro) {
+    console.error('Erro no fechamento manual de comissões:', erro);
+    res.status(500).json({ erro: 'Erro ao fechar comissões: ' + erro.message });
+  }
+};
+
+/**
  * Resolve um código de parceiro para o id, usado no cadastro.
  * Retorna null se o código não existir ou o parceiro não estiver ativo —
  * assim um código de parceiro suspenso não gera indicação nova.
@@ -236,5 +346,8 @@ module.exports = {
   sincronizarIndicacaoDoUsuario,
   registrarIndicacaoSeAplicavel,
   resolverParceiroPorCodigo,
+  fecharComissoesDoMes,
+  fecharComissoesManualmente,
+  primeiroDiaDoMes,
   LINK_BASE_PARCEIRO
 };

@@ -50,7 +50,8 @@ const duplaRoutes = require('./routes/dupla');
 const statusRoutes = require('./routes/status');
 const estatisticasRoutes = require('./routes/estatisticas');
 const usuarioRoutes = require('./routes/usuario');
-const parceiroRoutes = require('./routes/parceiros');
+const { router: parceiroRoutes, rotasAdmin: parceiroRotasAdmin } = require('./routes/parceiros');
+const { fecharComissoesDoMes, primeiroDiaDoMes } = require('./controllers/parceiroController');
 const { verificarCheckinsVencidos } = require('./controllers/segurancaController');
 const { verificarAssinaturasVencidas } = require('./controllers/pagamentoController');
 
@@ -153,6 +154,7 @@ app.use('/api/denuncia', denunciaRoutes);
 app.use('/api/bloqueio', bloqueioRoutes);
 app.use('/api/usuario', usuarioRoutes);
 app.use('/api/parceiros', parceiroRoutes);
+app.use('/api/admin/parceiros', parceiroRotasAdmin);
 
 // ===== Rota não encontrada =====
 app.use((req, res) => {
@@ -226,6 +228,35 @@ const iniciar = async () => {
   };
   rodarVerificacaoAssinaturas();
   setInterval(rodarVerificacaoAssinaturas, UMA_HORA);
+
+  // Fechamento mensal de comissões do Programa de Parceiros.
+  //
+  // Não é um agendamento "dia 1 à meia-noite": o processo pode estar fora do
+  // ar exatamente nesse instante (deploy, restart do Railway) e o mês seria
+  // pulado. Em vez disso roda de hora em hora e pergunta "o mês corrente já
+  // foi fechado?" — na primeira execução depois da virada, fecha; nas demais,
+  // o próprio fecharComissoesDoMes é idempotente e não cria nada.
+  //
+  // A guarda em memória (ultimoMesFechado) evita só o trabalho repetido de
+  // consultar o banco a cada hora; a garantia real contra duplicidade é o
+  // índice único uq_comissoes_indicacao_mes, que sobrevive a restart.
+  let ultimoMesFechado = null;
+  const rodarFechamentoMensal = async () => {
+    const mesAtual = primeiroDiaDoMes();
+    if (ultimoMesFechado === mesAtual) return;
+    try {
+      const resumo = await fecharComissoesDoMes(mesAtual);
+      ultimoMesFechado = mesAtual;
+      if (resumo.criadas > 0) {
+        console.log(`[comissoes] Mês ${resumo.mes_referencia}: ${resumo.criadas} comissão(ões) criada(s), total R$ ${resumo.valor_total}.`);
+      }
+    } catch (err) {
+      // Não marca o mês como fechado: tenta de novo na próxima hora.
+      console.error('Erro no fechamento mensal de comissões:', err);
+    }
+  };
+  rodarFechamentoMensal();
+  setInterval(rodarFechamentoMensal, UMA_HORA);
 };
 
 // ===== Graceful shutdown =====
