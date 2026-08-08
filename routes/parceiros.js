@@ -12,7 +12,24 @@ router.get('/me', autenticar, meuParceiro);
 // separação clara entre o que é do parceiro e o que é do administrador.
 // verificarAdmin já existe no projeto e checa usuarios.is_admin — mesmo
 // middleware usado em denúncias, eventos, parcerias e estatísticas.
-const rotasAdmin = express.Router();
-rotasAdmin.post('/fechar-comissoes-mes', autenticar, verificarAdmin, fecharComissoesManualmente);
+const {
+  listarParceiros,
+  atualizarStatusParceiro,
+  listarComissoes,
+  marcarComissaoPaga
+} = require('../controllers/adminParceiroController');
 
-module.exports = { router, rotasAdmin };
+// Montado em /api/admin/parceiros
+const rotasAdmin = express.Router();
+rotasAdmin.use(autenticar, verificarAdmin); // tudo aqui exige admin
+rotasAdmin.get('/', listarParceiros);
+rotasAdmin.patch('/:id/status', atualizarStatusParceiro);
+rotasAdmin.post('/fechar-comissoes-mes', fecharComissoesManualmente);
+
+// Montado em /api/admin/comissoes
+const rotasAdminComissoes = express.Router();
+rotasAdminComissoes.use(autenticar, verificarAdmin);
+rotasAdminComissoes.get('/', listarComissoes);
+rotasAdminComissoes.patch('/:id/marcar-pago', marcarComissaoPaga);
+
+module.exports = { router, rotasAdmin, rotasAdminComissoes };

@@ -50,7 +50,11 @@ const duplaRoutes = require('./routes/dupla');
 const statusRoutes = require('./routes/status');
 const estatisticasRoutes = require('./routes/estatisticas');
 const usuarioRoutes = require('./routes/usuario');
-const { router: parceiroRoutes, rotasAdmin: parceiroRotasAdmin } = require('./routes/parceiros');
+const {
+  router: parceiroRoutes,
+  rotasAdmin: parceiroRotasAdmin,
+  rotasAdminComissoes
+} = require('./routes/parceiros');
 const { fecharComissoesDoMes, primeiroDiaDoMes } = require('./controllers/parceiroController');
 const { verificarCheckinsVencidos } = require('./controllers/segurancaController');
 const { verificarAssinaturasVencidas } = require('./controllers/pagamentoController');
@@ -116,6 +120,14 @@ app.get('/prototipo', (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.sendFile(path.join(__dirname, 'prototipo.html'));
 });
+
+// Painel administrativo do Programa de Parceiros. Serve só o HTML — todo o
+// controle de acesso é feito pelas rotas /api/admin/*, que exigem token com
+// is_admin. Servir a página é inofensivo: sem token válido ela não carrega dado.
+app.get('/admin', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
 app.get('/vinculo-liveness-bundle.mjs', (req, res) => {
   res.set('Content-Type', 'application/javascript');
   res.set('Cache-Control', 'no-store');
@@ -155,6 +167,7 @@ app.use('/api/bloqueio', bloqueioRoutes);
 app.use('/api/usuario', usuarioRoutes);
 app.use('/api/parceiros', parceiroRoutes);
 app.use('/api/admin/parceiros', parceiroRotasAdmin);
+app.use('/api/admin/comissoes', rotasAdminComissoes);
 
 // ===== Rota não encontrada =====
 app.use((req, res) => {
