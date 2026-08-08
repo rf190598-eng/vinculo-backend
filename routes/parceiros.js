@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { meuParceiro, fecharComissoesManualmente } = require('../controllers/parceiroController');
+const { meuParceiro, solicitarInstitucional, fecharComissoesManualmente } = require('../controllers/parceiroController');
 const { autenticar } = require('../controllers/authMiddleware');
 const { verificarAdmin } = require('../controllers/verificarAdmin');
 
 // Auto-provisiona o parceiro na primeira chamada (ver parceiroController).
 router.get('/me', autenticar, meuParceiro);
+router.post('/solicitar-institucional', autenticar, solicitarInstitucional);
 
 // ===== Administrativo =====
 // Montado aqui e exposto em /api/admin/parceiros (ver index.js), pra manter a
@@ -16,7 +17,10 @@ const {
   listarParceiros,
   atualizarStatusParceiro,
   listarComissoes,
-  marcarComissaoPaga
+  marcarComissaoPaga,
+  listarMetas,
+  criarMeta,
+  verificarMetasManualmente
 } = require('../controllers/adminParceiroController');
 
 // Montado em /api/admin/parceiros
@@ -32,4 +36,11 @@ rotasAdminComissoes.use(autenticar, verificarAdmin);
 rotasAdminComissoes.get('/', listarComissoes);
 rotasAdminComissoes.patch('/:id/marcar-pago', marcarComissaoPaga);
 
-module.exports = { router, rotasAdmin, rotasAdminComissoes };
+// Montado em /api/admin/metas
+const rotasAdminMetas = express.Router();
+rotasAdminMetas.use(autenticar, verificarAdmin);
+rotasAdminMetas.get('/', listarMetas);
+rotasAdminMetas.post('/', criarMeta);
+rotasAdminMetas.post('/verificar', verificarMetasManualmente);
+
+module.exports = { router, rotasAdmin, rotasAdminComissoes, rotasAdminMetas };

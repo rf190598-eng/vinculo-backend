@@ -171,6 +171,52 @@ CREATE INDEX IF NOT EXISTS idx_usuarios_plano_atual
 --    AND plano_atual IS NULL;
 
 -- ============================================================
+-- 7) Parceiro institucional: bônus de meta e observação da solicitação
+--
+-- Rodar DEPOIS dos passos 1-4 (as tabelas precisam existir).
+-- ============================================================
+
+-- Texto livre da solicitação institucional (responsável, e-mail, justificativa)
+ALTER TABLE parceiros
+  ADD COLUMN IF NOT EXISTS observacao_solicitacao TEXT;
+
+-- Comissões passam a comportar DOIS tipos de pagamento na mesma tabela:
+--   'recorrente' = R$/mês por indicação ativa (indicacao_id preenchido)
+--   'bonus_meta' = pagamento único de meta batida (indicacao_id NULL)
+-- Ficam juntas de propósito: o total a pagar, a listagem e o "marcar como
+-- pago" do painel já operam sobre comissoes.
+ALTER TABLE comissoes
+  ADD COLUMN IF NOT EXISTS tipo VARCHAR(255) NOT NULL DEFAULT 'recorrente';
+
+ALTER TABLE comissoes
+  ADD COLUMN IF NOT EXISTS bonus_meta_id UUID;
+
+-- indicacao_id deixa de ser obrigatório: bônus é do parceiro, não de uma
+-- indicação específica.
+ALTER TABLE comissoes
+  ALTER COLUMN indicacao_id DROP NOT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'fk_comissoes_bonus_meta'
+  ) THEN
+    ALTER TABLE comissoes
+      ADD CONSTRAINT fk_comissoes_bonus_meta
+      FOREIGN KEY (bonus_meta_id) REFERENCES bonus_metas(id)
+      ON DELETE CASCADE;
+  END IF;
+END $$;
+
+-- Um bônus é pago UMA vez, para sempre. Índice parcial porque a coluna é NULL
+-- em toda comissão recorrente — sem o WHERE, o índice barraria a segunda
+-- comissão recorrente (NULLs se comportam de forma diferente aqui).
+CREATE UNIQUE INDEX IF NOT EXISTS uq_comissoes_bonus_meta
+  ON comissoes(bonus_meta_id) WHERE bonus_meta_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_comissoes_tipo ON comissoes(tipo);
+
+-- ============================================================
 -- Conferência rápida depois de rodar:
 --
 -- SELECT table_name FROM information_schema.tables

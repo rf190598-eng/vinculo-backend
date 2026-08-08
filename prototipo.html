@@ -1711,8 +1711,82 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <p style="margin:0">Eu já precisei dar a volta por cima.<br/>Agora, quero construir essa nova história junto com vocês.</p>
     </div>
 
+    <!-- Porta de entrada institucional -->
+    <div onclick="goTo('parceria-institucional')" style="background:rgba(201,160,107,.1);border:1.5px solid rgba(201,160,107,.35);border-radius:16px;padding:16px;margin-bottom:22px;cursor:pointer;display:flex;align-items:center;gap:14px">
+      <div style="font-size:28px">&#127891;</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:3px">É de uma atlética ou instituição?</div>
+        <div style="font-size:12.5px;color:#d0a8b8;line-height:1.5">Comissões maiores por volume, a partir de R$ 6,50 por indicação. Solicite a parceria institucional.</div>
+      </div>
+      <div style="color:#d4b87a;font-size:20px">&#8250;</div>
+    </div>
+
     <div style="text-align:center;font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:700;color:#d4b87a;line-height:1.5;padding:0 10px">
       Vínculo: conectando pessoas, relacionamentos e oportunidades.
+    </div>
+  </div>
+</div>
+
+<!-- SOLICITAÇÃO DE PARCERIA INSTITUCIONAL -->
+<div class="screen" id="screen-parceria-institucional" style="background:#1a0810;min-height:100vh;">
+  <div class="topbar">
+    <div class="icon-btn" onclick="goTo('indica')">&#8592;</div>
+    <div class="logo serif">Parceria <span>Institucional</span></div>
+    <div style="width:38px"></div>
+  </div>
+  <div style="padding:0 18px 32px">
+
+    <div style="background:linear-gradient(135deg,#3a1a2e,#1a0810);border:1.5px solid rgba(201,160,107,.35);border-radius:18px;padding:20px 16px;margin-bottom:20px">
+      <div style="font-size:10px;font-weight:800;color:#d4b87a;text-transform:uppercase;letter-spacing:.14em;margin-bottom:8px">Para atléticas e instituições</div>
+      <div style="font-size:13.5px;color:#d0a8b8;line-height:1.7">
+        A parceria institucional tem comissão <b style="color:#fdf6f2">escalonada por volume</b> — quanto mais pessoas ativas você traz, maior o valor por indicação:
+      </div>
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;background:rgba(255,255,255,.06);border-radius:10px;padding:10px 12px">
+          <span style="font-size:12.5px;color:#d0a8b8">1 a 49 ativos</span>
+          <span style="font-size:14px;font-weight:700;color:#fdf6f2">R$ 6,50 cada</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;background:rgba(255,255,255,.06);border-radius:10px;padding:10px 12px">
+          <span style="font-size:12.5px;color:#d0a8b8">50 a 149 ativos</span>
+          <span style="font-size:14px;font-weight:700;color:#fdf6f2">R$ 8,00 cada</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;background:rgba(201,160,107,.12);border:1px solid rgba(201,160,107,.3);border-radius:10px;padding:10px 12px">
+          <span style="font-size:12.5px;color:#d0a8b8">150 ou mais ativos</span>
+          <span style="font-size:14px;font-weight:700;color:#d4b87a">R$ 10,00 cada</span>
+        </div>
+      </div>
+      <div style="font-size:11.5px;color:rgba(255,255,255,.55);line-height:1.6;margin-top:12px">
+        O valor da faixa vale para <b>todas</b> as suas indicações ativas, não só para as que passarem do limite.
+      </div>
+    </div>
+
+    <div id="parceriaInstStatus" style="display:none;background:rgba(201,160,107,.12);border:1.5px solid rgba(201,160,107,.35);border-radius:14px;padding:16px;margin-bottom:18px;font-size:13px;color:#fdf6f2;line-height:1.6"></div>
+
+    <div id="parceriaInstForm">
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Seu nome completo</label>
+        <input id="piNome" style="width:100%;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18);border-radius:10px;padding:12px;font-size:14px;color:#fdf6f2;outline:none;font-family:inherit"/>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Nome da instituição / atlética</label>
+        <input id="piInstituicao" style="width:100%;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18);border-radius:10px;padding:12px;font-size:14px;color:#fdf6f2;outline:none;font-family:inherit"/>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">E-mail de contato</label>
+        <input id="piEmail" type="email" style="width:100%;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18);border-radius:10px;padding:12px;font-size:14px;color:#fdf6f2;outline:none;font-family:inherit"/>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Chave Pix da instituição</label>
+        <input id="piPix" style="width:100%;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18);border-radius:10px;padding:12px;font-size:14px;color:#fdf6f2;outline:none;font-family:inherit"/>
+        <div style="font-size:11.5px;color:rgba(255,255,255,.5);margin-top:5px">É para onde as comissões serão pagas.</div>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="display:block;font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Mensagem (opcional)</label>
+        <textarea id="piMensagem" rows="4" style="width:100%;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18);border-radius:10px;padding:12px;font-size:14px;color:#fdf6f2;outline:none;font-family:inherit;resize:vertical" placeholder="Conte um pouco sobre a instituição e como pretende divulgar"></textarea>
+      </div>
+
+      <div id="piErro" style="color:#ff8fa3;font-size:12.5px;text-align:center;min-height:16px;margin-bottom:8px"></div>
+      <button class="btn btn-primary" onclick="enviarSolicitacaoInstitucional()" id="piBtnEnviar">Enviar solicitação</button>
     </div>
   </div>
 </div>
@@ -4278,6 +4352,51 @@ async function carregarEstatisticasIndicacao(){
 // Usa o link do PARCEIRO (carregado de /api/parceiros/me). Só cai no
 // montarLinkIndicacao() antigo se a chamada tiver falhado — assim o botão
 // nunca fica sem nada pra copiar.
+// ===== Solicitação de parceria institucional =====
+// A rota é autenticada, então a tela vive dentro do app (usuário já logado) em
+// vez de uma página separada — não precisa de um segundo fluxo de login.
+async function enviarSolicitacaoInstitucional(){
+  const erroEl = document.getElementById('piErro');
+  const btn = document.getElementById('piBtnEnviar');
+  erroEl.textContent = '';
+
+  const corpo = {
+    nome_completo: document.getElementById('piNome').value.trim(),
+    nome_instituicao: document.getElementById('piInstituicao').value.trim(),
+    email_contato: document.getElementById('piEmail').value.trim(),
+    chave_pix: document.getElementById('piPix').value.trim(),
+    mensagem: document.getElementById('piMensagem').value.trim()
+  };
+
+  if(!corpo.nome_completo || !corpo.nome_instituicao || !corpo.chave_pix){
+    erroEl.textContent = 'Preencha nome, instituição e chave Pix.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  try{
+    const resp = await fetch(`${API_URL}/api/parceiros/solicitar-institucional`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tokenAtual}` },
+      body: JSON.stringify(corpo)
+    });
+    const dados = await resp.json();
+    if(!resp.ok) throw new Error(dados.erro || 'Erro ao enviar solicitação');
+
+    document.getElementById('parceriaInstForm').style.display = 'none';
+    const statusEl = document.getElementById('parceriaInstStatus');
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = '<b>Solicitação enviada!</b><br/>Sua parceria institucional está em análise. Você continua podendo indicar normalmente pelo seu link — assim que for aprovada, as comissões passam a valer pela tabela por volume.';
+    showToastVinculo('Solicitação enviada! ✨');
+  } catch(e){
+    erroEl.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Enviar solicitação';
+  }
+}
+
 function linkParaCompartilhar(){
   return linkParceiroAtual || montarLinkIndicacao();
 }

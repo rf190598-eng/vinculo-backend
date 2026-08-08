@@ -50,6 +50,10 @@ function registrarAssociacoes() {
   BonusMeta.belongsTo(Parceiro, { foreignKey: 'parceiro_id', as: 'parceiro' });
   Parceiro.hasMany(BonusMeta, { foreignKey: 'parceiro_id', as: 'bonusMetas' });
 
+  // Comissão de bônus aponta pra meta que a originou (tipo='bonus_meta').
+  Comissao.belongsTo(BonusMeta, { foreignKey: 'bonus_meta_id', as: 'bonusMeta' });
+  BonusMeta.hasOne(Comissao, { foreignKey: 'bonus_meta_id', as: 'comissaoBonus' });
+
   // ===== Usuario -> parceiro que o indicou =====
   // Alias diferente de 'parceiro' (que é o parceiro QUE O USUÁRIO É):
   // 'parceiroIndicador' é o parceiro que TROUXE este usuário. São coisas

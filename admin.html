@@ -128,6 +128,42 @@
       <div id="tabelaParceiros"><div class="vazio">Carregando...</div></div>
     </div>
 
+    <!-- Metas de bônus -->
+    <div class="card">
+      <h2>Metas de bônus</h2>
+      <div style="background:#fafafa;border:1px solid var(--borda);border-radius:8px;padding:14px;margin-bottom:16px">
+        <div style="font-size:12.5px;color:var(--suave);margin-bottom:10px">Criar nova meta</div>
+        <div class="filtros" style="margin-bottom:10px">
+          <div style="min-width:230px">
+            <label for="metaParceiro">Parceiro</label>
+            <select id="metaParceiro"><option value="">Carregando...</option></select>
+          </div>
+          <div style="min-width:120px">
+            <label for="metaUsuarios">Meta (indicados)</label>
+            <input type="number" id="metaUsuarios" min="1" placeholder="ex: 50"/>
+          </div>
+          <div style="min-width:120px">
+            <label for="metaPrazo">Prazo (dias)</label>
+            <input type="number" id="metaPrazo" min="1" placeholder="ex: 60"/>
+          </div>
+          <div style="min-width:120px">
+            <label for="metaValor">Bônus (R$)</label>
+            <input type="number" id="metaValor" min="0.01" step="0.01" placeholder="ex: 300.00"/>
+          </div>
+          <div>
+            <button class="btn-primario" onclick="criarMeta()" id="btnCriarMeta">Criar meta</button>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--suave)">
+          O prazo conta a partir de agora. A verificação roda de hora em hora e credita o bônus automaticamente quando a meta é batida dentro do prazo.
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+        <button class="btn-secundario btn-mini" onclick="verificarMetas()">Verificar metas agora</button>
+      </div>
+      <div id="tabelaMetas"><div class="vazio">Carregando...</div></div>
+    </div>
+
     <!-- Comissões -->
     <div class="card">
       <h2>Comissões</h2>
@@ -255,7 +291,112 @@ function abrirPainel(){
 
 // ===================== CARGA =====================
 async function carregarTudo(){
-  await Promise.all([carregarParceiros(), carregarComissoes()]);
+  await Promise.all([carregarParceiros(), carregarComissoes(), carregarMetas()]);
+}
+
+// ===================== METAS =====================
+async function carregarMetas(){
+  try{
+    const dados = await api('/api/admin/metas');
+    renderizarMetas(dados.metas || []);
+  } catch(e){
+    document.getElementById('tabelaMetas').innerHTML = '<div class="vazio">' + esc(e.message) + '</div>';
+  }
+}
+
+function renderizarMetas(lista){
+  const alvo = document.getElementById('tabelaMetas');
+  if(!lista.length){ alvo.innerHTML = '<div class="vazio">Nenhuma meta cadastrada.</div>'; return; }
+  const rotuloSituacao = {
+    atingida: '<span class="tag tag-ativo">atingida</span>',
+    em_andamento: '<span class="tag tag-pendente">em andamento</span>',
+    expirada: '<span class="tag tag-rejeitado">expirada</span>'
+  };
+  alvo.innerHTML =
+    '<table><thead><tr>' +
+    '<th>Parceiro</th><th>Progresso</th><th>Bônus</th><th>Prazo</th><th>Situação</th><th>Atingida em</th>' +
+    '</tr></thead><tbody>' +
+    lista.map(m => {
+      const pct = Math.min(100, Math.round((m.progresso / m.meta_usuarios) * 100));
+      const prazoTexto = m.atingida ? '—'
+        : (m.dias_restantes < 0 ? 'encerrado' : m.dias_restantes + ' dia(s)');
+      return '<tr>' +
+        '<td>' + esc(m.parceiro_nome) + '</td>' +
+        '<td>' +
+          '<div>' + m.progresso + ' / ' + m.meta_usuarios + ' (' + pct + '%)</div>' +
+          '<div style="height:5px;background:#e8e8ec;border-radius:3px;margin-top:4px;overflow:hidden">' +
+            '<div style="height:100%;width:' + pct + '%;background:' + (m.atingida ? '#137a3d' : '#b03a56') + '"></div>' +
+          '</div>' +
+        '</td>' +
+        '<td>' + reais(m.valor_bonus) + '</td>' +
+        '<td>' + esc(prazoTexto) + '</td>' +
+        '<td>' + (rotuloSituacao[m.situacao] || esc(m.situacao)) + '</td>' +
+        '<td>' + dataBR(m.data_atingida) + '</td>' +
+      '</tr>';
+    }).join('') +
+    '</tbody></table>';
+}
+
+// Preenche o seletor de parceiros da criação de meta. Só institucionais:
+// as faixas e os bônus foram desenhados para esse tipo.
+function preencherSeletorParceiros(lista){
+  const sel = document.getElementById('metaParceiro');
+  if(!sel) return;
+  const institucionais = lista.filter(p => p.tipo === 'institucional');
+  if(!institucionais.length){
+    sel.innerHTML = '<option value="">Nenhum parceiro institucional ainda</option>';
+    return;
+  }
+  const atual = sel.value;
+  sel.innerHTML = '<option value="">Selecione...</option>' +
+    institucionais.map(p =>
+      '<option value="' + esc(p.id) + '">' +
+      esc(p.nome_instituicao || p.nome) + ' (' + p.indicacoes_ativas + ' ativas)' +
+      '</option>'
+    ).join('');
+  if(atual) sel.value = atual;
+}
+
+async function criarMeta(){
+  const parceiro_id = document.getElementById('metaParceiro').value;
+  const meta_usuarios = document.getElementById('metaUsuarios').value;
+  const prazo_dias = document.getElementById('metaPrazo').value;
+  const valor_bonus = document.getElementById('metaValor').value;
+
+  if(!parceiro_id || !meta_usuarios || !prazo_dias || !valor_bonus){
+    mostrarMsg('painelMsg', 'Preencha parceiro, meta, prazo e valor do bônus.', 'erro');
+    return;
+  }
+  const btn = document.getElementById('btnCriarMeta');
+  btn.disabled = true;
+  try{
+    await api('/api/admin/metas', {
+      method: 'POST',
+      body: JSON.stringify({ parceiro_id, meta_usuarios, prazo_dias, valor_bonus })
+    });
+    mostrarMsg('painelMsg', 'Meta criada com sucesso.', 'ok');
+    document.getElementById('metaUsuarios').value = '';
+    document.getElementById('metaPrazo').value = '';
+    document.getElementById('metaValor').value = '';
+    carregarMetas();
+  } catch(e){
+    mostrarMsg('painelMsg', e.message, 'erro');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function verificarMetas(){
+  try{
+    const r = await api('/api/admin/metas/verificar', { method: 'POST', body: JSON.stringify({}) });
+    mostrarMsg('painelMsg',
+      r.avaliadas + ' meta(s) avaliada(s), ' + r.atingidas + ' atingida(s). ' +
+      'Bônus gerado: ' + reais(r.valor_total) + '.', 'ok');
+    carregarMetas();
+    carregarComissoes();
+  } catch(e){
+    mostrarMsg('painelMsg', e.message, 'erro');
+  }
 }
 
 async function carregarParceiros(){
@@ -272,6 +413,9 @@ async function carregarParceiros(){
     // de baixo — senão filtrar por "ativo" esconderia as solicitações.
     const todos = (tipo || status) ? (await api('/api/admin/parceiros')).parceiros : dados.parceiros;
     renderizarPendentes((todos || []).filter(p => p.status === 'pendente_aprovacao'));
+    // O seletor de metas sempre usa a lista COMPLETA, senão filtrar a tabela
+    // de parceiros esvaziaria as opções de criação de meta.
+    preencherSeletorParceiros(todos || []);
   } catch(e){
     document.getElementById('tabelaParceiros').innerHTML = '<div class="vazio">' + esc(e.message) + '</div>';
   }

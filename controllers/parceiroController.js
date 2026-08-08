@@ -3,6 +3,7 @@ const Usuario = require('../models/Usuario');
 const Parceiro = require('../models/Parceiro');
 const Indicacao = require('../models/Indicacao');
 const Comissao = require('../models/Comissao');
+const BonusMeta = require('../models/BonusMeta');
 
 // Base do link curto de parceiro. Configurável por env porque o domínio final
 // pode mudar antes do lançamento — e o link vai impresso/compartilhado por aí,
@@ -12,6 +13,28 @@ const LINK_BASE_PARCEIRO = process.env.APP_LINK_BASE || 'https://app.vinculoapp.
 // Valor pago por indicado ativo, por mês. Espelha o default de comissao_base
 // no model Parceiro — cada parceiro pode ter o seu próprio valor negociado.
 const COMISSAO_PADRAO = 5.00;
+
+// Faixas do parceiro INSTITUCIONAL (atléticas). A faixa é do PARCEIRO como um
+// todo, não por indicação: quem tem 60 ativos recebe 8,00 por CADA um dos 60,
+// não 6,50 nos 49 primeiros e 8,00 nos 11 restantes.
+const FAIXAS_INSTITUCIONAL = [
+  { min: 150, valor: 10.00 },
+  { min: 50,  valor: 8.00 },
+  { min: 1,   valor: 6.50 }
+];
+
+/**
+ * Valor unitário da comissão deste parceiro neste fechamento.
+ * - institucional: faixa por volume de indicações ativas
+ * - individual: comissao_base do próprio parceiro (hoje R$ 5,00)
+ */
+function valorComissaoUnitaria(parceiro, qtdAtivas) {
+  if (parceiro.tipo === 'institucional') {
+    const faixa = FAIXAS_INSTITUCIONAL.find(f => qtdAtivas >= f.min);
+    return faixa ? faixa.valor : 0;
+  }
+  return Number(parceiro.comissao_base || COMISSAO_PADRAO);
+}
 
 // Gera código do parceiro. Mesma ideia da geração de codigo_indicacao em
 // usuarios, mas propositalmente SEPARADA: são sistemas diferentes (o de
@@ -219,6 +242,147 @@ async function registrarIndicacaoSeAplicavel(usuarioVerificado) {
 }
 
 /**
+ * POST /api/parceiros/solicitar-institucional  (autenticada)
+ *
+ * Exige login: o parceiro precisa estar amarrado a um usuario_id (é a conta
+ * que recebe, e o código de indicação vive nela). Quem não tem conta cria uma
+ * antes — evita um cadastro paralelo e um estado de "parceiro órfão".
+ *
+ * Como meuParceiro já cria um parceiro individual na primeira visita à tela,
+ * o caso comum aqui é CONVERTER a linha existente, não criar outra: cada
+ * usuário tem no máximo um parceiro, e converter preserva o código de
+ * indicação que a pessoa talvez já tenha divulgado.
+ */
+const solicitarInstitucional = async (req, res) => {
+  try {
+    const { nome_completo, nome_instituicao, email_contato, chave_pix, mensagem } = req.body || {};
+
+    const limpar = (v, max) => String(v || '').replace(/<[^>]*>/g, '').trim().slice(0, max);
+    const nomeInstituicao = limpar(nome_instituicao, 150);
+    const chavePix = limpar(chave_pix, 150);
+    const nomeCompleto = limpar(nome_completo, 120);
+    const emailContato = limpar(email_contato, 150);
+
+    if (!nomeInstituicao) return res.status(400).json({ erro: 'Informe o nome da instituição/atlética' });
+    if (!chavePix) return res.status(400).json({ erro: 'Informe a chave Pix da instituição' });
+    if (!nomeCompleto) return res.status(400).json({ erro: 'Informe seu nome completo' });
+
+    const usuario = await Usuario.findByPk(req.usuarioId, { attributes: ['id', 'nome'] });
+    if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
+
+    let parceiro = await Parceiro.findOne({ where: { usuario_id: req.usuarioId } });
+
+    if (parceiro && parceiro.tipo === 'institucional' && parceiro.status === 'pendente_aprovacao') {
+      return res.status(409).json({ erro: 'Você já tem uma solicitação institucional em análise.' });
+    }
+
+    const dados = {
+      tipo: 'institucional',
+      status: 'pendente_aprovacao',
+      nome_instituicao: nomeInstituicao,
+      chave_pix: chavePix,
+      // Guardados como observação para o admin avaliar. Não viram colunas
+      // próprias porque só interessam no momento da análise.
+      observacao_solicitacao: [
+        'Responsável: ' + nomeCompleto,
+        emailContato ? 'E-mail de contato: ' + emailContato : null,
+        mensagem ? 'Mensagem: ' + limpar(mensagem, 1000) : null
+      ].filter(Boolean).join(' | ')
+    };
+
+    if (parceiro) {
+      await parceiro.update(dados);
+    } else {
+      const codigo = await gerarCodigoParceiroUnico(usuario.nome);
+      parceiro = await Parceiro.create({
+        usuario_id: req.usuarioId,
+        codigo_indicacao: codigo,
+        comissao_base: COMISSAO_PADRAO,
+        ...dados
+      });
+    }
+
+    res.status(201).json({
+      mensagem: 'Solicitação enviada! Você será avisado quando for analisada.',
+      id: parceiro.id,
+      status: parceiro.status
+    });
+  } catch (erro) {
+    console.error('Erro ao solicitar parceria institucional:', erro);
+    res.status(500).json({ erro: 'Erro ao enviar solicitação: ' + erro.message });
+  }
+};
+
+/**
+ * Verifica metas de bônus ainda não atingidas e credita as que bateram.
+ *
+ * Roda de hora em hora (não junto do fechamento mensal) porque uma meta de
+ * 30 dias precisa ser detectada perto do momento em que é batida, não só na
+ * virada do mês.
+ *
+ * O bônus vira uma linha em "comissoes" com tipo='bonus_meta' e
+ * indicacao_id NULL — assim entra automaticamente no total a pagar e no fluxo
+ * de "marcar como pago" que já existem, sem duplicar nada.
+ */
+async function verificarMetasAtingidas() {
+  const metas = await BonusMeta.findAll({ where: { atingida: false } });
+  if (!metas.length) return { avaliadas: 0, atingidas: 0, valor_total: 0 };
+
+  const idsParceiros = [...new Set(metas.map(m => m.parceiro_id))];
+  const ativas = await Indicacao.findAll({
+    where: { parceiro_id: { [Op.in]: idsParceiros }, status: 'ativo' },
+    attributes: ['parceiro_id']
+  });
+  const contagem = new Map();
+  for (const ind of ativas) {
+    contagem.set(ind.parceiro_id, (contagem.get(ind.parceiro_id) || 0) + 1);
+  }
+
+  const agora = new Date();
+  let atingidas = 0;
+  let valorTotal = 0;
+
+  for (const meta of metas) {
+    const prazoFinal = new Date(new Date(meta.data_inicio).getTime() + meta.prazo_dias * 24 * 60 * 60 * 1000);
+    // Fora do prazo: não credita. A meta fica com atingida=false para sempre,
+    // que é como o painel distingue "expirada sem bater" de "ainda correndo".
+    if (agora > prazoFinal) continue;
+
+    const quantas = contagem.get(meta.parceiro_id) || 0;
+    if (quantas < meta.meta_usuarios) continue;
+
+    const valor = Number(meta.valor_bonus || 0);
+    try {
+      await Comissao.create({
+        parceiro_id: meta.parceiro_id,
+        indicacao_id: null,
+        bonus_meta_id: meta.id,
+        tipo: 'bonus_meta',
+        mes_referencia: primeiroDiaDoMes(),
+        valor,
+        status_pagamento: 'pendente'
+      });
+      await meta.update({ atingida: true, data_atingida: agora });
+      atingidas++;
+      valorTotal += valor;
+    } catch (erroCriacao) {
+      // Índice único parcial em bonus_meta_id: se outra execução já creditou,
+      // só garantimos que a meta fique marcada e seguimos.
+      if (erroCriacao.name === 'SequelizeUniqueConstraintError') {
+        if (!meta.atingida) await meta.update({ atingida: true, data_atingida: agora });
+      } else {
+        console.error('Erro ao creditar bônus de meta', meta.id, erroCriacao.message);
+      }
+    }
+  }
+
+  if (atingidas) {
+    console.log(`[metas] ${atingidas} meta(s) atingida(s), total R$ ${valorTotal.toFixed(2)} em bônus.`);
+  }
+  return { avaliadas: metas.length, atingidas, valor_total: Number(valorTotal.toFixed(2)) };
+}
+
+/**
  * Fecha as comissões do mês de referência informado (ou do mês corrente).
  *
  * Gera UMA linha em "comissoes" por indicação ativa, no valor da comissao_base
@@ -261,9 +425,17 @@ async function fecharComissoesDoMes(mesReferencia) {
   const idsParceiros = [...new Set(indicacoesAtivas.map(i => i.parceiro_id))];
   const parceiros = await Parceiro.findAll({
     where: { id: { [Op.in]: idsParceiros } },
-    attributes: ['id', 'comissao_base', 'status']
+    attributes: ['id', 'tipo', 'comissao_base', 'status']
   });
   const mapaParceiros = new Map(parceiros.map(p => [p.id, p]));
+
+  // Quantas indicações ativas cada parceiro tem AGORA — é isso que define a
+  // faixa do institucional. Contado sobre a mesma lista que está sendo
+  // fechada, então faixa e cobrança sempre olham o mesmo retrato.
+  const ativasPorParceiro = new Map();
+  for (const ind of indicacoesAtivas) {
+    ativasPorParceiro.set(ind.parceiro_id, (ativasPorParceiro.get(ind.parceiro_id) || 0) + 1);
+  }
 
   let criadas = 0;
   let ignoradasSemParceiro = 0;
@@ -280,12 +452,14 @@ async function fecharComissoesDoMes(mesReferencia) {
       continue;
     }
 
-    const valor = Number(parceiro.comissao_base || COMISSAO_PADRAO);
+    const valor = valorComissaoUnitaria(parceiro, ativasPorParceiro.get(parceiro.id) || 0);
+    if (!valor) { ignoradasSemParceiro++; continue; }
 
     try {
       await Comissao.create({
         parceiro_id: parceiro.id,
         indicacao_id: indicacao.id,
+        tipo: 'recorrente',
         mes_referencia: mes,
         valor,
         status_pagamento: 'pendente'
@@ -343,11 +517,15 @@ async function resolverParceiroPorCodigo(codigo) {
 
 module.exports = {
   meuParceiro,
+  solicitarInstitucional,
   sincronizarIndicacaoDoUsuario,
   registrarIndicacaoSeAplicavel,
   resolverParceiroPorCodigo,
   fecharComissoesDoMes,
   fecharComissoesManualmente,
+  verificarMetasAtingidas,
+  valorComissaoUnitaria,
+  FAIXAS_INSTITUCIONAL,
   primeiroDiaDoMes,
   LINK_BASE_PARCEIRO
 };

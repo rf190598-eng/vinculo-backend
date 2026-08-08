@@ -53,9 +53,14 @@ const usuarioRoutes = require('./routes/usuario');
 const {
   router: parceiroRoutes,
   rotasAdmin: parceiroRotasAdmin,
-  rotasAdminComissoes
+  rotasAdminComissoes,
+  rotasAdminMetas
 } = require('./routes/parceiros');
-const { fecharComissoesDoMes, primeiroDiaDoMes } = require('./controllers/parceiroController');
+const {
+  fecharComissoesDoMes,
+  primeiroDiaDoMes,
+  verificarMetasAtingidas
+} = require('./controllers/parceiroController');
 const { verificarCheckinsVencidos } = require('./controllers/segurancaController');
 const { verificarAssinaturasVencidas } = require('./controllers/pagamentoController');
 
@@ -168,6 +173,7 @@ app.use('/api/usuario', usuarioRoutes);
 app.use('/api/parceiros', parceiroRoutes);
 app.use('/api/admin/parceiros', parceiroRotasAdmin);
 app.use('/api/admin/comissoes', rotasAdminComissoes);
+app.use('/api/admin/metas', rotasAdminMetas);
 
 // ===== Rota não encontrada =====
 app.use((req, res) => {
@@ -270,6 +276,17 @@ const iniciar = async () => {
   };
   rodarFechamentoMensal();
   setInterval(rodarFechamentoMensal, UMA_HORA);
+
+  // Metas de bônus: verificadas de hora em hora, sem trava mensal. Uma meta de
+  // 30 dias precisa ser detectada perto de quando é batida — esperar a virada
+  // do mês poderia deixá-la expirar sem crédito.
+  const rodarVerificacaoMetas = () => {
+    verificarMetasAtingidas().catch((err) => {
+      console.error('Erro ao verificar metas de bônus:', err);
+    });
+  };
+  rodarVerificacaoMetas();
+  setInterval(rodarVerificacaoMetas, UMA_HORA);
 };
 
 // ===== Graceful shutdown =====

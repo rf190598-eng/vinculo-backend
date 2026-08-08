@@ -3,6 +3,8 @@ const Usuario = require('../models/Usuario');
 const Parceiro = require('../models/Parceiro');
 const Indicacao = require('../models/Indicacao');
 const Comissao = require('../models/Comissao');
+const BonusMeta = require('../models/BonusMeta');
+const { verificarMetasAtingidas } = require('./parceiroController');
 
 // Valores aceitos em parceiros.status. 'rejeitado' foi acrescentado agora,
 // para o fluxo de aprovação institucional do painel — a coluna é STRING (não
@@ -220,10 +222,135 @@ const marcarComissaoPaga = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/admin/metas
+ * Lista as metas com progresso calculado na hora (indicações ativas do
+ * parceiro vs meta) e prazo restante. O progresso NÃO é armazenado — sai
+ * sempre de indicacoes, pra não existirem dois lugares dizendo quantos são.
+ */
+const listarMetas = async (req, res) => {
+  try {
+    const metas = await BonusMeta.findAll({ order: [['createdAt', 'DESC']], limit: 300 });
+    if (!metas.length) return res.json({ metas: [] });
+
+    const idsParceiros = [...new Set(metas.map(m => m.parceiro_id))];
+    const parceiros = await Parceiro.findAll({
+      where: { id: { [Op.in]: idsParceiros } },
+      attributes: ['id', 'usuario_id', 'nome_instituicao', 'tipo']
+    });
+    const mapaParceiros = new Map(parceiros.map(p => [p.id, p]));
+
+    const usuarios = await Usuario.findAll({
+      where: { id: { [Op.in]: parceiros.map(p => p.usuario_id) } },
+      attributes: ['id', 'nome']
+    });
+    const mapaUsuarios = new Map(usuarios.map(u => [u.id, u]));
+
+    const ativas = await Indicacao.findAll({
+      where: { parceiro_id: { [Op.in]: idsParceiros }, status: 'ativo' },
+      attributes: ['parceiro_id']
+    });
+    const contagem = new Map();
+    for (const ind of ativas) {
+      contagem.set(ind.parceiro_id, (contagem.get(ind.parceiro_id) || 0) + 1);
+    }
+
+    const agora = Date.now();
+    res.json({
+      metas: metas.map(m => {
+        const parceiro = mapaParceiros.get(m.parceiro_id);
+        const usuario = parceiro ? mapaUsuarios.get(parceiro.usuario_id) : null;
+        const fim = new Date(m.data_inicio).getTime() + m.prazo_dias * 24 * 60 * 60 * 1000;
+        const diasRestantes = Math.ceil((fim - agora) / (24 * 60 * 60 * 1000));
+        const progresso = contagem.get(m.parceiro_id) || 0;
+        return {
+          id: m.id,
+          parceiro_id: m.parceiro_id,
+          parceiro_nome: parceiro && parceiro.nome_instituicao
+            ? parceiro.nome_instituicao
+            : (usuario ? usuario.nome : '(parceiro removido)'),
+          meta_usuarios: m.meta_usuarios,
+          progresso,
+          prazo_dias: m.prazo_dias,
+          data_inicio: m.data_inicio,
+          dias_restantes: diasRestantes,
+          // 'atingida' | 'em_andamento' | 'expirada'
+          situacao: m.atingida ? 'atingida' : (diasRestantes < 0 ? 'expirada' : 'em_andamento'),
+          valor_bonus: Number(m.valor_bonus || 0),
+          atingida: m.atingida,
+          data_atingida: m.data_atingida
+        };
+      })
+    });
+  } catch (erro) {
+    console.error('Erro ao listar metas:', erro);
+    res.status(500).json({ erro: 'Erro ao listar metas: ' + erro.message });
+  }
+};
+
+/**
+ * POST /api/admin/metas
+ * Body: { parceiro_id, meta_usuarios, prazo_dias, valor_bonus }
+ */
+const criarMeta = async (req, res) => {
+  try {
+    const { parceiro_id, meta_usuarios, prazo_dias, valor_bonus } = req.body || {};
+
+    const metaUsuarios = parseInt(meta_usuarios, 10);
+    const prazoDias = parseInt(prazo_dias, 10);
+    const valorBonus = Number(valor_bonus);
+
+    if (!parceiro_id) return res.status(400).json({ erro: 'Informe o parceiro' });
+    if (!Number.isFinite(metaUsuarios) || metaUsuarios < 1) {
+      return res.status(400).json({ erro: 'meta_usuarios deve ser um número maior que zero' });
+    }
+    if (!Number.isFinite(prazoDias) || prazoDias < 1) {
+      return res.status(400).json({ erro: 'prazo_dias deve ser um número maior que zero' });
+    }
+    if (!Number.isFinite(valorBonus) || valorBonus <= 0) {
+      return res.status(400).json({ erro: 'valor_bonus deve ser maior que zero' });
+    }
+
+    const parceiro = await Parceiro.findByPk(parceiro_id);
+    if (!parceiro) return res.status(404).json({ erro: 'Parceiro não encontrado' });
+
+    const meta = await BonusMeta.create({
+      parceiro_id,
+      meta_usuarios: metaUsuarios,
+      prazo_dias: prazoDias,
+      valor_bonus: valorBonus,
+      data_inicio: new Date(),
+      atingida: false
+    });
+
+    res.status(201).json({ mensagem: 'Meta criada.', id: meta.id });
+  } catch (erro) {
+    console.error('Erro ao criar meta:', erro);
+    res.status(500).json({ erro: 'Erro ao criar meta: ' + erro.message });
+  }
+};
+
+/**
+ * POST /api/admin/metas/verificar
+ * Dispara a verificação de metas na hora, sem esperar o job horário.
+ */
+const verificarMetasManualmente = async (req, res) => {
+  try {
+    const resumo = await verificarMetasAtingidas();
+    res.json({ mensagem: 'Verificação executada.', ...resumo });
+  } catch (erro) {
+    console.error('Erro ao verificar metas:', erro);
+    res.status(500).json({ erro: 'Erro ao verificar metas: ' + erro.message });
+  }
+};
+
 module.exports = {
   listarParceiros,
   atualizarStatusParceiro,
   listarComissoes,
   marcarComissaoPaga,
+  listarMetas,
+  criarMeta,
+  verificarMetasManualmente,
   STATUS_PARCEIRO_VALIDOS
 };

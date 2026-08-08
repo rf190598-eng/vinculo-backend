@@ -52,6 +52,14 @@ const Parceiro = sequelize.define('Parceiro', {
   data_aprovacao: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  // Texto livre enviado na solicitação institucional (responsável, e-mail de
+  // contato e justificativa), para o admin avaliar. Vira um campo só porque
+  // esses dados só interessam no momento da análise — não viram colunas
+  // próprias nem entram em nenhuma regra de negócio.
+  observacao_solicitacao: {
+    type: DataTypes.TEXT,
+    allowNull: true
   }
 }, {
   tableName: 'parceiros',
