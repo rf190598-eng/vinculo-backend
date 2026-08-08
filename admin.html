@@ -50,6 +50,7 @@
   #painel{display:none}
   .linha-form{margin-bottom:12px}
   .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+  .rotDet{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--suave);font-weight:600;margin-bottom:2px}
 </style>
 </head>
 <body>
@@ -467,23 +468,66 @@ function renderizarPendentes(lista){
     alvo.innerHTML = '<div class="vazio">Nenhuma solicitação pendente no momento.</div>';
     return;
   }
+  // Cada solicitação vira DUAS linhas: a de resumo e uma oculta com os
+  // detalhes completos. A linha de detalhes já vem montada no HTML (só
+  // escondida) em vez de ser buscada sob demanda — os dados já vieram todos
+  // no GET, então abrir é instantâneo e não gera requisição nova.
   alvo.innerHTML =
     '<table><thead><tr>' +
     '<th>Nome</th><th>Instituição</th><th>Código</th><th>Solicitado em</th><th>Ações</th>' +
     '</tr></thead><tbody>' +
-    lista.map(p =>
-      '<tr>' +
+    lista.map((p, i) => {
+      const temDetalhe = !!(p.observacao_solicitacao || p.chave_pix || p.email);
+      return '<tr>' +
         '<td>' + esc(p.nome) + '<br/><span style="color:#6b6b73;font-size:12px">' + esc(p.email || '') + '</span></td>' +
         '<td>' + esc(p.nome_instituicao || '—') + '</td>' +
         '<td class="mono">' + esc(p.codigo_indicacao) + '</td>' +
         '<td>' + dataBR(p.createdAt) + '</td>' +
-        '<td style="display:flex;gap:8px">' +
+        '<td style="display:flex;gap:8px;flex-wrap:wrap">' +
+          (temDetalhe
+            ? '<button class="btn-secundario btn-mini" id="btnDet' + i + '" onclick="alternarDetalhe(' + i + ')">Ver detalhes</button>'
+            : '') +
           '<button class="btn-ok btn-mini" onclick="mudarStatus(\'' + p.id + '\',\'ativo\')">Aprovar</button>' +
           '<button class="btn-perigo btn-mini" onclick="mudarStatus(\'' + p.id + '\',\'rejeitado\')">Rejeitar</button>' +
         '</td>' +
-      '</tr>'
-    ).join('') +
+      '</tr>' +
+      '<tr id="det' + i + '" style="display:none;background:#fafafa">' +
+        '<td colspan="5" style="padding:14px 16px">' +
+          '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:12px">' +
+            '<div><div class="rotDet">Responsável</div><div>' + esc(p.responsavel_solicitacao || '—') + '</div></div>' +
+            '<div><div class="rotDet">E-mail de contato</div><div>' + esc(p.email_contato_solicitacao || '—') + '</div></div>' +
+            '<div><div class="rotDet">Instituição</div><div>' + esc(p.nome_instituicao || '—') + '</div></div>' +
+            '<div><div class="rotDet">Chave Pix</div><div class="mono">' + esc(p.chave_pix || '—') + '</div></div>' +
+            '<div><div class="rotDet">Conta Vínculo</div><div>' + esc(p.nome) + '<br/><span style="color:#6b6b73;font-size:12px">' + esc(p.email || '—') + '</span></div></div>' +
+            '<div><div class="rotDet">Código de indicação</div><div class="mono">' + esc(p.codigo_indicacao) + '</div></div>' +
+            '<div><div class="rotDet">Indicações</div><div>' + p.indicacoes_ativas + ' ativas / ' + p.total_indicacoes + '</div></div>' +
+          '</div>' +
+          '<div class="rotDet">Mensagem / justificativa</div>' +
+          '<div style="white-space:pre-wrap;background:#fff;border:1px solid var(--borda);border-radius:8px;padding:12px;margin-top:5px;line-height:1.55">' +
+            (p.observacao_solicitacao ? esc(p.observacao_solicitacao) : '<span style="color:#6b6b73">Nenhuma mensagem foi enviada.</span>') +
+          '</div>' +
+          // Solicitações antigas guardam responsável + e-mail concatenados
+          // dentro da observação. Quando as colunas novas estão vazias mas há
+          // observação, avisa que o texto acima é do formato antigo — senão
+          // pareceria que a pessoa não informou o responsável.
+          (!p.responsavel_solicitacao && p.observacao_solicitacao
+            ? '<div style="font-size:11.5px;color:#8a6d1f;background:#fdf1d6;border-radius:6px;padding:8px 10px;margin-top:8px">' +
+              'Solicitação no formato antigo: responsável e e-mail de contato podem estar dentro do texto acima.' +
+              '</div>'
+            : '') +
+        '</td>' +
+      '</tr>';
+    }).join('') +
     '</tbody></table>';
+}
+
+function alternarDetalhe(i){
+  const linha = document.getElementById('det' + i);
+  const btn = document.getElementById('btnDet' + i);
+  if(!linha) return;
+  const aberto = linha.style.display !== 'none';
+  linha.style.display = aberto ? 'none' : 'table-row';
+  if(btn) btn.textContent = aberto ? 'Ver detalhes' : 'Ocultar detalhes';
 }
 
 async function mudarStatus(id, status){

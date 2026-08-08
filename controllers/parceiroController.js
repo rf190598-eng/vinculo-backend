@@ -281,13 +281,14 @@ const solicitarInstitucional = async (req, res) => {
       status: 'pendente_aprovacao',
       nome_instituicao: nomeInstituicao,
       chave_pix: chavePix,
-      // Guardados como observação para o admin avaliar. Não viram colunas
-      // próprias porque só interessam no momento da análise.
-      observacao_solicitacao: [
-        'Responsável: ' + nomeCompleto,
-        emailContato ? 'E-mail de contato: ' + emailContato : null,
-        mensagem ? 'Mensagem: ' + limpar(mensagem, 1000) : null
-      ].filter(Boolean).join(' | ')
+      // Responsável e e-mail de contato têm colunas próprias — antes iam
+      // concatenados dentro de observacao_solicitacao, o que impedia filtrar,
+      // ordenar ou exibir cada um separadamente no painel.
+      responsavel_solicitacao: nomeCompleto,
+      email_contato_solicitacao: emailContato || null,
+      // Só a justificativa livre. Vazia vira null em vez de string vazia, pra
+      // o painel distinguir "não escreveu nada" de "escreveu e apagou".
+      observacao_solicitacao: limpar(mensagem, 1000) || null
     };
 
     if (parceiro) {

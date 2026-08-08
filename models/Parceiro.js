@@ -53,10 +53,25 @@ const Parceiro = sequelize.define('Parceiro', {
     type: DataTypes.DATE,
     allowNull: true
   },
-  // Texto livre enviado na solicitação institucional (responsável, e-mail de
-  // contato e justificativa), para o admin avaliar. Vira um campo só porque
-  // esses dados só interessam no momento da análise — não viram colunas
-  // próprias nem entram em nenhuma regra de negócio.
+  // Quem preencheu a solicitação institucional. Pode ser diferente do nome da
+  // conta Vínculo (ex: o presidente da atlética solicita pela conta dele, mas
+  // o responsável formal é outra pessoa).
+  responsavel_solicitacao: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  // E-mail informado para contato sobre a parceria — não necessariamente o
+  // e-mail de login da conta.
+  email_contato_solicitacao: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  // APENAS a mensagem/justificativa livre da solicitação.
+  // Solicitações antigas (anteriores à separação em colunas) guardam aqui os
+  // três dados concatenados no formato
+  // "Responsável: X | E-mail de contato: Y | Mensagem: Z" — não foram
+  // migradas de propósito, então o painel precisa continuar exibindo esse
+  // texto como veio.
   observacao_solicitacao: {
     type: DataTypes.TEXT,
     allowNull: true

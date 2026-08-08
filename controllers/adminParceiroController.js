@@ -64,6 +64,13 @@ const listarParceiros = async (req, res) => {
           status: p.status,
           nome_instituicao: p.nome_instituicao,
           chave_pix: p.chave_pix,
+          // Dados da solicitação institucional. Responsável e e-mail de
+          // contato agora vêm em colunas próprias; observacao_solicitacao
+          // guarda só a justificativa livre (em solicitações antigas ela
+          // ainda traz os três dados concatenados).
+          responsavel_solicitacao: p.responsavel_solicitacao,
+          email_contato_solicitacao: p.email_contato_solicitacao,
+          observacao_solicitacao: p.observacao_solicitacao,
           comissao_base: Number(p.comissao_base || 0),
           data_aprovacao: p.data_aprovacao,
           createdAt: p.createdAt,

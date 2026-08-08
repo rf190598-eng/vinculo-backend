@@ -176,9 +176,19 @@ CREATE INDEX IF NOT EXISTS idx_usuarios_plano_atual
 -- Rodar DEPOIS dos passos 1-4 (as tabelas precisam existir).
 -- ============================================================
 
--- Texto livre da solicitação institucional (responsável, e-mail, justificativa)
+-- Dados da solicitação institucional, em colunas próprias.
+-- observacao_solicitacao guarda APENAS a mensagem/justificativa livre.
+-- (Solicitações criadas antes desta separação mantêm os três dados
+-- concatenados dentro de observacao_solicitacao. Não são migradas — o painel
+-- detecta o formato antigo e avisa.)
 ALTER TABLE parceiros
   ADD COLUMN IF NOT EXISTS observacao_solicitacao TEXT;
+
+ALTER TABLE parceiros
+  ADD COLUMN IF NOT EXISTS responsavel_solicitacao VARCHAR(255);
+
+ALTER TABLE parceiros
+  ADD COLUMN IF NOT EXISTS email_contato_solicitacao VARCHAR(255);
 
 -- Comissões passam a comportar DOIS tipos de pagamento na mesma tabela:
 --   'recorrente' = R$/mês por indicação ativa (indicacao_id preenchido)
