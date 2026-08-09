@@ -5513,6 +5513,36 @@ function diag(tag, dados){
   console.log('[DIAG#' + (++diagSeq) + '] ' + tag, dados || '');
 }
 
+/* Último valor de `bottom` REALMENTE escrito no DOM. É a guarda central
+   contra o loop: se o valor calculado é igual ao que já está aplicado, não
+   se escreve nada — e sem escrita não há novo disparo do observer. */
+let ultimoBottomCamada = null;
+let diagEscritasIgnoradas = 0;
+
+// Ponto único de escrita do bottom da camada. Só toca no DOM se a diferença
+// for de pelo menos 1px (variação menor que isso é ruído de subpixel e não
+// muda nada visualmente).
+function aplicarBottomCamada(alturaRodape, origem){
+  const camada = document.getElementById('editorStoryCamadaTextos');
+  if(!camada) return false;
+
+  const novo = alturaRodape + 16;
+  if(ultimoBottomCamada !== null && Math.abs(novo - ultimoBottomCamada) < 1){
+    diagEscritasIgnoradas++;
+    // Loga esporadicamente só para você confirmar que a guarda está segurando.
+    if(diagEscritasIgnoradas % 25 === 1){
+      diag('bottom IGNORADO (sem mudança real)', {
+        origem: origem, valor: novo, ignoradas_ate_agora: diagEscritasIgnoradas
+      });
+    }
+    return false;
+  }
+
+  ultimoBottomCamada = novo;
+  camada.style.bottom = novo + 'px';
+  return true;
+}
+
 function ajustarAreaArrasteEditorStory(origem){
   const camada = document.getElementById('editorStoryCamadaTextos');
   const rodape = document.getElementById('editorStoryRodape');
@@ -5522,18 +5552,18 @@ function ajustarAreaArrasteEditorStory(origem){
     return;
   }
   const alturaRodape = rodape.offsetHeight;
-  const novoBottom = (alturaRodape + 16) + 'px';
-  camada.style.bottom = novoBottom;
+  const escreveu = aplicarBottomCamada(alturaRodape, origem || 'ajustarArea');
 
-  diag('ajustarArea', {
-    origem: origem || '(nao informada)',
-    rodape_offsetHeight: alturaRodape,
-    bottom_aplicado: novoBottom,
-    camada_altura_resultante: Math.round(camada.getBoundingClientRect().height),
-    layer_altura: layer ? Math.round(layer.getBoundingClientRect().height) : null,
-    layer_display: layer ? layer.style.display : null,
-    innerHeight: window.innerHeight
-  });
+  if(escreveu){
+    diag('ajustarArea ESCREVEU', {
+      origem: origem || '(nao informada)',
+      rodape_offsetHeight: alturaRodape,
+      bottom_aplicado: (alturaRodape + 16) + 'px',
+      camada_altura_resultante: Math.round(camada.getBoundingClientRect().height),
+      layer_altura: layer ? Math.round(layer.getBoundingClientRect().height) : null,
+      innerHeight: window.innerHeight
+    });
+  }
 
   observarRodapeEditorStory();
 }
@@ -5571,20 +5601,41 @@ function observarRodapeEditorStory(){
 
   observadorRodapeEditor = new ResizeObserver(() => {
     const alturaRodape = rodape.offsetHeight;
-    const novoBottom = (alturaRodape + 16) + 'px';
-    // Sem chamar ajustarArea… aqui: isso reentraria no observer.
-    camada.style.bottom = novoBottom;
-    diag('ResizeObserver DISPAROU', {
-      rodape_offsetHeight: alturaRodape,
-      bottom_aplicado: novoBottom,
-      camada_altura_resultante: Math.round(camada.getBoundingClientRect().height),
-      layer_altura: layer ? Math.round(layer.getBoundingClientRect().height) : null,
-      innerHeight: window.innerHeight
+
+    // Desconecta antes de tocar no DOM e religa no frame seguinte. Assim,
+    // mesmo que a escrita provoque um reflow, ele não volta como um novo
+    // disparo dentro do mesmo ciclo.
+    observadorRodapeEditor.disconnect();
+    const escreveu = aplicarBottomCamada(alturaRodape, 'ResizeObserver');
+    requestAnimationFrame(() => {
+      if(observadorRodapeEditor) observadorRodapeEditor.observe(rodape);
     });
+
+    if(escreveu){
+      diag('ResizeObserver ESCREVEU', {
+        rodape_offsetHeight: alturaRodape,
+        bottom_aplicado: (alturaRodape + 16) + 'px',
+        camada_altura_resultante: Math.round(camada.getBoundingClientRect().height),
+        layer_altura: layer ? Math.round(layer.getBoundingClientRect().height) : null,
+        innerHeight: window.innerHeight
+      });
+    }
   });
+
+  // Observa SOMENTE o rodapé.
+  //
+  // CAUSA DO LOOP: antes eu também observava composerEditLayer. A altura dele
+  // vem de height:100dvh — unidade DINÂMICA, que muda continuamente enquanto a
+  // barra de endereço do navegador aparece/some. Cada quadro dessa animação
+  // gerava um disparo, e por isso os logs mostravam dezenas de eventos sozinhos
+  // com camada_altura subindo e descendo (547→583→…→624→573→…→546) enquanto
+  // rodape_offsetHeight ficava parado em 200.
+  //
+  // Observar o layer nunca foi necessário: a camada tem top:0 e bottom em px,
+  // então ela já acompanha qualquer mudança de altura do pai automaticamente,
+  // via CSS, sem JS. O único dado que o cálculo precisa é a altura do rodapé.
   observadorRodapeEditor.observe(rodape);
-  if(layer) observadorRodapeEditor.observe(layer);
-  diag('ResizeObserver CRIADO e observando', { observaRodape: true, observaLayer: !!layer });
+  diag('ResizeObserver CRIADO — observando SOMENTE o rodapé', { observaLayer: false });
 }
 
 // Voltar da edição: se veio do modo texto puro (sem câmera envolvida), fecha
