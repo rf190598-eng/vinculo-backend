@@ -5439,6 +5439,12 @@ function abrirEditorStory(tipo, arquivo){
   // da edição anterior continuaria aplicado na próxima foto/vídeo.
   editorStoryFiltroId = 'normal';
   filtroCssStoryVar = '';
+  // A guarda anti-loop compara o bottom novo com o último ESCRITO. Se esse
+  // valor sobrevivesse de uma edição para a seguinte, uma medição correta
+  // poderia ser descartada por "não ter mudado" enquanto o DOM real estivesse
+  // com outro valor. Zerar a referência ao abrir mantém a guarda restrita ao
+  // seu propósito (evitar reescrita redundante dentro da mesma sessão).
+  ultimoBottomCamada = null;
   // Enquadramento do fundo também é por edição: a foto seguinte não pode
   // herdar o zoom da anterior.
   resetarTransformFundoStory();
@@ -5493,16 +5499,68 @@ function abrirEditorStory(tipo, arquivo){
 
   if(perguntaPendenteParaEditor && perguntaDoDiaTextoAtual){
     perguntaPendenteParaEditor = false;
-    // Só no próximo frame: a camada de edição acabou de virar visível, e a
-    // altura do rodapé (que define a altura útil da camada de arraste) ainda
-    // não foi recalculada pelo layout. Criar a caixa antes disso posicionava
-    // o cartão em 50% de uma altura provisória — e ele nascia colado no topo.
-    requestAnimationFrame(() => {
-      ajustarAreaArrasteEditorStory();
-      usarPerguntaComoTextoStory();
-    });
+    // Um único requestAnimationFrame NÃO bastava. Ele garante "antes da
+    // próxima pintura", mas a foto da galeria ainda está decodificando nesse
+    // instante — e é a chegada dela que dispara o reflow que define a altura
+    // final. O cartão nascia em 50% de uma altura provisória.
+    //
+    // Quando a pessoa tocava no chip, a inserção acontecia segundos depois,
+    // com tudo já assentado — por isso aquele caminho parecia correto. A
+    // diferença nunca foi o toque em si, era só o tempo decorrido.
+    //
+    // Agora espera a mídia ficar pronta de fato e só então mede e insere.
+    inserirPerguntaQuandoFundoPronto(tipo);
   }
   console.log('[editor] camada de edição do composer aberta. display atual:', document.getElementById('composerEditLayer').style.display);
+}
+
+/* Insere o cartão da pergunta só depois que o fundo terminou de carregar E o
+   layout assentou. Cobre os três tipos de fundo e tem teto de tempo, pra uma
+   foto que nunca carrega não deixar a pessoa sem o cartão. */
+function inserirPerguntaQuandoFundoPronto(tipo){
+  let jaRodou = false;
+
+  const seguir = (motivo) => {
+    if(jaRodou) return;
+    jaRodou = true;
+    // Dois frames: o primeiro deixa o navegador aplicar o reflow provocado
+    // pela mídia recém-carregada; o segundo mede já com o layout final.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      ajustarAreaArrasteEditorStory('antes de inserir cartao');
+      const camada = document.getElementById('editorStoryCamadaTextos');
+      diag('INSERINDO CARTAO DA PERGUNTA', {
+        motivo: motivo,
+        camada_altura: camada ? Math.round(camada.getBoundingClientRect().height) : null,
+        camada_bottom: camada ? camada.style.bottom : null,
+        innerHeight: window.innerHeight
+      });
+      usarPerguntaComoTextoStory();
+    }));
+  };
+
+  // Rede de segurança: mídia corrompida, offline, decodificação travada.
+  setTimeout(() => seguir('timeout de 2s'), 2000);
+
+  if(tipo === 'foto'){
+    const img = document.getElementById('editorStoryFundoImg');
+    if(img && img.complete && img.naturalWidth) return seguir('foto ja estava decodificada');
+    if(img){
+      img.addEventListener('load', () => seguir('evento load da foto'), { once: true });
+      img.addEventListener('error', () => seguir('erro ao carregar a foto'), { once: true });
+    }
+    return;
+  }
+
+  if(tipo === 'video'){
+    const v = document.getElementById('editorStoryFundoVideo');
+    // readyState >= 1 (HAVE_METADATA) já garante dimensões conhecidas.
+    if(v && v.readyState >= 1) return seguir('video ja tinha metadata');
+    if(v) v.addEventListener('loadedmetadata', () => seguir('loadedmetadata do video'), { once: true });
+    return;
+  }
+
+  // Modo texto puro: o fundo é um gradiente, não há o que esperar.
+  seguir('fundo em gradiente (modo texto)');
 }
 
 // A camada onde as caixas de texto são arrastadas (editorStoryCamadaTextos)
@@ -6093,9 +6151,24 @@ function configurarPincaFundoStory(){
     ev.preventDefault();
 
     const e = estadoAtual();
-    const fator = e.dist / inicial.dist;
+
+    // Escala INCREMENTAL: fator medido contra a distância do quadro anterior,
+    // não contra a do início do gesto.
+    //
+    // Por que mudou: no modelo antigo a escala era sempre `escalaInicial *
+    // (distAtual / distInicial)`. Se o gesto era reiniciado por qualquer
+    // motivo, `inicial` era recapturado JÁ COM a escala ampliada, e a
+    // referência de distância voltava ao zero. O efeito prático é uma catraca:
+    // cada reinício preservava o aumento e descartava a redução, então
+    // afastar os dedos crescia e aproximar não voltava.
+    // No modelo incremental cada quadro aplica só a variação daquele quadro,
+    // então aproximar reduz e afastar aumenta de forma simétrica, e um
+    // reinício não tem como acumular em uma direção só.
+    const fator = e.dist / (inicial.distAnterior || inicial.dist);
+    inicial.distAnterior = e.dist;
+
     editorFundoEscala = Math.max(EDITOR_FUNDO_ESCALA_MIN,
-      Math.min(EDITOR_FUNDO_ESCALA_MAX, inicial.escala * fator));
+      Math.min(EDITOR_FUNDO_ESCALA_MAX, editorFundoEscala * fator));
 
     // Acompanha o movimento do centro dos dois dedos, para a mídia escalar a
     // partir de onde a pessoa está pinçando e não sempre do meio da tela.
