@@ -10,6 +10,46 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#2b0f17"/>
 <title>Vinculo</title>
+
+<!-- ============================================================
+     ERUDA — console flutuante no próprio celular. TEMPORÁRIO.
+     Existe só para depurar o cartão da pergunta e o zoom por pinça.
+     REMOVER este bloco inteiro quando os dois bugs estiverem fechados.
+
+     NÃO carrega para todo mundo: só liga com ?debug=1 na URL. A escolha
+     fica salva no localStorage, então sobrevive à navegação do app (que
+     recarrega a página em alguns fluxos, como a volta do login Google).
+
+     LIGAR:    .../prototipo?debug=1
+     DESLIGAR: .../prototipo?debug=0
+     ============================================================ -->
+<script>
+(function(){
+  try {
+    var q = new URLSearchParams(location.search).get('debug');
+    if (q === '1') localStorage.setItem('vinculo_debug', '1');
+    if (q === '0') localStorage.removeItem('vinculo_debug');
+    if (localStorage.getItem('vinculo_debug') !== '1') return;
+
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/eruda';
+    s.onload = function(){
+      if (!window.eruda) return;
+      window.eruda.init();
+      // Já abre no Console e filtra os logs de diagnóstico, pra não precisar
+      // procurar no meio das mensagens normais do app.
+      try {
+        window.eruda.show('console');
+        var painel = window.eruda.get('console');
+        if (painel && painel.filter) painel.filter('DIAG');
+      } catch(e){}
+      console.log('[DIAG] Eruda ativo. Filtro "DIAG" aplicado. Use ?debug=0 para desligar.');
+    };
+    s.onerror = function(){ console.warn('[DIAG] Falha ao carregar o Eruda (sem rede/CDN bloqueado?)'); };
+    document.head.appendChild(s);
+  } catch (e) { /* nunca pode quebrar o app por causa da ferramenta de debug */ }
+})();
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Karla:wght@400;500;600;700&family=Poppins:wght@700;800&family=Caveat:wght@600;700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -5467,11 +5507,34 @@ function abrirEditorStory(tipo, arquivo){
 // aparecerem "empilhados" na mesma região da tela. Aqui a altura real do
 // rodapé é medida e a camada é encolhida pra terminar exatamente onde o
 // rodapé começa — nunca mais atrás dele, com uma margem extra de respiro.
-function ajustarAreaArrasteEditorStory(){
+// [DIAG] Contador só para ordenar os eventos no console.
+let diagSeq = 0;
+function diag(tag, dados){
+  console.log('[DIAG#' + (++diagSeq) + '] ' + tag, dados || '');
+}
+
+function ajustarAreaArrasteEditorStory(origem){
   const camada = document.getElementById('editorStoryCamadaTextos');
   const rodape = document.getElementById('editorStoryRodape');
-  if(!camada || !rodape) return;
-  camada.style.bottom = (rodape.offsetHeight + 16) + 'px';
+  const layer = document.getElementById('composerEditLayer');
+  if(!camada || !rodape){
+    diag('ajustarArea ABORTOU (elemento ausente)', { temCamada: !!camada, temRodape: !!rodape });
+    return;
+  }
+  const alturaRodape = rodape.offsetHeight;
+  const novoBottom = (alturaRodape + 16) + 'px';
+  camada.style.bottom = novoBottom;
+
+  diag('ajustarArea', {
+    origem: origem || '(nao informada)',
+    rodape_offsetHeight: alturaRodape,
+    bottom_aplicado: novoBottom,
+    camada_altura_resultante: Math.round(camada.getBoundingClientRect().height),
+    layer_altura: layer ? Math.round(layer.getBoundingClientRect().height) : null,
+    layer_display: layer ? layer.style.display : null,
+    innerHeight: window.innerHeight
+  });
+
   observarRodapeEditorStory();
 }
 
@@ -5493,18 +5556,35 @@ function ajustarAreaArrasteEditorStory(){
    recalcula a camada sozinha. Não existe mais valor obsoleto possível. */
 let observadorRodapeEditor = null;
 function observarRodapeEditorStory(){
-  if(observadorRodapeEditor || typeof ResizeObserver === 'undefined') return;
+  if(observadorRodapeEditor) return; // já criado
+  if(typeof ResizeObserver === 'undefined'){
+    diag('ResizeObserver INDISPONIVEL neste navegador');
+    return;
+  }
   const camada = document.getElementById('editorStoryCamadaTextos');
   const rodape = document.getElementById('editorStoryRodape');
   const layer = document.getElementById('composerEditLayer');
-  if(!camada || !rodape) return;
+  if(!camada || !rodape){
+    diag('observer NAO criado (elemento ausente)');
+    return;
+  }
 
   observadorRodapeEditor = new ResizeObserver(() => {
+    const alturaRodape = rodape.offsetHeight;
+    const novoBottom = (alturaRodape + 16) + 'px';
     // Sem chamar ajustarArea… aqui: isso reentraria no observer.
-    camada.style.bottom = (rodape.offsetHeight + 16) + 'px';
+    camada.style.bottom = novoBottom;
+    diag('ResizeObserver DISPAROU', {
+      rodape_offsetHeight: alturaRodape,
+      bottom_aplicado: novoBottom,
+      camada_altura_resultante: Math.round(camada.getBoundingClientRect().height),
+      layer_altura: layer ? Math.round(layer.getBoundingClientRect().height) : null,
+      innerHeight: window.innerHeight
+    });
   });
   observadorRodapeEditor.observe(rodape);
   if(layer) observadorRodapeEditor.observe(layer);
+  diag('ResizeObserver CRIADO e observando', { observaRodape: true, observaLayer: !!layer });
 }
 
 // Voltar da edição: se veio do modo texto puro (sem câmera envolvida), fecha
@@ -5589,6 +5669,21 @@ function adicionarCaixaTextoStory(textoInicial, origemPergunta){
   // reposicionamento não disparava: a tela ficava idêntica ao modo resposta,
   // mas a flag não estava ligada. Condicionar à presença do cartão cobre os
   // dois caminhos e mantém o modo normal SEM cartão intacto (nasce centrado).
+  // [DIAG] Estado real da camada no instante em que a caixa nasce. É deste
+  // retângulo que sai o top:50% — se a altura aqui estiver curta, o cartão
+  // aparece perto do topo da tela.
+  {
+    const r = camada.getBoundingClientRect();
+    diag('CAIXA CRIADA', {
+      origemPergunta: !!origemPergunta,
+      camada_top: Math.round(r.top),
+      camada_altura: Math.round(r.height),
+      camada_style_bottom: camada.style.bottom,
+      caixa_y_percent: caixa.dataset.y,
+      innerHeight: window.innerHeight
+    });
+  }
+
   const temCartaoNaTela = !!camada.querySelector('.editor-story-caixa-texto[data-origem-pergunta="1"]');
   if(!origemPergunta && (modoRespostaPerguntaAtivo || temCartaoNaTela)){
     posicionarRespostaAbaixoDoCartaoStory(caixa);
@@ -5859,8 +5954,18 @@ function configurarPincaFundoStory(){
   // A correção é escutar no ancestral comum (composerEditLayer), por onde todo
   // toque da tela de edição passa, e ignorar o que for numa caixa de texto.
   const wrap = document.getElementById('composerEditLayer');
-  if(!wrap || wrap.dataset.pincaConfigurada) return;
+  if(!wrap){
+    diag('PINCA: composerEditLayer NAO ENCONTRADO — listeners nao instalados');
+    return;
+  }
+  if(wrap.dataset.pincaConfigurada){
+    diag('PINCA: listeners JA estavam instalados (ok, é idempotente)');
+    return;
+  }
   wrap.dataset.pincaConfigurada = '1';
+  diag('PINCA: listeners INSTALADOS em composerEditLayer', {
+    touchAction_layer: getComputedStyle(wrap).touchAction
+  });
 
   const pontos = new Map();
   let inicial = null;
@@ -5875,9 +5980,22 @@ function configurarPincaFundoStory(){
   }
 
   wrap.addEventListener('pointerdown', (ev) => {
+    const alvo = ev.target;
+    const emCaixa = !!(alvo.closest && alvo.closest('.editor-story-caixa-texto'));
+    diag('PINCA pointerdown', {
+      id: ev.pointerId,
+      pointerType: ev.pointerType,
+      alvo_tag: alvo.tagName,
+      alvo_id: alvo.id || '(sem id)',
+      alvo_classe: (alvo.className && alvo.className.toString().slice(0, 60)) || '',
+      em_caixa_de_texto: emCaixa,
+      pontos_antes: pontos.size,
+      touchAction_do_alvo: getComputedStyle(alvo).touchAction
+    });
     // Só reage ao fundo. Toque numa caixa de texto/emoji é tratado por elas.
-    if(ev.target.closest && ev.target.closest('.editor-story-caixa-texto')) return;
+    if(emCaixa) return;
     pontos.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    diag('PINCA pointer registrado', { pontos_agora: pontos.size });
     if(pontos.size === 2){
       const e = estadoAtual();
       inicial = {
@@ -5888,13 +6006,26 @@ function configurarPincaFundoStory(){
         y: editorFundoY,
         rect: wrap.getBoundingClientRect()
       };
+      diag('PINCA GESTO INICIADO (2 dedos)', {
+        distancia_inicial: Math.round(e.dist),
+        escala_atual: editorFundoEscala
+      });
     }
   });
 
+  // [DIAG] pointermove dispara muitas vezes; loga só 1 a cada 10 pra não
+  // afogar o console, e sempre o primeiro movimento com 2 dedos.
+  let diagMoves = 0;
   wrap.addEventListener('pointermove', (ev) => {
-    if(!pontos.has(ev.pointerId)) return;
+    if(!pontos.has(ev.pointerId)){
+      if(diagMoves++ % 30 === 0) diag('PINCA pointermove IGNORADO (pointer nao registrado)', { id: ev.pointerId, pontos: pontos.size });
+      return;
+    }
     pontos.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
-    if(pontos.size !== 2 || !inicial) return;
+    if(pontos.size !== 2 || !inicial){
+      if(diagMoves++ % 30 === 0) diag('PINCA pointermove SEM gesto', { pontos: pontos.size, tem_inicial: !!inicial });
+      return;
+    }
     ev.preventDefault();
 
     const e = estadoAtual();
@@ -5911,6 +6042,13 @@ function configurarPincaFundoStory(){
 
     limitarDeslocamentoFundo();
     aplicarTransformFundoStory();
+    if(diagMoves++ % 10 === 0){
+      diag('PINCA APLICANDO ZOOM', {
+        escala: Number(editorFundoEscala.toFixed(3)),
+        x: Number(editorFundoX.toFixed(1)),
+        y: Number(editorFundoY.toFixed(1))
+      });
+    }
   });
 
   function soltar(ev){
