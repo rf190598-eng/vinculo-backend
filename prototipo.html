@@ -2,7 +2,12 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<!-- viewport-fit=cover: libera a área sob o notch/ilha dinâmica, para os
+     env(safe-area-inset-*) do CSS passarem a valer (sem isso eles são 0).
+     maximum-scale=1 foi REMOVIDO: bloqueava o zoom do usuário no app inteiro
+     (problema de acessibilidade, e o iOS ignora esse trecho de qualquer forma).
+     O zoom por pinça no editor de story é tratado por JS, não por essa trava. -->
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#2b0f17"/>
 <title>Vinculo</title>
 <style>
@@ -200,6 +205,45 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 @keyframes pulseRec{0%,100%{opacity:1;}50%{opacity:.3;}}
 @keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1;}100%{transform:translateY(100vh) rotate(720deg);opacity:0;}}
 .confetti-piece{position:absolute;width:10px;height:10px;border-radius:2px;animation:confettiFall linear forwards;}
+
+/* ===================== ENCAIXE EM CELULAR REAL =====================
+   Nada aqui muda o design — só corrige altura e áreas seguras.
+
+   1) 100vh vs 100dvh: em navegador de celular, 100vh é a altura da tela COM a
+      barra de endereço recolhida. Enquanto ela está visível (que é o estado
+      inicial), 100vh é MAIOR que o espaço real e o conteúdo "vaza" para fora,
+      criando rolagem onde a tela deveria caber inteira. 100dvh acompanha a
+      altura disponível de verdade. As regras usam !important porque as alturas
+      estão em style inline nas telas, e inline vence folha de estilo.
+
+   2) @supports garante que navegador antigo sem dvh continue no 100vh atual.
+   ==================================================================== */
+@supports (min-height: 100dvh) {
+  body, .app { min-height: 100dvh; }
+  .screen { min-height: 100dvh !important; }
+  /* Wrappers internos das telas de auth/tour que repetem min-height:100vh */
+  [style*="min-height:100vh"] { min-height: 100dvh !important; }
+  /* Wrappers internos que usam calc a partir de 100vh */
+  [style*="min-height:calc(100vh"] { min-height: calc(100dvh - 60px) !important; }
+  /* Visualizador e composer de story: altura FIXA de tela cheia. É aqui que a
+     foto de fundo "vazava" para fora da área visível. */
+  #overlay-view-story > div,
+  #overlay-story-composer > div { height: 100dvh !important; }
+}
+
+/* Áreas seguras (notch em cima, indicador de home embaixo).
+   Sem isso, a barra inferior fica sob o indicador do iPhone e os botões viram
+   alvo de toque impreciso; a barra do topo some sob a ilha dinâmica. */
+.bottomnav { padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
+.demo-bar  { padding-top: calc(5px + env(safe-area-inset-top, 0px)); }
+.app       { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+/* Botões fixos no rodapé das telas de tour */
+.botao-fixo-rodape { bottom: calc(24px + env(safe-area-inset-bottom, 0px)) !important; }
+/* Topo e rodapé das telas de story em tela cheia */
+#overlay-view-story .topo-seguro,
+#overlay-story-composer .topo-seguro { padding-top: calc(16px + env(safe-area-inset-top, 0px)); }
+#editorStoryRodape,
+#cameraStoryControlesCaptura { padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
 
 /* Alças de edição de texto/emoji no composer de story: por padrão ESCONDIDAS.
    Só o elemento com .selecionada mostra borda tracejada + X + alças de
@@ -494,7 +538,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="color:#d8b0c4;font-size:13.5px;line-height:1.7;margin-bottom:30px">Antes de comecar, vamos te mostrar 3 recursos rapidos que ficam sempre disponiveis para voce.</div>
     <div class="progress-steps"><div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot"></div></div>
   </div>
-  <div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:0 24px">
+  <div class="botao-fixo-rodape" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:0 24px">
     <button class="btn btn-primary" onclick="goTo('tour2')">Proximo</button>
     <button class="btn btn-ghost" onclick="goTo('discover')" style="background:none;border:none;color:#c0a0b0">Pular tour</button>
   </div>
@@ -508,7 +552,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="background:rgba(168,41,63,.12);border:1px solid rgba(168,41,63,.3);border-radius:14px;padding:12px 16px;font-size:12px;color:#e8909e">Use sempre que se sentir inseguro(a) em um encontro</div>
     <div class="progress-steps" style="margin-top:24px"><div class="step-dot done"></div><div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div></div>
   </div>
-  <div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:0 24px">
+  <div class="botao-fixo-rodape" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:0 24px">
     <button class="btn btn-primary" onclick="goTo('tour3')">Proximo</button>
     <button class="btn btn-ghost" onclick="goTo('discover')" style="background:none;border:none;color:#c0a0b0">Pular tour</button>
   </div>
@@ -522,7 +566,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="background:rgba(201,160,107,.1);border:1px solid rgba(201,160,107,.3);border-radius:14px;padding:12px 16px;font-size:12px;color:#c9a06b">Cadastre seus contatos de confianca na aba Seguranca</div>
     <div class="progress-steps" style="margin-top:24px"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot active"></div><div class="step-dot"></div></div>
   </div>
-  <div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:0 24px">
+  <div class="botao-fixo-rodape" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:0 24px">
     <button class="btn btn-primary" onclick="goTo('tour4')">Proximo</button>
     <button class="btn btn-ghost" onclick="goTo('discover')" style="background:none;border:none;color:#c0a0b0">Pular tour</button>
   </div>
@@ -536,7 +580,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="background:rgba(168,41,63,.1);border:1px solid rgba(168,41,63,.3);border-radius:14px;padding:12px 16px;font-size:12px;color:#e8909e">Comportamento inadequado nunca deve ser tolerado</div>
     <div class="progress-steps" style="margin-top:24px"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot active"></div></div>
   </div>
-  <div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:0 24px">
+  <div class="botao-fixo-rodape" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:0 24px">
     <button class="btn btn-primary" onclick="goTo('discover')">Entendi, vamos comecar!</button>
   </div>
 </div><!-- VERIFICACAO -->
@@ -2200,7 +2244,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <!-- Barra de progresso (montada dinamicamente por montarBarraProgressoStory()) -->
     <div id="viewStoryBarraProgresso" style="display:flex;gap:3px;padding:12px 14px 8px;position:absolute;top:26px;left:0;right:0;z-index:10"></div>
     <!-- Header -->
-    <div style="position:absolute;top:42px;left:0;right:0;z-index:10;display:flex;align-items:center;gap:10px;padding:0 14px">
+    <div class="topo-seguro" style="position:absolute;top:42px;left:0;right:0;z-index:10;display:flex;align-items:center;gap:10px;padding:0 14px">
       <div id="viewStoryFotoPerfil" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7a2a4a,#4a1428);display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid rgba(255,255,255,.4)">&#128100;</div>
       <div>
         <div style="display:flex;align-items:baseline;gap:6px">
@@ -2279,7 +2323,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       </div>
 
       <!-- Topo: fechar + badge da pergunta do dia (dispensável) + atalho "Aa" pro modo texto -->
-      <div style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:flex-start;justify-content:space-between;padding:16px 14px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
+      <div class="topo-seguro" style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:flex-start;justify-content:space-between;padding:16px 14px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
         <div onclick="fecharComposerStory()" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff;flex-shrink:0">&#10005;</div>
 
         <div onclick="abrirModoTextoComposer()" style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;cursor:pointer;color:#fff">Aa</div>
@@ -2346,7 +2390,9 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div id="composerEditLayer" style="display:none;position:absolute;inset:0">
 
       <!-- Fundo: foto, vídeo ou gradiente -->
-      <div id="editorStoryFundoWrap" onclick="desselecionarTudoStory()" style="position:absolute;inset:0;overflow:hidden">
+      <!-- touch-action:none é obrigatório: sem isso o navegador captura a
+           pinça como zoom da PÁGINA e os pointermove nem chegam ao JS. -->
+      <div id="editorStoryFundoWrap" onclick="desselecionarTudoStory()" style="position:absolute;inset:0;overflow:hidden;touch-action:none">
         <img id="editorStoryFundoImg" style="width:100%;height:100%;object-fit:cover;display:none"/>
         <video id="editorStoryFundoVideo" style="width:100%;height:100%;object-fit:cover;display:none" loop muted playsinline autoplay></video>
         <div id="editorStoryFundoGradiente" style="width:100%;height:100%;display:none;background:linear-gradient(160deg,#7a2a4a,#4a1428,#1a0810)"></div>
@@ -5318,6 +5364,7 @@ let editorStoryCaixaAtiva = null;
 let overlayTextosStoryVar = null; // metadata de texto/emoji pro caso de vídeo (não achatado)
 let filtroCssStoryVar = '';       // idem pro filtro escolhido (só usado em vídeo)
 let perguntaUsadaStoryVar = false; // a pergunta do dia virou texto NESTE story?
+let fundoTransformStoryVar = null; // enquadramento por pinça (só vídeo)
 
 const EDITOR_STORY_CORES = ['#fdf6f2', '#f0a0b8', '#d4b87a', '#e0607a', '#c9a06b', '#7a2a4a', '#1a0810', '#6dcc6d'];
 const EDITOR_STORY_FONTE_BASE = 28; // px, tamanho de referência no editor (escala 1)
@@ -5347,6 +5394,10 @@ function abrirEditorStory(tipo, arquivo){
   // da edição anterior continuaria aplicado na próxima foto/vídeo.
   editorStoryFiltroId = 'normal';
   filtroCssStoryVar = '';
+  // Enquadramento do fundo também é por edição: a foto seguinte não pode
+  // herdar o zoom da anterior.
+  resetarTransformFundoStory();
+  configurarPincaFundoStory();
   document.getElementById('editorStoryPainelFiltros').style.display = 'none';
   document.getElementById('editorStoryPainelEmojis').style.display = 'none';
   aplicarFiltroNoFundoStory();
@@ -5721,6 +5772,108 @@ function montarPainelEmojisStory(){
     };
     grade.appendChild(item);
   });
+}
+
+/* ===== ZOOM POR PINÇA NO FUNDO (foto/vídeo) =====
+   Escala e deslocamento do fundo, guardados em estado próprio e aplicados
+   como transform CSS na prévia. Os mesmos números são reaplicados no
+   achatamento em canvas (foto) e persistidos como metadata (vídeo), para o
+   story publicado ficar idêntico ao que a pessoa enquadrou.
+
+   Escala mínima = 1: abaixo disso sobraria fundo preto, já que a mídia é
+   exibida com object-fit:cover (1 = preenche exatamente). */
+const EDITOR_FUNDO_ESCALA_MIN = 1;
+const EDITOR_FUNDO_ESCALA_MAX = 4;
+let editorFundoEscala = 1;
+let editorFundoX = 0; // deslocamento em % da largura do quadro
+let editorFundoY = 0; // deslocamento em % da altura do quadro
+
+function aplicarTransformFundoStory(){
+  const t = `translate(${editorFundoX}%, ${editorFundoY}%) scale(${editorFundoEscala})`;
+  ['editorStoryFundoImg', 'editorStoryFundoVideo'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el){ el.style.transform = t; el.style.transformOrigin = 'center center'; }
+  });
+}
+
+function resetarTransformFundoStory(){
+  editorFundoEscala = 1;
+  editorFundoX = 0;
+  editorFundoY = 0;
+  aplicarTransformFundoStory();
+}
+
+// Limita o deslocamento para nunca revelar borda vazia. Com escala s, a mídia
+// "sobra" (s-1)/2 do quadro para cada lado — esse é o deslocamento máximo.
+function limitarDeslocamentoFundo(){
+  const folga = Math.max(0, (editorFundoEscala - 1) / 2) * 100;
+  editorFundoX = Math.max(-folga, Math.min(folga, editorFundoX));
+  editorFundoY = Math.max(-folga, Math.min(folga, editorFundoY));
+}
+
+function configurarPincaFundoStory(){
+  const wrap = document.getElementById('editorStoryFundoWrap');
+  if(!wrap || wrap.dataset.pincaConfigurada) return;
+  wrap.dataset.pincaConfigurada = '1';
+
+  const pontos = new Map();
+  let inicial = null;
+
+  function estadoAtual(){
+    const p = Array.from(pontos.values());
+    const dx = p[1].x - p[0].x, dy = p[1].y - p[0].y;
+    return {
+      dist: Math.hypot(dx, dy) || 1,
+      centro: { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 }
+    };
+  }
+
+  wrap.addEventListener('pointerdown', (ev) => {
+    // Só reage ao fundo. Toque numa caixa de texto/emoji é tratado por elas.
+    if(ev.target.closest && ev.target.closest('.editor-story-caixa-texto')) return;
+    pontos.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    if(pontos.size === 2){
+      const e = estadoAtual();
+      inicial = {
+        dist: e.dist,
+        centro: e.centro,
+        escala: editorFundoEscala,
+        x: editorFundoX,
+        y: editorFundoY,
+        rect: wrap.getBoundingClientRect()
+      };
+    }
+  });
+
+  wrap.addEventListener('pointermove', (ev) => {
+    if(!pontos.has(ev.pointerId)) return;
+    pontos.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    if(pontos.size !== 2 || !inicial) return;
+    ev.preventDefault();
+
+    const e = estadoAtual();
+    const fator = e.dist / inicial.dist;
+    editorFundoEscala = Math.max(EDITOR_FUNDO_ESCALA_MIN,
+      Math.min(EDITOR_FUNDO_ESCALA_MAX, inicial.escala * fator));
+
+    // Acompanha o movimento do centro dos dois dedos, para a mídia escalar a
+    // partir de onde a pessoa está pinçando e não sempre do meio da tela.
+    const desY = (e.centro.y - inicial.centro.y) / inicial.rect.height * 100;
+    const desX = (e.centro.x - inicial.centro.x) / inicial.rect.width * 100;
+    editorFundoX = inicial.x + desX;
+    editorFundoY = inicial.y + desY;
+
+    limitarDeslocamentoFundo();
+    aplicarTransformFundoStory();
+  });
+
+  function soltar(ev){
+    pontos.delete(ev.pointerId);
+    if(pontos.size < 2) inicial = null;
+  }
+  wrap.addEventListener('pointerup', soltar);
+  wrap.addEventListener('pointercancel', soltar);
+  wrap.addEventListener('pointerleave', soltar);
 }
 
 function aplicarTransformCaixaStory(caixa){
@@ -6129,6 +6282,11 @@ async function finalizarEEnviarStory(){
     // Vídeo não é reprocessado (mesma decisão já usada pro texto): o filtro
     // viaja como metadata e é reaplicado via CSS na hora de exibir.
     filtroCssStoryVar = cssDoFiltroStory(editorStoryFiltroId);
+    // Enquadramento da pinça: no vídeo viaja como metadata (o arquivo não é
+    // reprocessado). Só envia se houve ajuste, pra não gravar o padrão.
+    fundoTransformStoryVar = (editorFundoEscala !== 1 || editorFundoX !== 0 || editorFundoY !== 0)
+      ? { escala: editorFundoEscala, x: editorFundoX, y: editorFundoY }
+      : null;
     await enviarStoryComposer();
     return;
   }
@@ -6191,10 +6349,16 @@ function desenharFundoNoCanvas(ctx, w, h){
   });
 }
 
+// Replica no canvas o mesmo enquadramento da prévia: object-fit:cover mais o
+// zoom/deslocamento da pinça. O deslocamento é percentual do QUADRO (não da
+// mídia), exatamente como o translate(%) do CSS — é isso que faz a imagem
+// publicada bater com o que a pessoa viu na tela.
 function desenharCoverNoCanvas(ctx, elemento, largOrig, altOrig, w, h){
-  const escala = Math.max(w / largOrig, h / altOrig);
+  const escalaCover = Math.max(w / largOrig, h / altOrig);
+  const escala = escalaCover * editorFundoEscala;
   const larguraDesenhada = largOrig * escala, alturaDesenhada = altOrig * escala;
-  const dx = (w - larguraDesenhada) / 2, dy = (h - alturaDesenhada) / 2;
+  const dx = (w - larguraDesenhada) / 2 + (editorFundoX / 100) * w;
+  const dy = (h - alturaDesenhada) / 2 + (editorFundoY / 100) * h;
   ctx.drawImage(elemento, dx, dy, larguraDesenhada, alturaDesenhada);
 }
 
@@ -6413,6 +6577,7 @@ async function enviarStoryComposer(){
     }
     // Só pra vídeo: na foto o filtro já foi queimado no canvas.
     if(filtroCssStoryVar) formData.append('filtro_css', filtroCssStoryVar);
+    if(fundoTransformStoryVar) formData.append('fundo_transform', JSON.stringify(fundoTransformStoryVar));
   }
 
   try{
@@ -6642,6 +6807,14 @@ function abrirPessoaEmIndice(pessoaIndice, storyIndice){
       // Filtro do vídeo: só pra tipo 'video'. Pra foto o filtro já está
       // queimado nos pixels do arquivo — reaplicar aqui filtraria duas vezes.
       videoElRecemCriado.style.filter = item.filtro_css || 'none';
+      // Reaplica o enquadramento feito por pinça no editor. Só existe em
+      // vídeo — na foto o zoom já veio queimado nos pixels do arquivo.
+      const ft = item.fundo_transform;
+      if(ft && Number(ft.escala) > 1){
+        videoElRecemCriado.style.transformOrigin = 'center center';
+        videoElRecemCriado.style.transform =
+          `translate(${Number(ft.x) || 0}%, ${Number(ft.y) || 0}%) scale(${Number(ft.escala)})`;
+      }
       videoElRecemCriado.muted = false;
       videoElRecemCriado.play().catch(()=>{ videoElRecemCriado.muted = true; videoElRecemCriado.play().catch(()=>{}); });
     }

@@ -107,7 +107,7 @@ const obterPerguntaDoDia = async (req, res) => {
 
 const criarResposta = async (req, res) => {
   try {
-    const { tipo, conteudo_texto, overlays_texto, filtro_css, usou_pergunta_dia } = req.body;
+    const { tipo, conteudo_texto, overlays_texto, filtro_css, usou_pergunta_dia, fundo_transform } = req.body;
     if (!['foto', 'video', 'texto'].includes(tipo)) {
       return res.status(400).json({ erro: 'Tipo invalido' });
     }
@@ -186,6 +186,29 @@ const criarResposta = async (req, res) => {
       ? filtro_css
       : null;
 
+    // Enquadramento do fundo (pinça). Só faz sentido em vídeo — na foto o
+    // zoom já está queimado nos pixels. Números são clampados aqui para o
+    // cliente não conseguir mandar escala absurda ou deslocamento que revele
+    // borda vazia na exibição.
+    let fundoTransformValidado = null;
+    if (tipo === 'video' && fundo_transform) {
+      try {
+        const t = typeof fundo_transform === 'string' ? JSON.parse(fundo_transform) : fundo_transform;
+        const escala = Number(t.escala);
+        if (Number.isFinite(escala) && escala > 1) {
+          const folga = ((Math.min(4, escala) - 1) / 2) * 100;
+          const limitar = (v) => Math.max(-folga, Math.min(folga, Number.isFinite(Number(v)) ? Number(v) : 0));
+          fundoTransformValidado = {
+            escala: Math.min(4, escala),
+            x: limitar(t.x),
+            y: limitar(t.y)
+          };
+        }
+      } catch (e) {
+        fundoTransformValidado = null;
+      }
+    }
+
     const resposta = await StatusResposta.create({
       usuario_id: req.usuarioId,
       tipo,
@@ -195,6 +218,7 @@ const criarResposta = async (req, res) => {
       expira_em,
       overlays_texto: overlaysValidados,
       filtro_css: filtroValidado,
+      fundo_transform: fundoTransformValidado,
       // Vem do FormData, então chega como string ('true'/'false') — nunca
       // como boolean. Comparar contra 'true' evita o clássico Boolean('false')
       // === true, que marcaria todo story como resposta à pergunta.
@@ -256,7 +280,7 @@ const listarStatusFeed = async (req, res) => {
       porUsuario.get(r.usuario_id).push({
         id: r.id, tipo: r.tipo, conteudo_texto: r.conteudo_texto, media_url: r.media_url,
         pergunta_texto: r.pergunta_texto, overlays_texto: r.overlays_texto,
-        filtro_css: r.filtro_css, createdAt: r.createdAt
+        filtro_css: r.filtro_css, fundo_transform: r.fundo_transform, createdAt: r.createdAt
       });
     }
 
@@ -289,7 +313,7 @@ const meuStatusAtivo = async (req, res) => {
     const stories = respostas.map(status => ({
       id: status.id, tipo: status.tipo, conteudo_texto: status.conteudo_texto, media_url: status.media_url,
       pergunta_texto: status.pergunta_texto, overlays_texto: status.overlays_texto,
-      filtro_css: status.filtro_css, createdAt: status.createdAt
+      filtro_css: status.filtro_css, fundo_transform: status.fundo_transform, createdAt: status.createdAt
     }));
     res.json({ stories, usuario });
   } catch (erro) {

@@ -47,6 +47,14 @@ const StatusResposta = sequelize.define('StatusResposta', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  // Enquadramento do fundo definido por pinça no editor: { escala, x, y },
+  // com x/y em % do quadro (mesma convenção do translate(%) do CSS).
+  // Só usado em tipo='video': na foto o zoom já é queimado no canvas ao
+  // publicar, então reaplicar aqui ampliaria duas vezes.
+  fundo_transform: {
+    type: DataTypes.JSON,
+    allowNull: true
+  },
   // true só quando a pessoa realmente usou a pergunta do dia neste story
   // (tocou no atalho da pergunta no composer e a caixa de texto sobreviveu
   // até o envio). Postar um story qualquer NÃO marca isso — é esse campo,
