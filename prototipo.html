@@ -5412,6 +5412,11 @@ function abrirEditorStory(tipo, arquivo){
   gradiente.style.display = 'none';
 
   if(tipo === 'foto'){
+    // Foto da galeria pode ser grande e demorar para decodificar. Recalcular a
+    // área útil quando ela realmente carrega garante que qualquer elemento
+    // posicionado em % (o cartão da pergunta, por exemplo) caia no lugar certo
+    // mesmo que o layout ainda estivesse assentando na abertura do editor.
+    img.onload = () => ajustarAreaArrasteEditorStory();
     img.src = URL.createObjectURL(arquivo);
     img.style.display = 'block';
   } else if(tipo === 'video'){
@@ -5467,6 +5472,39 @@ function ajustarAreaArrasteEditorStory(){
   const rodape = document.getElementById('editorStoryRodape');
   if(!camada || !rodape) return;
   camada.style.bottom = (rodape.offsetHeight + 16) + 'px';
+  observarRodapeEditorStory();
+}
+
+/* CAUSA RAIZ do "cartão pula pro topo": a altura útil da camada é gravada em
+   PIXELS (bottom = altura do rodapé + 16). Se essa medição acontece num
+   instante em que o layout ainda não assentou, o valor fica errado e CONGELA —
+   a camada segue curta, e o cartão, posicionado em top:50% dela, aparece perto
+   do topo da tela. Só voltava ao centro quando algo chamava esta função de
+   novo (por isso tocar no cartão "consertava").
+
+   No caminho da galeria isso é mais provável que no da câmera: o seletor de
+   arquivos do sistema abre por cima da página e, ao fechar, o navegador
+   redimensiona o viewport. Como o container do composer passou a usar 100dvh
+   (unidade DINÂMICA, que muda com a barra de endereço), a altura no momento do
+   requestAnimationFrame pode ser a de transição, não a final.
+
+   Em vez de tentar acertar o instante certo, o ResizeObserver torna o cálculo
+   autossuficiente: qualquer mudança de tamanho do rodapé ou do container
+   recalcula a camada sozinha. Não existe mais valor obsoleto possível. */
+let observadorRodapeEditor = null;
+function observarRodapeEditorStory(){
+  if(observadorRodapeEditor || typeof ResizeObserver === 'undefined') return;
+  const camada = document.getElementById('editorStoryCamadaTextos');
+  const rodape = document.getElementById('editorStoryRodape');
+  const layer = document.getElementById('composerEditLayer');
+  if(!camada || !rodape) return;
+
+  observadorRodapeEditor = new ResizeObserver(() => {
+    // Sem chamar ajustarArea… aqui: isso reentraria no observer.
+    camada.style.bottom = (rodape.offsetHeight + 16) + 'px';
+  });
+  observadorRodapeEditor.observe(rodape);
+  if(layer) observadorRodapeEditor.observe(layer);
 }
 
 // Voltar da edição: se veio do modo texto puro (sem câmera envolvida), fecha
@@ -5812,7 +5850,15 @@ function limitarDeslocamentoFundo(){
 }
 
 function configurarPincaFundoStory(){
-  const wrap = document.getElementById('editorStoryFundoWrap');
+  // CAUSA RAIZ do "zoom não funciona": os listeners estavam em
+  // editorStoryFundoWrap, mas quem recebe o toque é editorStoryCamadaTextos —
+  // a camada de arraste, que tem z-index 6 e cobre de top:0 até bottom:150px,
+  // ficando POR CIMA do fundo. Os dois são IRMÃOS, não pai e filho, então o
+  // evento que cai na camada nunca borbulha até o wrap do fundo. Só a faixa
+  // estreita abaixo da camada chegava ao gesto.
+  // A correção é escutar no ancestral comum (composerEditLayer), por onde todo
+  // toque da tela de edição passa, e ignorar o que for numa caixa de texto.
+  const wrap = document.getElementById('composerEditLayer');
   if(!wrap || wrap.dataset.pincaConfigurada) return;
   wrap.dataset.pincaConfigurada = '1';
 
