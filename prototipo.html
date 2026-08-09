@@ -2427,7 +2427,12 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     </div>
 
     <!-- ===== CAMADA EDIÇÃO (texto arrastável/redimensionável/rotacionável) ===== -->
-    <div id="composerEditLayer" style="display:none;position:absolute;inset:0">
+    <!-- touch-action:none aqui e na camada de textos: é onde os listeners de
+         pinça vivem e onde os toques realmente caem. Se o navegador enxerga
+         touch-action:auto no ponto de início do toque, ele assume que o gesto
+         é dele (rolagem/zoom da página) e dispara pointercancel no meio —
+         derrubando o rastreamento dos dedos. -->
+    <div id="composerEditLayer" style="display:none;position:absolute;inset:0;touch-action:none">
 
       <!-- Fundo: foto, vídeo ou gradiente -->
       <!-- touch-action:none é obrigatório: sem isso o navegador captura a
@@ -2443,7 +2448,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
            do rodapé — assim a área de arraste nunca fica atrás dos controles,
            nem quando o painel de texto expande a barra. O valor aqui é só um
            fallback antes do primeiro ajuste. -->
-      <div id="editorStoryCamadaTextos" onclick="desselecionarTudoStory()" style="position:absolute;top:0;left:0;right:0;bottom:150px;z-index:6"></div>
+      <div id="editorStoryCamadaTextos" onclick="desselecionarTudoStory()" style="position:absolute;top:0;left:0;right:0;bottom:150px;z-index:6;touch-action:none"></div>
 
       <!-- Topo: voltar — pra câmera, se a foto/vídeo veio dela (ou da galeria);
            fecha o composer inteiro se era modo texto puro (nunca passou pela câmera). -->
@@ -6045,6 +6050,14 @@ function configurarPincaFundoStory(){
     });
     // Só reage ao fundo. Toque numa caixa de texto/emoji é tratado por elas.
     if(emCaixa) return;
+
+    // Prende o ponteiro a ESTE elemento até o dedo sair da tela. Sem captura,
+    // conforme o dedo passa por cima de filhos diferentes o alvo do evento
+    // muda e o navegador pode parar de entregar os pointermove aqui — o dedo
+    // "some" no meio do gesto. Com captura, todos os eventos daquele
+    // pointerId continuam chegando neste listener até o pointerup.
+    try { wrap.setPointerCapture(ev.pointerId); } catch(e){}
+
     pontos.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
     diag('PINCA pointer registrado', { pontos_agora: pontos.size });
     if(pontos.size === 2){
@@ -6102,13 +6115,37 @@ function configurarPincaFundoStory(){
     }
   });
 
-  function soltar(ev){
+  function soltar(ev, tipoEvento){
+    const tinha = pontos.has(ev.pointerId);
     pontos.delete(ev.pointerId);
+    const perdeuGesto = inicial && pontos.size < 2;
     if(pontos.size < 2) inicial = null;
+    diag('PINCA ' + tipoEvento, {
+      id: ev.pointerId,
+      estava_registrado: tinha,
+      pontos_restantes: pontos.size,
+      INTERROMPEU_GESTO: !!perdeuGesto
+    });
   }
-  wrap.addEventListener('pointerup', soltar);
-  wrap.addEventListener('pointercancel', soltar);
-  wrap.addEventListener('pointerleave', soltar);
+
+  wrap.addEventListener('pointerup', (ev) => soltar(ev, 'pointerup'));
+  wrap.addEventListener('pointercancel', (ev) => soltar(ev, 'pointercancel'));
+
+  // pointerleave NÃO solta mais o dedo — só registra.
+  //
+  // CAUSA RAIZ: eu tinha ligado `soltar` ao pointerleave. Esse evento não
+  // significa "tirou o dedo da tela": significa "o ponteiro saiu da área do
+  // elemento". Durante uma pinça os dedos se movem sobre elementos filhos
+  // diferentes (a foto, a camada de texto, uma caixa), e o navegador emite
+  // pointerleave nessas transições. O gesto era então descartado no meio,
+  // o contador caía de 2 para 1 e o próximo movimento recomeçava a medição
+  // do zero — exatamente a oscilação de escala perto de 1 que você viu.
+  // Só pointerup e pointercancel encerram um toque de verdade.
+  wrap.addEventListener('pointerleave', (ev) => {
+    diag('PINCA pointerleave (IGNORADO de propósito)', {
+      id: ev.pointerId, pontos_atuais: pontos.size
+    });
+  });
 }
 
 function aplicarTransformCaixaStory(caixa){
