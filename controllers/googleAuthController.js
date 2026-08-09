@@ -181,15 +181,22 @@ const callbackGoogle = async (req, res) => {
 
 /**
  * POST /api/auth/google/finalizar
- * Body: { pre_token, data_nascimento, genero, pref_genero }
+ * Body: { pre_token, nome, data_nascimento, genero, pref_genero }
  *
  * Segunda etapa do cadastro via Google: coleta o que o Google não fornece e
- * cria a conta de verdade. Nome e e-mail vêm do pre_token assinado, não do
- * body — assim o cliente não consegue trocá-los.
+ * cria a conta de verdade.
+ *
+ * Fronteira de confiança desta rota:
+ *   - E-MAIL e GOOGLE_ID: SOMENTE do pre_token assinado. Nunca lidos do body,
+ *     mesmo que o cliente os envie. São eles que definem qual conta é criada
+ *     ou vinculada — aceitar do body permitiria criar conta com e-mail alheio.
+ *   - NOME: do body. É só rótulo de exibição, não decide identidade nem
+ *     vínculo de conta. O nome do Google entra como sugestão inicial, e a
+ *     pessoa pode preferir apelido, nome social ou só o primeiro nome.
  */
 const finalizarCadastroGoogle = async (req, res) => {
   try {
-    const { pre_token, data_nascimento, genero, pref_genero } = req.body || {};
+    const { pre_token, nome, data_nascimento, genero, pref_genero } = req.body || {};
 
     let dados;
     try {
@@ -199,6 +206,14 @@ const finalizarCadastroGoogle = async (req, res) => {
     }
     if (!dados.pre || !dados.email) {
       return res.status(400).json({ erro: 'Token de cadastro inválido.' });
+    }
+
+    // Nome editável pela pessoa. Mesma higienização do cadastro por e-mail
+    // (remove tags HTML, corta em 100). Se vier vazio, cai no nome do Google.
+    const nomeLimpo = String(nome || '').replace(/<[^>]*>/g, '').trim().slice(0, 100);
+    const nomeFinal = nomeLimpo || String(dados.nome || '').replace(/<[^>]*>/g, '').trim().slice(0, 100);
+    if (!nomeFinal) {
+      return res.status(400).json({ erro: 'Nome é obrigatório' });
     }
 
     const GENEROS_VALIDOS = ['masculino', 'feminino', 'nao-binario'];
@@ -237,7 +252,7 @@ const finalizarCadastroGoogle = async (req, res) => {
     const senhaAleatoria = crypto.randomBytes(48).toString('hex');
     const senhaCriptografada = await bcrypt.hash(senhaAleatoria, 10);
 
-    const codigo_indicacao = await gerarCodigoIndicacaoUnico(dados.nome);
+    const codigo_indicacao = await gerarCodigoIndicacaoUnico(nomeFinal);
 
     let indicado_por_parceiro_id = null;
     try {
@@ -247,7 +262,8 @@ const finalizarCadastroGoogle = async (req, res) => {
     }
 
     const usuario = await Usuario.create({
-      nome: String(dados.nome || 'Novo usuário').replace(/<[^>]*>/g, '').trim().slice(0, 100) || 'Novo usuário',
+      nome: nomeFinal,
+      // Sempre do token assinado — nunca do body.
       email: dados.email,
       senha: senhaCriptografada,
       data_nascimento,

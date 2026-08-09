@@ -2823,9 +2823,15 @@ function abrirCompletarCadastroGoogle(preToken){
 
   goToBase('auth');
 
+  // Nome: só sugestão vinda do Google, editável. A pessoa pode preferir outro
+  // nome no perfil do Vínculo (apelido, nome social, só o primeiro nome).
   const nomeEl = document.getElementById('cadNome');
+  if(nomeEl){ nomeEl.value = dados.nome || ''; nomeEl.readOnly = false; nomeEl.style.opacity = ''; }
+
+  // E-mail: travado. É a identidade verificada pelo Google e a chave que
+  // vincula/cria a conta — continua vindo só do token assinado no servidor,
+  // este campo é apenas exibição.
   const emailEl = document.getElementById('cadEmail');
-  if(nomeEl){ nomeEl.value = dados.nome || ''; nomeEl.readOnly = true; nomeEl.style.opacity = '.7'; }
   if(emailEl){ emailEl.value = dados.email || ''; emailEl.readOnly = true; emailEl.style.opacity = '.7'; }
 
   const senhaEl = document.getElementById('cadSenha');
@@ -2853,6 +2859,9 @@ async function finalizarCadastroGoogle(){
   const btn = document.getElementById('btnCriarConta');
   erroEl.textContent = '';
 
+  const nome = document.getElementById('cadNome').value.trim();
+  if(!nome){ erroEl.textContent = 'Informe seu nome.'; return; }
+
   const dia = document.getElementById('cadDia').value;
   const mes = document.getElementById('cadMes').value;
   const ano = document.getElementById('cadAno').value;
@@ -2867,6 +2876,8 @@ async function finalizarCadastroGoogle(){
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         pre_token: preTokenGoogle,
+        // Nome vai do formulário; e-mail NÃO é enviado — vem do token assinado.
+        nome,
         data_nascimento,
         genero: document.getElementById('cadGenero').value || null,
         pref_genero: document.getElementById('cadPrefGenero').value || null
