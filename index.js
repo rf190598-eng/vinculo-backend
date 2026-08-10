@@ -154,6 +154,40 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// ===== Webhook do WhatsApp Business Cloud API (Meta) =====
+// Sem middleware de JWT: quem chama aqui é a Meta, não um usuário logado.
+//
+// GET: usada só uma vez (ou quando você reconfigura a URL no App do Meta),
+// pra provar que este servidor é o dono do endpoint. A Meta manda um desafio
+// (hub.challenge) e espera recebê-lo de volta como texto puro, só se o token
+// que ela enviar bater com o nosso.
+app.get('/webhook/whatsapp', (req, res) => {
+  const modo = req.query['hub.mode'];
+  const tokenRecebido = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  if (modo === 'subscribe' && tokenRecebido === process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN) {
+    return res.status(200).type('text/plain').send(challenge);
+  }
+  return res.sendStatus(403);
+});
+
+// POST: aqui chegam os eventos de verdade (mensagem recebida, status de
+// entrega sent/delivered/read/failed, etc). A Meta exige resposta rápida
+// (200) e reenvia com retry/backoff se não responder a tempo — por isso só
+// logamos e respondemos, sem processamento pesado nesta rota. Quando formos
+// realmente tratar os eventos (responder mensagem, atualizar status no banco
+// etc), o ideal é enfileirar aqui e processar fora do ciclo de request.
+//
+// TODO segurança: validar o header X-Hub-Signature-256 (HMAC-SHA256 do corpo
+// bruto da requisição com o App Secret do Meta) antes de confiar no payload —
+// sem isso, qualquer um que descubra a URL pode forjar eventos. Ainda não
+// implementado.
+app.post('/webhook/whatsapp', (req, res) => {
+  console.log('[whatsapp-webhook] evento recebido:', JSON.stringify(req.body));
+  res.sendStatus(200);
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/auth', recuperacaoSenhaRoutes);
 app.use('/api/swipe', swipeRoutes);
