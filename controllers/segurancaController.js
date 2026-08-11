@@ -3,24 +3,32 @@ const AlertaSeguranca = require('../models/AlertaSeguranca');
 const SessaoSeguranca = require('../models/SessaoSeguranca');
 const Usuario = require('../models/Usuario');
 const AvaliacaoEncontro = require('../models/AvaliacaoEncontro');
+const { enviarMensagemTemplate } = require('../services/whatsappService');
 
-// Monta as mensagens que SERIAM enviadas por WhatsApp para cada contato.
-// Por enquanto é simulado - não envia de verdade, só registra e devolve pro app mostrar.
-function montarMensagens(usuario, contatos, tipo, latitude, longitude) {
+const NOMES_TEMPLATE = {
+  panico: 'alerta_panico',
+  checkin_perdido: 'alerta_checkin_perdido'
+};
+
+// Envia o alerta de verdade pelo WhatsApp para cada contato de confiança,
+// em paralelo. Não lança exceção: cada envio que falhar vira um resultado
+// com sucesso:false, sem derrubar os demais nem o fluxo de quem chamou.
+async function enviarAlertasWhatsapp(usuario, contatos, tipo, latitude, longitude) {
   const linkMapa = (latitude && longitude)
     ? `https://www.google.com/maps?q=${latitude},${longitude}`
     : 'localização não disponível';
 
-  const textos = {
-    panico: `🚨 ALERTA VÍNCULO: ${usuario.nome} pode estar em perigo e precisa de ajuda agora. Última localização: ${linkMapa}`,
-    checkin_perdido: `⚠️ ALERTA VÍNCULO: ${usuario.nome} não confirmou que chegou bem em segurança após um encontro combinado pelo app. Última localização conhecida: ${linkMapa}`
-  };
+  const nomeTemplate = NOMES_TEMPLATE[tipo] || NOMES_TEMPLATE.panico;
 
-  return contatos.map(c => ({
-    contato_nome: c.nome,
-    contato_telefone: c.telefone,
-    mensagem: textos[tipo] || textos.panico,
-    enviado_simulado: true
+  return Promise.all(contatos.map(async (c) => {
+    const resultado = await enviarMensagemTemplate(c.telefone, nomeTemplate, [usuario.nome, linkMapa]);
+    return {
+      contato_nome: c.nome,
+      contato_telefone: c.telefone,
+      template_usado: nomeTemplate,
+      sucesso: resultado.sucesso,
+      ...(resultado.sucesso ? {} : { erro: resultado.erro })
+    };
   }));
 }
 
@@ -72,16 +80,21 @@ const dispararPanico = async (req, res) => {
       return res.status(400).json({ erro: 'Você ainda não tem contatos de confiança cadastrados' });
     }
 
-    const mensagens = montarMensagens(usuario, contatos, 'panico', latitude, longitude);
+    const mensagens = await enviarAlertasWhatsapp(usuario, contatos, 'panico', latitude, longitude);
 
     await AlertaSeguranca.create({
       usuario_id: req.usuarioId,
       tipo: 'panico',
       latitude,
       longitude,
-      mensagens_simuladas: mensagens
+      mensagens_enviadas: mensagens
     });
 
+    // Mesmo que TODOS os envios de WhatsApp tenham falhado (token vencido,
+    // template rejeitado, número inválido etc), a resposta continua sendo
+    // de sucesso: o alerta já está registrado no banco, e quem está com o
+    // botão de pânico na mão não pode achar que ele "não funcionou" por
+    // causa de uma falha numa integração externa.
     res.json({ mensagem: 'Alerta disparado!', mensagens });
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao disparar alerta: ' + erro.message });
@@ -167,13 +180,13 @@ const verificarCheckinsVencidos = async () => {
       const usuario = await Usuario.findByPk(sessao.usuario_id);
       const contatos = await ContatoConfianca.findAll({ where: { usuario_id: sessao.usuario_id } });
       if (usuario && contatos.length > 0) {
-        const mensagens = montarMensagens(usuario, contatos, 'checkin_perdido', sessao.ultima_lat, sessao.ultima_lng);
+        const mensagens = await enviarAlertasWhatsapp(usuario, contatos, 'checkin_perdido', sessao.ultima_lat, sessao.ultima_lng);
         await AlertaSeguranca.create({
           usuario_id: sessao.usuario_id,
           tipo: 'checkin_perdido',
           latitude: sessao.ultima_lat,
           longitude: sessao.ultima_lng,
-          mensagens_simuladas: mensagens
+          mensagens_enviadas: mensagens
         });
         console.log(`Alerta automatico disparado para usuario ${sessao.usuario_id}`);
       }

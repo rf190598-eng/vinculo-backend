@@ -23,7 +23,7 @@ const AlertaSeguranca = sequelize.define('AlertaSeguranca', {
     type: DataTypes.FLOAT,
     allowNull: true
   },
-  mensagens_simuladas: {
+  mensagens_enviadas: {
     type: DataTypes.JSON,
     allowNull: true
   }
