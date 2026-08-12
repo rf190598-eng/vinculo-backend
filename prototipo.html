@@ -927,6 +927,19 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <button class="btn btn-ghost" style="margin-top:10px" onclick="_cancelarConfirmacaoGenerica()">Cancelar</button>
   </div>
 </div>
+<!-- CONTATO DE CONFIANÇA -->
+<div class="overlay" id="overlay-contato-confianca" onclick="if(event.target===this)closeModal('contato-confianca')">
+  <div class="modal modal-center">
+    <div class="modal-handle"></div>
+    <h3 class="serif">Novo contato de confiança</h3>
+    <input class="inp" id="novoContatoNome" placeholder="Nome *" style="margin-top:10px"/>
+    <input class="inp" id="novoContatoTelefone" placeholder="Telefone com DDD *" style="margin-top:10px" inputmode="numeric" maxlength="16" oninput="mascararTelefoneContato(this)"/>
+    <input class="inp" id="novoContatoParentesco" placeholder="Relação (ex: Irmã, Amigo, Mãe) - opcional" style="margin-top:10px"/>
+    <div id="novoContatoErro" style="color:#ff8fa3;font-size:12.5px;margin-top:8px;min-height:14px"></div>
+    <button class="btn btn-primary" style="margin-top:8px" onclick="salvarContatoSeguranca()">Adicionar</button>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('contato-confianca')">Cancelar</button>
+  </div>
+</div>
 <!-- EXCLUIR CONTA (LGPD) -->
 <div class="overlay" id="overlay-excluir-conta" onclick="if(event.target===this)closeModal('excluir-conta')">
   <div class="modal" id="excluirContaModalContent">
@@ -1036,7 +1049,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div class="sec-title">&#9742; Contatos de confiança</div>
       <div class="sec-desc">Quem será avisado em caso de emergência.</div>
       <div id="listaContatosSeguranca"></div>
-      <button class="btn btn-ghost" style="padding:10px;font-size:12.5px;margin-top:4px" onclick="adicionarContatoSeguranca()">+ Adicionar contato</button>
+      <button class="btn btn-ghost" style="padding:10px;font-size:12.5px;margin-top:4px" onclick="abrirModalContatoSeguranca()">+ Adicionar contato</button>
     </div>
     <div class="sec-card">
       <div class="sec-title">&#9989; Verificacao e privacidade</div>
@@ -7505,7 +7518,7 @@ async function carregarContatos(){
     contatos.forEach(c=>{
       const div=document.createElement('div');
       div.className='ec';
-     div.innerHTML = `<div class="ec-av">&#128100;</div><div style="flex:1"><div class="tl">${escapeHtml(c.nome)}</div><div class="ts">${escapeHtml(c.parentesco||'Contato')} &nbsp;&#9679;&nbsp; ${escapeHtml(c.telefone)}</div></div><div style="color:#e8909e;font-size:20px;padding:4px 10px;cursor:pointer" onclick="removerContatoSeguranca('${c.id}')">&times;</div>`;
+     div.innerHTML = `<div class="ec-av">&#128100;</div><div style="flex:1"><div class="tl">${escapeHtml(c.nome)}</div><div class="ts">${escapeHtml(c.parentesco||'Contato')} &nbsp;&#9679;&nbsp; ${escapeHtml(formatarTelefoneExibicao(c.telefone))}</div></div><div style="color:#e8909e;font-size:20px;padding:4px 10px;cursor:pointer" onclick="removerContatoSeguranca('${c.id}')">&times;</div>`;
       lista.appendChild(div);
     });
   }catch(e){
@@ -7513,12 +7526,63 @@ async function carregarContatos(){
   }
 }
 
-async function adicionarContatoSeguranca(){
-  const nome = prompt('Nome do contato de confiança:');
-  if(!nome) return;
-  const telefone = prompt('Telefone com DDD, ex: (17) 99999-1111:');
-  if(!telefone) return;
-  const parentesco = prompt('Relação (ex: Irmã, Amigo, Mãe) - opcional:') || '';
+// O backend agora salva o telefone normalizado em E.164 (ex: "5517988887777").
+// Essa função só cuida de exibir isso de um jeito legível na lista — não afeta
+// o valor salvo nem o que é enviado pro backend.
+function formatarTelefoneExibicao(telefoneE164){
+  const d = String(telefoneE164 || '').replace(/\D/g, '');
+  if(d.startsWith('55') && (d.length === 12 || d.length === 13)){
+    const resto = d.slice(2);
+    const ddd = resto.slice(0, 2);
+    const numero = resto.slice(2);
+    if(numero.length === 9) return `(${ddd}) ${numero.slice(0,5)}-${numero.slice(5)}`;
+    if(numero.length === 8) return `(${ddd}) ${numero.slice(0,4)}-${numero.slice(4)}`;
+  }
+  return telefoneE164; // formato inesperado: mostra como veio, sem quebrar a tela
+}
+
+// Abre o modal já limpo, sem resíduo de uma tentativa anterior.
+function abrirModalContatoSeguranca(){
+  document.getElementById('novoContatoNome').value = '';
+  document.getElementById('novoContatoTelefone').value = '';
+  document.getElementById('novoContatoParentesco').value = '';
+  document.getElementById('novoContatoErro').textContent = '';
+  openModal('contato-confianca');
+}
+
+// Máscara visual "(DD) 9XXXX-XXXX" aplicada enquanto digita. Trabalha só
+// com os dígitos (ignora o que já estiver formatado) e reconstrói a máscara
+// a cada tecla — por isso funciona tanto pra colar quanto pra digitar aos poucos.
+function mascararTelefoneContato(input){
+  let d = input.value.replace(/\D/g, '').slice(0, 11); // DDD(2) + até 9 dígitos
+  let formatado = d;
+  if(d.length > 6) formatado = `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+  else if(d.length > 2) formatado = `(${d.slice(0,2)}) ${d.slice(2)}`;
+  input.value = formatado;
+}
+
+// Valida DDD (2 dígitos) + número de 8 ou 9 dígitos, olhando só os dígitos
+// (a máscara visual não importa pra validação). Não valida DDI: o campo é
+// só "telefone com DDD" — o 55 é adicionado pelo backend na normalização.
+function validarTelefoneContato(valorMascarado){
+  const d = valorMascarado.replace(/\D/g, '');
+  return /^[1-9]{2}[0-9]{8,9}$/.test(d);
+}
+
+async function salvarContatoSeguranca(){
+  const erroEl = document.getElementById('novoContatoErro');
+  erroEl.textContent = '';
+
+  const nome = document.getElementById('novoContatoNome').value.trim();
+  const telefone = document.getElementById('novoContatoTelefone').value.trim();
+  const parentesco = document.getElementById('novoContatoParentesco').value.trim();
+
+  if(!nome){ erroEl.textContent = 'Digite o nome do contato.'; return; }
+  if(!validarTelefoneContato(telefone)){
+    erroEl.textContent = 'Telefone inválido. Use o formato (DD) 9XXXX-XXXX, com DDD.';
+    return;
+  }
+
   try{
     const resp = await fetch(`${API_URL}/api/seguranca/contatos`, {
       method:'POST',
@@ -7526,9 +7590,11 @@ async function adicionarContatoSeguranca(){
       body: JSON.stringify({ nome, telefone, parentesco })
     });
     const dados = await resp.json();
-    if(!resp.ok){ showToastVinculo(dados.erro || 'Erro ao adicionar contato'); return; }
+    if(!resp.ok){ erroEl.textContent = dados.erro || 'Erro ao adicionar contato'; return; }
+    closeModal('contato-confianca');
+    showToastVinculo('Contato de confiança adicionado!');
     carregarContatos();
-  }catch(e){ showToastVinculo('Erro de conexão.'); }
+  }catch(e){ erroEl.textContent = 'Erro de conexão.'; }
 }
 
 async function removerContatoSeguranca(id){
