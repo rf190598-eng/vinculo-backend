@@ -82,7 +82,11 @@ const criarContato = async (req, res) => {
     // 13 dígitos = 55 (DDI) + DDD (2) + 9º dígito + número (8). Qualquer
     // coisa fora disso indica DDD ausente/errado ou número incompleto —
     // a normalização não tem como "consertar" esses casos, só sinalizar.
-    if (!/^55\d{11}$/.test(telefoneNormalizado)) {
+    // 55 (DDI) + DDD (2) + "9" obrigatório (todo celular brasileiro de 9
+    // dígitos começa assim) + 8 dígitos restantes. Sem o "9" fixo aqui, um
+    // número como 13 dígitos mas começando em 1-5 depois do DDD passava
+    // como válido mesmo não existindo como celular real.
+    if (!/^55\d{2}9\d{8}$/.test(telefoneNormalizado)) {
       logTentativaContatoRejeitada(req.usuarioId, 'formato E.164 inválido');
       return res.status(400).json({ erro: 'Telefone inválido. Use o formato (DD) 9XXXX-XXXX' });
     }
