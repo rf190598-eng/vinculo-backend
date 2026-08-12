@@ -129,6 +129,8 @@ const removerContato = async (req, res) => {
 const dispararPanico = async (req, res) => {
   try {
     const { latitude, longitude } = req.body;
+    // LOG TEMPORÁRIO DE DIAGNÓSTICO — remover depois de confirmar a causa.
+    console.log(`[panico] localizacao recebida - usuario:${req.usuarioId} latitude:${latitude} longitude:${longitude}`);
     const usuario = await Usuario.findByPk(req.usuarioId);
     const contatos = await ContatoConfianca.findAll({ where: { usuario_id: req.usuarioId } });
 

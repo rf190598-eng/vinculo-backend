@@ -4680,10 +4680,22 @@ async function compartilharLinkIndicacao(){
 
 function obterLocalizacaoAtual(){
   return new Promise((resolve) => {
-    if(!navigator.geolocation){ resolve(null); return; }
+    if(!navigator.geolocation){
+      console.warn('[localizacao] navigator.geolocation indisponível neste navegador/contexto');
+      resolve(null);
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
-      pos => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-      () => resolve(null),
+      pos => {
+        console.log('[localizacao] obtida com sucesso:', pos.coords.latitude, pos.coords.longitude);
+        resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+      },
+      (erro) => {
+        // LOG TEMPORÁRIO DE DIAGNÓSTICO — remover depois de confirmar a causa.
+        // erro.code: 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
+        console.warn('[localizacao] falhou - code:', erro.code, 'message:', erro.message);
+        resolve(null);
+      },
       { timeout: 8000 }
     );
   });
