@@ -29,8 +29,17 @@ function normalizarTelefoneE164(telefoneBruto) {
 
   const restante = digitos.slice(2); // tudo depois do DDI
   if (restante.length === 10) {
-    // DDD (2) + número de 8 dígitos: falta o 9º dígito do celular.
-    digitos = '55' + restante.slice(0, 2) + '9' + restante.slice(2);
+    // DDD (2) + número de 8 dígitos. Só insere o 9º dígito se o primeiro
+    // dígito do número local indicar celular no formato antigo (6-9) — no
+    // plano de numeração da Anatel, fixo sempre começa com 2-5. Sem essa
+    // checagem, um fixo de 8 dígitos (ex: 3222-1234) virava um "celular"
+    // inventado (93222-1234) que nunca vai receber WhatsApp de verdade.
+    const primeiroDigitoLocal = restante[2];
+    if (['6', '7', '8', '9'].includes(primeiroDigitoLocal)) {
+      digitos = '55' + restante.slice(0, 2) + '9' + restante.slice(2);
+    }
+    // Começa com 2-5: é fixo. Não insere o 9 — fica com 12 dígitos totais,
+    // o que a validação de 13 dígitos em criarContato() já rejeita.
   }
 
   return digitos; // 13 dígitos no caso comum: 55 + DDD(2) + 9 + número(8)
