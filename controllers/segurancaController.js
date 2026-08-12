@@ -129,8 +129,6 @@ const removerContato = async (req, res) => {
 const dispararPanico = async (req, res) => {
   try {
     const { latitude, longitude } = req.body;
-    // LOG TEMPORÁRIO DE DIAGNÓSTICO — remover depois de confirmar a causa.
-    console.log(`[panico] localizacao recebida - usuario:${req.usuarioId} latitude:${latitude} longitude:${longitude}`);
     const usuario = await Usuario.findByPk(req.usuarioId);
     const contatos = await ContatoConfianca.findAll({ where: { usuario_id: req.usuarioId } });
 
@@ -161,16 +159,29 @@ const dispararPanico = async (req, res) => {
 
 // ===== SESSÃO DE SEGURANÇA (encontro / check-in) =====
 
+// Faixa aceita para o prazo do check-in, em minutos. Mínimo evita um prazo
+// praticamente imediato (o usuário nem teria tempo de confirmar retorno
+// seguro); máximo evita um check-in "esquecido" ativo por dias sem disparar
+// alerta nem ser encerrado.
+const CHECKIN_MINUTOS_MIN = 15;        // 0.25h
+const CHECKIN_MINUTOS_MAX = 24 * 60;   // 24h
+
 const iniciarSessao = async (req, res) => {
   try {
     const { minutos, latitude, longitude, com_usuario_id } = req.body;
+
+    const minutosNum = Number(minutos);
+    if (!Number.isFinite(minutosNum) || minutosNum < CHECKIN_MINUTOS_MIN || minutosNum > CHECKIN_MINUTOS_MAX) {
+      return res.status(400).json({
+        erro: `O tempo do check-in deve ser entre ${CHECKIN_MINUTOS_MIN} minutos e ${CHECKIN_MINUTOS_MAX / 60} horas.`
+      });
+    }
+
     await SessaoSeguranca.update(
       { ativa: false },
       { where: { usuario_id: req.usuarioId, ativa: true } }
     );
-    const prazo_confirmacao = minutos
-      ? new Date(Date.now() + minutos * 60 * 1000)
-      : null;
+    const prazo_confirmacao = new Date(Date.now() + minutosNum * 60 * 1000);
     const sessao = await SessaoSeguranca.create({
       usuario_id: req.usuarioId,
       com_usuario_id: com_usuario_id || null,

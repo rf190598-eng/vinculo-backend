@@ -940,6 +940,32 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('contato-confianca')">Cancelar</button>
   </div>
 </div>
+<!-- CHECK-IN DE ENCONTRO -->
+<div class="overlay" id="overlay-checkin-seguranca" onclick="if(event.target===this)closeModal('checkin-seguranca')">
+  <div class="modal modal-center">
+    <div class="modal-handle"></div>
+    <h3 class="serif">Iniciar Check-in de Encontro</h3>
+    <p style="color:#d8b0c4;font-size:12.5px;line-height:1.6;margin:8px 0 14px">Se você não confirmar que chegou bem até o prazo, seus contatos de confiança serão avisados automaticamente.</p>
+
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button type="button" class="btn btn-ghost checkin-atalho" onclick="selecionarAtalhoCheckin(60,this)" style="flex:1;padding:10px 4px;font-size:13px">1h</button>
+      <button type="button" class="btn btn-ghost checkin-atalho" onclick="selecionarAtalhoCheckin(120,this)" style="flex:1;padding:10px 4px;font-size:13px">2h</button>
+      <button type="button" class="btn btn-ghost checkin-atalho" onclick="selecionarAtalhoCheckin(180,this)" style="flex:1;padding:10px 4px;font-size:13px">3h</button>
+      <button type="button" class="btn btn-ghost checkin-atalho" onclick="selecionarAtalhoCheckin(240,this)" style="flex:1;padding:10px 4px;font-size:13px">4h</button>
+    </div>
+
+    <div style="color:#a07080;font-size:12px;margin-bottom:6px">Outro tempo</div>
+    <div style="display:flex;gap:10px">
+      <input class="inp" id="checkinHoras" type="number" min="0" max="24" step="1" placeholder="Horas" inputmode="numeric" oninput="onCheckinCustomInput()" style="flex:1"/>
+      <input class="inp" id="checkinMinutos" type="number" min="0" max="59" step="1" placeholder="Minutos" inputmode="numeric" oninput="onCheckinCustomInput()" style="flex:1"/>
+    </div>
+
+    <div id="checkinErro" style="color:#ff8fa3;font-size:12.5px;margin-top:8px;min-height:14px"></div>
+
+    <button class="btn btn-primary" id="btnConfirmarCheckin" style="margin-top:8px" disabled onclick="salvarCheckinSeguranca()">Iniciar check-in</button>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('checkin-seguranca')">Cancelar</button>
+  </div>
+</div>
 <!-- EXCLUIR CONTA (LGPD) -->
 <div class="overlay" id="overlay-excluir-conta" onclick="if(event.target===this)closeModal('excluir-conta')">
   <div class="modal" id="excluirContaModalContent">
@@ -1037,7 +1063,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div class="timer-display" id="timerDisplay">00:00:00</div>
       <div class="timer-sub">Ative ao sair para o encontro. Se não confirmar retorno seguro até o prazo, seus contatos de confiança são avisados automaticamente.</div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-primary" onclick="iniciarSessaoSeguranca()" style="flex:1;padding:11px;font-size:13px">&#9654; Iniciar</button>
+        <button class="btn btn-primary" onclick="abrirModalCheckinSeguranca()" style="flex:1;padding:11px;font-size:13px">&#9654; Iniciar</button>
         <button class="btn btn-ghost" onclick="confirmarRetornoSeguroReal()" style="flex:1;padding:11px;font-size:13px">&#9989; Cheguei bem</button>
       </div>
     </div>
@@ -4680,22 +4706,10 @@ async function compartilharLinkIndicacao(){
 
 function obterLocalizacaoAtual(){
   return new Promise((resolve) => {
-    if(!navigator.geolocation){
-      console.warn('[localizacao] navigator.geolocation indisponível neste navegador/contexto');
-      resolve(null);
-      return;
-    }
+    if(!navigator.geolocation){ resolve(null); return; }
     navigator.geolocation.getCurrentPosition(
-      pos => {
-        console.log('[localizacao] obtida com sucesso:', pos.coords.latitude, pos.coords.longitude);
-        resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
-      },
-      (erro) => {
-        // LOG TEMPORÁRIO DE DIAGNÓSTICO — remover depois de confirmar a causa.
-        // erro.code: 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
-        console.warn('[localizacao] falhou - code:', erro.code, 'message:', erro.message);
-        resolve(null);
-      },
+      pos => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+      () => resolve(null),
       { timeout: 8000 }
     );
   });
@@ -7464,25 +7478,102 @@ function pararTimersSeguranca(){
   clearInterval(intervalLocalizacaoSeguranca); intervalLocalizacaoSeguranca=null;
 }
 
-async function iniciarSessaoSeguranca(){
-  const horasTexto = prompt('Por quantas horas você vai ficar no encontro?', '2');
-  const horas = parseFloat(horasTexto);
-  if(!horas || horas<=0) return;
+// Faixa aceita para o prazo do check-in, em minutos — espelha a validação
+// do backend (CHECKIN_MINUTOS_MIN/MAX em segurancaController.js) só pra dar
+// feedback imediato; quem decide de verdade é sempre o backend.
+const CHECKIN_MINUTOS_MIN = 15;      // 0.25h
+const CHECKIN_MINUTOS_MAX = 24 * 60; // 24h
+
+let checkinMinutosEscolhidos = null; // minutos vindo de um atalho (1h/2h/3h/4h), ou null se for tempo customizado
+
+function abrirModalCheckinSeguranca(){
+  checkinMinutosEscolhidos = null;
+  document.getElementById('checkinHoras').value = '';
+  document.getElementById('checkinMinutos').value = '';
+  document.getElementById('checkinErro').textContent = '';
+  document.querySelectorAll('.checkin-atalho').forEach(b=>{ b.classList.remove('btn-primary'); b.classList.add('btn-ghost'); });
+  atualizarBotaoConfirmarCheckin();
+  openModal('checkin-seguranca');
+}
+
+function selecionarAtalhoCheckin(minutos, botao){
+  checkinMinutosEscolhidos = minutos;
+  document.getElementById('checkinHoras').value = '';
+  document.getElementById('checkinMinutos').value = '';
+  document.querySelectorAll('.checkin-atalho').forEach(b=>{ b.classList.remove('btn-primary'); b.classList.add('btn-ghost'); });
+  botao.classList.remove('btn-ghost');
+  botao.classList.add('btn-primary');
+  atualizarBotaoConfirmarCheckin();
+}
+
+// Digitar em "Outro tempo" desmarca qualquer atalho selecionado antes.
+function onCheckinCustomInput(){
+  checkinMinutosEscolhidos = null;
+  document.querySelectorAll('.checkin-atalho').forEach(b=>{ b.classList.remove('btn-primary'); b.classList.add('btn-ghost'); });
+  atualizarBotaoConfirmarCheckin();
+}
+
+// Retorna o total de minutos pro estado atual do modal, ou null se nada
+// foi escolhido/preenchido ainda (não é erro, é "usuário ainda não decidiu").
+function calcularMinutosCheckin(){
+  if(checkinMinutosEscolhidos) return checkinMinutosEscolhidos;
+  const hTexto = document.getElementById('checkinHoras').value;
+  const mTexto = document.getElementById('checkinMinutos').value;
+  if(hTexto==='' && mTexto==='') return null;
+  const horas = parseInt(hTexto || '0', 10);
+  const minutos = parseInt(mTexto || '0', 10);
+  if(!Number.isFinite(horas) || !Number.isFinite(minutos) || horas<0 || minutos<0) return null;
+  return horas*60 + minutos;
+}
+
+function atualizarBotaoConfirmarCheckin(){
+  const total = calcularMinutosCheckin();
+  const btn = document.getElementById('btnConfirmarCheckin');
+  const erroEl = document.getElementById('checkinErro');
+  const valido = total!==null && total>=CHECKIN_MINUTOS_MIN && total<=CHECKIN_MINUTOS_MAX;
+  btn.disabled = !valido;
+  if(total!==null && !valido){
+    erroEl.textContent = total < CHECKIN_MINUTOS_MIN
+      ? 'Tempo mínimo: 15 minutos.'
+      : 'Tempo máximo: 24 horas.';
+  } else {
+    erroEl.textContent = '';
+  }
+}
+
+async function salvarCheckinSeguranca(){
+  const erroEl = document.getElementById('checkinErro');
+  const total = calcularMinutosCheckin();
+  if(total===null || total<CHECKIN_MINUTOS_MIN || total>CHECKIN_MINUTOS_MAX){
+    erroEl.textContent = 'Escolha um tempo válido entre 15 minutos e 24 horas.';
+    return;
+  }
+
+  const btn = document.getElementById('btnConfirmarCheckin');
+  btn.disabled = true;
   const local = await obterLocalizacaoAtual();
   const com_usuario_id = (matchAtual && matchAtual.outro_usuario) ? matchAtual.outro_usuario.id : null;
   try{
     const resp = await fetch(`${API_URL}/api/seguranca/sessao/iniciar`, {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
-      body: JSON.stringify({ minutos: Math.round(horas*60), com_usuario_id, ...(local||{}) })
+      body: JSON.stringify({ minutos: total, com_usuario_id, ...(local||{}) })
     });
     const dados = await resp.json();
-    if(!resp.ok){ showToastVinculo(dados.erro||'Erro ao iniciar check-in.'); return; }
+    if(!resp.ok){
+      erroEl.textContent = dados.erro || 'Erro ao iniciar check-in.';
+      atualizarBotaoConfirmarCheckin();
+      return;
+    }
+    closeModal('checkin-seguranca');
     sessaoSegurancaAtiva = dados.sessao;
     iniciarTimersSeguranca();
     atualizarDisplayTimerSeguranca();
     showToastVinculo('Check-in ativado! Seus contatos serão avisados se você não confirmar retorno a tempo.');
-  }catch(e){ showToastVinculo('Erro de conexão.'); }
+  }catch(e){
+    erroEl.textContent = 'Erro de conexão.';
+    atualizarBotaoConfirmarCheckin();
+  }
 }
 
 async function confirmarRetornoSeguroReal(){
