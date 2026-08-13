@@ -10,30 +10,58 @@ const BonusMeta = require('../models/BonusMeta');
 // então não pode depender de hardcode espalhado.
 const LINK_BASE_PARCEIRO = process.env.APP_LINK_BASE || 'https://app.vinculoapp.com.br';
 
-// Valor pago por indicado ativo, por mês. Espelha o default de comissao_base
-// no model Parceiro — cada parceiro pode ter o seu próprio valor negociado.
+// Valor inicial da coluna comissao_base em parceiros novos. NÃO é mais o que
+// define quanto o parceiro recebe — quem manda nisso é COMISSOES_POR_PLANO,
+// abaixo. A coluna continua existindo por compatibilidade (é devolvida nas
+// respostas de /api/parceiros/me e do painel admin).
 const COMISSAO_PADRAO = 5.00;
 
-// Faixas do parceiro INSTITUCIONAL (atléticas). A faixa é do PARCEIRO como um
-// todo, não por indicação: quem tem 60 ativos recebe 8,00 por CADA um dos 60,
-// não 6,50 nos 49 primeiros e 8,00 nos 11 restantes.
-const FAIXAS_INSTITUCIONAL = [
-  { min: 150, valor: 10.00 },
-  { min: 50,  valor: 8.00 },
-  { min: 1,   valor: 6.50 }
-];
+// Valor pago por indicação ativa, por mês, conforme o PLANO do indicado.
+// Substitui as antigas faixas por volume: volume não influencia mais o valor —
+// um institucional com 200 indicados no mensal recebe 7,00 por CADA um.
+//
+// Tabela fixa em vez de percentual calculado em runtime, de propósito: o mesmo
+// número precisa sair igual na estimativa do painel e no fechamento que paga,
+// e percentual recalculado nos dois lugares acabaria divergindo no centavo.
+//
+// O plano semanal tem teto: o cálculo puro por % da receita mensal equivalente
+// daria 8,50 (individual) e 11,93 (institucional), limitados a 7,00 e 10,00.
+const COMISSOES_POR_PLANO = {
+  individual:    { semanal: 7.00,  mensal: 5.00, anual: 3.30 },
+  institucional: { semanal: 10.00, mensal: 7.00, anual: 4.62 }
+};
+
+// Dias de pagamento contínuo que a indicação precisa ter antes de gerar
+// comissão. Protege contra cadastra-paga-cancela: sem isso, uma indicação que
+// durou minutos já rendia o mês cheio ao parceiro.
+const DIAS_MINIMOS_PERMANENCIA = 7;
 
 /**
- * Valor unitário da comissão deste parceiro neste fechamento.
- * - institucional: faixa por volume de indicações ativas
- * - individual: comissao_base do próprio parceiro (hoje R$ 5,00)
+ * Valor unitário da comissão de UMA indicação: cruzamento entre o tipo do
+ * parceiro (individual/institucional) e o plano que o indicado paga.
+ *
+ * Retorna 0 quando o par tipo/plano não existe na tabela — o chamador trata
+ * isso como "não gerar comissão" e contabiliza o caso, em vez de arbitrar um
+ * valor. Em código financeiro, errar por omissão é auditável; errar por chute
+ * silencioso, não.
  */
-function valorComissaoUnitaria(parceiro, qtdAtivas) {
-  if (parceiro.tipo === 'institucional') {
-    const faixa = FAIXAS_INSTITUCIONAL.find(f => qtdAtivas >= f.min);
-    return faixa ? faixa.valor : 0;
-  }
-  return Number(parceiro.comissao_base || COMISSAO_PADRAO);
+function valorComissaoUnitaria(tipoParceiro, planoIndicado) {
+  const tabela = COMISSOES_POR_PLANO[tipoParceiro];
+  if (!tabela) return 0;
+  return Number(tabela[planoIndicado] || 0);
+}
+
+/**
+ * A indicação já cumpriu o período mínimo de permanência paga?
+ *
+ * Sem data_inicio_permanencia (linha antiga que o backfill não pegou) devolve
+ * false: não gera comissão até uma reativação preencher o campo. Preferimos
+ * segurar um pagamento a liberar um indevido.
+ */
+function cumpriuPermanenciaMinima(indicacao, agora) {
+  if (!indicacao.data_inicio_permanencia) return false;
+  const dias = (agora - new Date(indicacao.data_inicio_permanencia)) / 86400000;
+  return dias >= DIAS_MINIMOS_PERMANENCIA;
 }
 
 // Gera código do parceiro. Mesma ideia da geração de codigo_indicacao em
@@ -112,9 +140,15 @@ const meuParceiro = async (req, res) => {
       }
     }
 
-    const [totalIndicacoes, indicacoesAtivas, ganhoTotal, ganhoMes] = await Promise.all([
+    const [totalIndicacoes, listaAtivas, ganhoTotal, ganhoMes] = await Promise.all([
       Indicacao.count({ where: { parceiro_id: parceiro.id } }),
-      Indicacao.count({ where: { parceiro_id: parceiro.id, status: 'ativo' } }),
+      // Lista (e não count) porque a estimativa precisa saber o plano de cada
+      // indicação e há quanto tempo ela paga — não dá mais pra multiplicar
+      // um valor único pela quantidade.
+      Indicacao.findAll({
+        where: { parceiro_id: parceiro.id, status: 'ativo' },
+        attributes: ['plano_atual', 'data_inicio_permanencia']
+      }),
       // Todas as comissões já geradas, independente de status_pagamento —
       // é o "acumulado histórico", não o "já recebido".
       Comissao.sum('valor', { where: { parceiro_id: parceiro.id } }),
@@ -123,14 +157,26 @@ const meuParceiro = async (req, res) => {
       })
     ]);
 
-    const comissaoBase = somaDecimal(parceiro.comissao_base) || COMISSAO_PADRAO;
+    const agora = new Date();
+    const indicacoesAtivas = listaAtivas.length;
+
+    // Estimativa calculada pelo MESMO critério do fechamento: só indicações
+    // que já cumpriram a carência, cada uma no valor do próprio plano. Sem
+    // isso o painel prometeria um número que o fechamento não paga.
+    const ganhoMesEstimado = listaAtivas.reduce((soma, ind) => (
+      cumpriuPermanenciaMinima(ind, agora)
+        ? soma + valorComissaoUnitaria(parceiro.tipo, ind.plano_atual)
+        : soma
+    ), 0);
 
     res.json({
       codigo_indicacao: parceiro.codigo_indicacao,
       link: `${LINK_BASE_PARCEIRO}/r/${parceiro.codigo_indicacao}`,
       tipo: parceiro.tipo,
       status: parceiro.status,
-      comissao_base: comissaoBase,
+      // Mantido por compatibilidade da resposta. NÃO reflete mais o valor
+      // efetivamente pago — quem define isso é COMISSOES_POR_PLANO.
+      comissao_base: somaDecimal(parceiro.comissao_base) || COMISSAO_PADRAO,
 
       total_indicacoes: totalIndicacoes,
       indicacoes_ativas: indicacoesAtivas,
@@ -144,7 +190,7 @@ const meuParceiro = async (req, res) => {
       // gerado — é o que o mês renderia se todos seguirem ativos até o
       // fechamento. Separado dos campos acima de propósito, pra não misturar
       // estimativa com valor apurado.
-      ganho_mes_estimado: Number((indicacoesAtivas * comissaoBase).toFixed(2))
+      ganho_mes_estimado: Number(ganhoMesEstimado.toFixed(2))
     });
   } catch (erro) {
     console.error('Erro em meuParceiro:', erro);
@@ -201,11 +247,17 @@ async function sincronizarIndicacaoDoUsuario(usuarioOuId) {
     // Reativação: a pessoa voltou a assinar depois de ter cancelado/vencido.
     // Reaproveita a mesma linha em vez de criar outra — o índice único em
     // usuario_indicado_id impede duplicar, e o histórico fica coerente.
-    if (indicacao.status !== 'ativo' || indicacao.plano_atual !== usuario.plano_atual) {
+    // Reativação REAL (a indicação estava cancelada/inadimplente) reinicia o
+    // relógio da permanência mínima — é uma assinatura nova, e a carência
+    // precisa ser cumprida de novo. Troca de plano com a indicação já ativa
+    // NÃO reinicia: upgrade/downgrade é movimento legítimo de quem já paga.
+    const estavaInativa = indicacao.status !== 'ativo';
+    if (estavaInativa || indicacao.plano_atual !== usuario.plano_atual) {
       await indicacao.update({
         status: 'ativo',
         plano_atual: usuario.plano_atual,
-        data_cancelamento: null
+        data_cancelamento: null,
+        ...(estavaInativa ? { data_inicio_permanencia: new Date() } : {})
       });
     }
     return indicacao;
@@ -220,7 +272,8 @@ async function sincronizarIndicacaoDoUsuario(usuarioOuId) {
       usuario_indicado_id: usuario.id,
       status: 'ativo',
       plano_atual: usuario.plano_atual,
-      data_indicacao: new Date()
+      data_indicacao: new Date(),
+      data_inicio_permanencia: new Date()
     });
   } catch (erroCriacao) {
     // Corrida (webhook duplicado do Mercado Pago é comum): o índice único
@@ -329,17 +382,23 @@ async function verificarMetasAtingidas() {
   const metas = await BonusMeta.findAll({ where: { atingida: false } });
   if (!metas.length) return { avaliadas: 0, atingidas: 0, valor_total: 0 };
 
+  const agora = new Date();
+
   const idsParceiros = [...new Set(metas.map(m => m.parceiro_id))];
   const ativas = await Indicacao.findAll({
     where: { parceiro_id: { [Op.in]: idsParceiros }, status: 'ativo' },
-    attributes: ['parceiro_id']
+    attributes: ['parceiro_id', 'data_inicio_permanencia']
   });
+  // Mesma carência do fechamento de comissões: uma meta não pode ser batida
+  // com cadastros que pagaram e cancelaram em seguida. Sem esse filtro, o
+  // bônus de meta seria a rota de fraude mais barata do programa, já que é
+  // pagamento único e alto.
   const contagem = new Map();
   for (const ind of ativas) {
+    if (!cumpriuPermanenciaMinima(ind, agora)) continue;
     contagem.set(ind.parceiro_id, (contagem.get(ind.parceiro_id) || 0) + 1);
   }
 
-  const agora = new Date();
   let atingidas = 0;
   let valorTotal = 0;
 
@@ -400,14 +459,18 @@ async function verificarMetasAtingidas() {
  */
 async function fecharComissoesDoMes(mesReferencia) {
   const mes = mesReferencia || primeiroDiaDoMes();
+  const agora = new Date();
 
   const indicacoesAtivas = await Indicacao.findAll({
     where: { status: 'ativo' },
-    attributes: ['id', 'parceiro_id']
+    attributes: ['id', 'parceiro_id', 'plano_atual', 'data_inicio_permanencia']
   });
 
   if (!indicacoesAtivas.length) {
-    return { mes_referencia: mes, criadas: 0, ja_existiam: 0, ignoradas_sem_parceiro: 0, valor_total: 0 };
+    return {
+      mes_referencia: mes, criadas: 0, ja_existiam: 0, ignoradas_sem_parceiro: 0,
+      ignoradas_permanencia: 0, ignoradas_plano_desconhecido: 0, valor_total: 0
+    };
   }
 
   // Uma consulta só pra saber o que já foi fechado neste mês, em vez de um
@@ -421,29 +484,30 @@ async function fecharComissoesDoMes(mesReferencia) {
   });
   const idsJaFechados = new Set(jaFechadas.map(c => c.indicacao_id));
 
-  // Carrega os parceiros envolvidos de uma vez, pra pegar comissao_base sem
-  // uma consulta por linha.
+  // Carrega os parceiros envolvidos de uma vez, pra pegar tipo/status sem uma
+  // consulta por linha.
   const idsParceiros = [...new Set(indicacoesAtivas.map(i => i.parceiro_id))];
   const parceiros = await Parceiro.findAll({
     where: { id: { [Op.in]: idsParceiros } },
-    attributes: ['id', 'tipo', 'comissao_base', 'status']
+    attributes: ['id', 'tipo', 'status']
   });
   const mapaParceiros = new Map(parceiros.map(p => [p.id, p]));
 
-  // Quantas indicações ativas cada parceiro tem AGORA — é isso que define a
-  // faixa do institucional. Contado sobre a mesma lista que está sendo
-  // fechada, então faixa e cobrança sempre olham o mesmo retrato.
-  const ativasPorParceiro = new Map();
-  for (const ind of indicacoesAtivas) {
-    ativasPorParceiro.set(ind.parceiro_id, (ativasPorParceiro.get(ind.parceiro_id) || 0) + 1);
-  }
-
   let criadas = 0;
   let ignoradasSemParceiro = 0;
+  let ignoradasPermanencia = 0;
+  let ignoradasPlanoDesconhecido = 0;
   let valorTotal = 0;
 
   for (const indicacao of indicacoesAtivas) {
     if (idsJaFechados.has(indicacao.id)) continue;
+
+    // Carência: indicação nova (ou reativada há poucos dias) ainda não conta.
+    // Não é erro — no fechamento seguinte ela entra normalmente.
+    if (!cumpriuPermanenciaMinima(indicacao, agora)) {
+      ignoradasPermanencia++;
+      continue;
+    }
 
     const parceiro = mapaParceiros.get(indicacao.parceiro_id);
     // Parceiro suspenso não acumula comissão nova. A indicação continua ativa
@@ -453,8 +517,16 @@ async function fecharComissoesDoMes(mesReferencia) {
       continue;
     }
 
-    const valor = valorComissaoUnitaria(parceiro, ativasPorParceiro.get(parceiro.id) || 0);
-    if (!valor) { ignoradasSemParceiro++; continue; }
+    const valor = valorComissaoUnitaria(parceiro.tipo, indicacao.plano_atual);
+    if (!valor) {
+      // Par tipo/plano fora da tabela (plano nulo, tipo inesperado). Logado
+      // individualmente porque é dinheiro que alguém deveria receber e não
+      // vai receber — precisa ser visível, não virar um contador mudo.
+      console.warn(`[comissoes] indicação ${indicacao.id} sem valor definido ` +
+        `(tipo:${parceiro.tipo} plano:${indicacao.plano_atual}) — comissão não gerada.`);
+      ignoradasPlanoDesconhecido++;
+      continue;
+    }
 
     try {
       await Comissao.create({
@@ -479,6 +551,8 @@ async function fecharComissoesDoMes(mesReferencia) {
     criadas,
     ja_existiam: idsJaFechados.size,
     ignoradas_sem_parceiro: ignoradasSemParceiro,
+    ignoradas_permanencia: ignoradasPermanencia,
+    ignoradas_plano_desconhecido: ignoradasPlanoDesconhecido,
     valor_total: Number(valorTotal.toFixed(2))
   };
 }
@@ -526,7 +600,9 @@ module.exports = {
   fecharComissoesManualmente,
   verificarMetasAtingidas,
   valorComissaoUnitaria,
-  FAIXAS_INSTITUCIONAL,
+  cumpriuPermanenciaMinima,
+  COMISSOES_POR_PLANO,
+  DIAS_MINIMOS_PERMANENCIA,
   primeiroDiaDoMes,
   LINK_BASE_PARCEIRO
 };

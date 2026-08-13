@@ -33,6 +33,14 @@ const Indicacao = sequelize.define('Indicacao', {
     allowNull: false,
     defaultValue: DataTypes.NOW
   },
+  // Início da sequência ATUAL de pagamento contínuo. Diferente de
+  // data_indicacao: é reiniciada a cada reativação real (cancelou e voltou a
+  // assinar), porque o período mínimo de permanência precisa ser cumprido de
+  // novo. Troca de plano com a indicação já ativa NÃO reinicia.
+  data_inicio_permanencia: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
   data_cancelamento: {
     type: DataTypes.DATE,
     allowNull: true
