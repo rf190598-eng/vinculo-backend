@@ -62,7 +62,10 @@ const {
   verificarMetasAtingidas
 } = require('./controllers/parceiroController');
 const { verificarCheckinsVencidos } = require('./controllers/segurancaController');
-const { verificarAssinaturasVencidas } = require('./controllers/pagamentoController');
+const {
+  verificarAssinaturasVencidas,
+  verificarLembretesRenovacao
+} = require('./controllers/pagamentoController');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -321,6 +324,18 @@ const iniciar = async () => {
   };
   rodarVerificacaoMetas();
   setInterval(rodarVerificacaoMetas, UMA_HORA);
+
+  // Lembrete de renovação por WhatsApp. Uma vez por dia basta: a janela de
+  // busca é de 48h, então mesmo que uma execução falhe (ou o processo reinicie
+  // e perca o intervalo), a próxima ainda pega a mesma pessoa a tempo.
+  const UM_DIA = 24 * UMA_HORA;
+  const rodarLembretesRenovacao = () => {
+    verificarLembretesRenovacao().catch((err) => {
+      console.error('Erro ao enviar lembretes de renovação:', err);
+    });
+  };
+  rodarLembretesRenovacao();
+  setInterval(rodarLembretesRenovacao, UM_DIA);
 };
 
 // ===== Graceful shutdown =====

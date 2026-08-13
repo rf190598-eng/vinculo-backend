@@ -2,6 +2,11 @@ const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 const { Op } = require('sequelize');
 const Usuario = require('../models/Usuario');
 const { sincronizarIndicacaoDoUsuario } = require('./parceiroController');
+const {
+  enviarMensagemTemplate,
+  normalizarTelefoneE164,
+  validarTelefoneCelularBR
+} = require('../services/whatsappService');
 
 // Configurar Mercado Pago
 const client = new MercadoPagoConfig({
@@ -27,7 +32,14 @@ async function ativarPlanoDoUsuario(usuario_id, plano) {
   const premium_ate = new Date(agora.getTime() + planoEscolhido.dias * 24 * 60 * 60 * 1000);
 
   await Usuario.update(
-    { premium: true, premium_ate, plano_atual: plano },
+    {
+      premium: true,
+      premium_ate,
+      plano_atual: plano,
+      // Ciclo novo, prazo novo: o lembrete do ciclo anterior não vale mais.
+      // Sem esse reset, quem renovasse nunca mais receberia lembrete.
+      lembrete_renovacao_enviado_em: null
+    },
     { where: { id: usuario_id } }
   );
 
@@ -62,7 +74,7 @@ async function encerrarPlanoDoUsuario(usuario_id) {
 
 const criarPagamentoPix = async (req, res) => {
   try {
-    const { plano } = req.body;
+    const { plano, telefone } = req.body;
     const usuario_id = req.usuarioId;
 
     if (!planos[plano]) {
@@ -71,6 +83,29 @@ const criarPagamentoPix = async (req, res) => {
 
     const usuario = await Usuario.findByPk(usuario_id);
     const planoEscolhido = planos[plano];
+
+    // Telefone é obrigatório para assinar: é por ele que o lembrete de
+    // renovação chega. Só é pedido de quem ainda não tem — quem já assinou
+    // antes (ou já preencheu numa tentativa anterior) passa direto.
+    //
+    // A flag requer_telefone no erro é o que o app usa para abrir o modal de
+    // telefone em vez de mostrar a mensagem de erro crua.
+    if (!usuario.telefone) {
+      if (!telefone) {
+        return res.status(400).json({
+          erro: 'Precisamos do seu telefone para avisar sobre a renovação.',
+          requer_telefone: true
+        });
+      }
+      const telefoneNormalizado = normalizarTelefoneE164(telefone);
+      if (!validarTelefoneCelularBR(telefoneNormalizado)) {
+        return res.status(400).json({
+          erro: 'Telefone inválido. Use o formato (DD) 9XXXX-XXXX',
+          requer_telefone: true
+        });
+      }
+      await usuario.update({ telefone: telefoneNormalizado });
+    }
 
     const payment = new Payment(client);
     const resultado = await payment.create({
@@ -246,6 +281,71 @@ async function verificarAssinaturasVencidas() {
   return vencidos.length;
 }
 
+/**
+ * Avisa por WhatsApp quem está prestes a perder o acesso, para reduzir
+ * cancelamento por esquecimento (o pagamento aqui é PIX avulso: se a pessoa
+ * não renovar por conta própria, a assinatura simplesmente acaba).
+ *
+ * Janela: de agora até 48h à frente — e NÃO "entre 24h e 48h". A diferença
+ * importa: com a janela aberta na ponta de baixo, um envio que falhar hoje
+ * (WhatsApp fora do ar, template ainda em análise) reaparece na execução de
+ * amanhã, e assim por diante até funcionar ou a assinatura vencer de fato.
+ * Com a janela fechada, uma falha significaria nunca mais tentar.
+ *
+ * lembrete_renovacao_enviado_em só é gravado em caso de SUCESSO — é ele que
+ * impede o lembrete de repetir todo dia depois de entregue.
+ */
+async function verificarLembretesRenovacao() {
+  const agora = new Date();
+  const limite48h = new Date(agora.getTime() + 48 * 60 * 60 * 1000);
+
+  const candidatos = await Usuario.findAll({
+    where: {
+      plano_atual: { [Op.ne]: null },
+      premium_ate: { [Op.gt]: agora, [Op.lte]: limite48h },
+      lembrete_renovacao_enviado_em: null
+    },
+    attributes: ['id', 'nome', 'telefone', 'plano_atual', 'premium_ate']
+  });
+
+  if (!candidatos.length) return { enviados: 0, sem_telefone: 0, falhas: 0 };
+
+  const linkRenovacao = (process.env.APP_LINK_BASE || 'https://app.vinculoapp.com.br') + '/prototipo';
+  let enviados = 0;
+  let semTelefone = 0;
+  let falhas = 0;
+
+  for (const usuario of candidatos) {
+    // Sem telefone (assinou antes desta coluna existir): pula sem marcar
+    // nada. Se a pessoa cadastrar o telefone depois, entra numa próxima
+    // execução automaticamente — não fica queimada.
+    if (!usuario.telefone) { semTelefone++; continue; }
+
+    const dataFormatada = new Date(usuario.premium_ate).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    const resultado = await enviarMensagemTemplate(
+      usuario.telefone,
+      'lembrete_renovacao',
+      [usuario.plano_atual, dataFormatada, linkRenovacao]
+    );
+
+    if (resultado.sucesso) {
+      await Usuario.update(
+        { lembrete_renovacao_enviado_em: new Date() },
+        { where: { id: usuario.id } }
+      );
+      enviados++;
+    } else {
+      // Deixa lembrete_renovacao_enviado_em em null de propósito: a próxima
+      // execução tenta de novo enquanto a assinatura não vencer.
+      falhas++;
+      console.error(`[lembrete-renovacao] falha ao enviar para usuário ${usuario.id}: ${resultado.erro}`);
+    }
+  }
+
+  console.log(`[lembrete-renovacao] ${enviados} enviado(s), ${falhas} falha(s), ${semTelefone} sem telefone.`);
+  return { enviados, sem_telefone: semTelefone, falhas };
+}
+
 module.exports = {
   criarPagamentoPix,
   webhook,
@@ -253,5 +353,6 @@ module.exports = {
   ativarPremiumTeste,
   ativarPlanoDoUsuario,
   encerrarPlanoDoUsuario,
-  verificarAssinaturasVencidas
+  verificarAssinaturasVencidas,
+  verificarLembretesRenovacao
 };

@@ -15,6 +15,21 @@ const Usuario = sequelize.define('Usuario', {
     allowNull: false,
     unique: true
   },
+  // Celular do usuário em E.164 (ex: "5517991206127"). Opcional no cadastro:
+  // é coletado no fluxo de primeira assinatura, não no registro. Usado para o
+  // lembrete de renovação por WhatsApp.
+  telefone: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  // Quando o lembrete de renovação do ciclo ATUAL foi enviado com sucesso.
+  // Volta a null a cada nova assinatura confirmada (premium_ate muda, então o
+  // lembrete antigo não vale mais). Só é preenchido em envio bem-sucedido —
+  // se o WhatsApp falhar, fica null e o job tenta de novo na próxima execução.
+  lembrete_renovacao_enviado_em: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
   senha: {
     type: DataTypes.STRING,
     allowNull: false

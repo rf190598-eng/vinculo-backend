@@ -45,6 +45,37 @@ function normalizarTelefoneE164(telefoneBruto) {
   return digitos; // 13 dígitos no caso comum: 55 + DDD(2) + 9 + número(8)
 }
 
+// DDDs realmente existentes no Brasil (plano de numeração da Anatel).
+// Números com DDD fora dessa lista são rejeitados mesmo tendo a quantidade
+// certa de dígitos.
+const DDDS_VALIDOS = new Set([
+  11, 12, 13, 14, 15, 16, 17, 18, 19,
+  21, 22, 24, 27, 28,
+  31, 32, 33, 34, 35, 37, 38,
+  41, 42, 43, 44, 45, 46, 47, 48, 49,
+  51, 53, 54, 55,
+  61, 62, 63, 64, 65, 66, 67, 68, 69,
+  71, 73, 74, 75, 77, 79,
+  81, 82, 83, 84, 85, 86, 87, 88, 89,
+  91, 92, 93, 94, 95, 96, 97, 98, 99
+]);
+
+// Valida um telefone JÁ NORMALIZADO (saída de normalizarTelefoneE164) como
+// celular brasileiro capaz de receber WhatsApp.
+//
+// Mora aqui, e não no controller que a usa, porque a mesma regra vale para o
+// contato de confiança (segurancaController) e para o telefone do próprio
+// usuário (pagamentoController). Duplicar a lista de DDDs em dois arquivos
+// significaria, no dia em que a Anatel criar um DDD novo, atualizar só um.
+//
+// Regra: 55 (DDI) + DDD (2) + "9" obrigatório + 8 dígitos. O "9" fixo é o que
+// distingue celular de fixo — sem ele, um número de 13 dígitos começando com
+// 1-5 depois do DDD passava como válido sem existir de verdade.
+function validarTelefoneCelularBR(telefoneNormalizado) {
+  if (!/^55\d{2}9\d{8}$/.test(String(telefoneNormalizado || ''))) return false;
+  return DDDS_VALIDOS.has(Number(String(telefoneNormalizado).slice(2, 4)));
+}
+
 // Envia uma mensagem de template pelo WhatsApp Business Cloud API.
 // Nunca lança exceção — sempre resolve com { sucesso, ... }, para que quem
 // chama (ex: botão de pânico) não trave o fluxo principal por causa de uma
@@ -98,4 +129,9 @@ async function enviarMensagemTemplate(telefone, nomeTemplate, parametros) {
   }
 }
 
-module.exports = { enviarMensagemTemplate, normalizarTelefoneE164 };
+module.exports = {
+  enviarMensagemTemplate,
+  normalizarTelefoneE164,
+  validarTelefoneCelularBR,
+  DDDS_VALIDOS
+};

@@ -940,6 +940,18 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('contato-confianca')">Cancelar</button>
   </div>
 </div>
+<!-- TELEFONE PARA ASSINATURA -->
+<div class="overlay" id="overlay-telefone-assinatura" onclick="if(event.target===this)closeModal('telefone-assinatura')">
+  <div class="modal modal-center">
+    <div class="modal-handle"></div>
+    <h3 class="serif">Seu telefone</h3>
+    <p style="color:#d8b0c4;font-size:12.5px;line-height:1.6;margin:8px 0 12px">Vamos usar só para avisar você por WhatsApp antes da assinatura vencer, para o acesso não acabar de surpresa.</p>
+    <input class="inp" id="telefoneAssinatura" placeholder="(DD) 9XXXX-XXXX" inputmode="numeric" maxlength="16" oninput="mascararTelefoneContato(this)"/>
+    <div id="telefoneAssinaturaErro" style="color:#ff8fa3;font-size:12.5px;margin-top:8px;min-height:14px"></div>
+    <button class="btn btn-primary" style="margin-top:8px" onclick="confirmarTelefoneAssinatura()">Continuar</button>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('telefone-assinatura')">Cancelar</button>
+  </div>
+</div>
 <!-- CHECK-IN DE ENCONTRO -->
 <div class="overlay" id="overlay-checkin-seguranca" onclick="if(event.target===this)closeModal('checkin-seguranca')">
   <div class="modal modal-center">
@@ -8031,6 +8043,24 @@ function selectPayment(el){
   selectedPayment=el;
 }
 
+// Telefone digitado no modal, enviado junto do POST que gera o Pix. Fica em
+// memória só até o request ir — não é guardado no localStorage.
+let telefoneParaAssinatura = null;
+
+// Chamado pelo modal de telefone: valida no cliente (a validação que vale é a
+// do backend) e retoma o fluxo de assinatura de onde parou.
+function confirmarTelefoneAssinatura(){
+  const erroEl = document.getElementById('telefoneAssinaturaErro');
+  const valor = document.getElementById('telefoneAssinatura').value.trim();
+  if(!validarTelefoneContato(valor)){
+    erroEl.textContent = 'Telefone inválido. Use o formato (DD) 9XXXX-XXXX, com DDD.';
+    return;
+  }
+  telefoneParaAssinatura = valor;
+  closeModal('telefone-assinatura');
+  finalizarAssinatura();
+}
+
 async function finalizarAssinatura(){
   const metodoTexto = selectedPayment ? selectedPayment.textContent : '';
   if(!metodoTexto.includes('Pix')){
@@ -8041,16 +8071,34 @@ async function finalizarAssinatura(){
   openModal('pix');
   document.getElementById('pixConteudo').innerHTML = '<div style="text-align:center;padding:30px;color:#d8b0c4">Gerando Pix...</div>';
   try{
+    const corpo = { plano: planoSelecionado };
+    if(telefoneParaAssinatura) corpo.telefone = telefoneParaAssinatura;
+
     const resp = await fetch(`${API_URL}/api/pagamento/pix`, {
       method:'POST',
       headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
-      body: JSON.stringify({ plano: planoSelecionado })
+      body: JSON.stringify(corpo)
     });
     const dados = await resp.json();
+
+    // O backend pede o telefone quando o usuário ainda não tem um salvo.
+    // Abre o modal e para aqui: confirmarTelefoneAssinatura() rechama esta
+    // função com o número preenchido.
+    if(!resp.ok && dados.requer_telefone){
+      closeModal('pix');
+      document.getElementById('telefoneAssinatura').value = telefoneParaAssinatura || '';
+      document.getElementById('telefoneAssinaturaErro').textContent =
+        telefoneParaAssinatura ? (dados.erro || '') : '';
+      telefoneParaAssinatura = null;
+      openModal('telefone-assinatura');
+      return;
+    }
+
     if(!resp.ok){
       document.getElementById('pixConteudo').innerHTML = `<div style="text-align:center;padding:20px;color:#ff8fa3">${dados.erro || 'Não foi possível gerar o Pix.'}</div>`;
       return;
     }
+    telefoneParaAssinatura = null; // já salvo no backend
     let html = '';
     if(dados.qr_code_base64){
       html += `<img src="data:image/png;base64,${dados.qr_code_base64}" style="width:200px;height:200px;border-radius:12px;margin:0 auto 14px;display:block"/>`;

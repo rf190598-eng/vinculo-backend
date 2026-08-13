@@ -3,27 +3,20 @@ const AlertaSeguranca = require('../models/AlertaSeguranca');
 const SessaoSeguranca = require('../models/SessaoSeguranca');
 const Usuario = require('../models/Usuario');
 const AvaliacaoEncontro = require('../models/AvaliacaoEncontro');
-const { enviarMensagemTemplate, normalizarTelefoneE164 } = require('../services/whatsappService');
+const {
+  enviarMensagemTemplate,
+  normalizarTelefoneE164,
+  validarTelefoneCelularBR
+} = require('../services/whatsappService');
 
 const NOMES_TEMPLATE = {
   panico: 'alerta_panico',
   checkin_perdido: 'alerta_checkin_perdido'
 };
 
-// DDDs realmente existentes no Brasil (fonte: plano de numeração da Anatel).
-// Números com DDD fora dessa lista são rejeitados no cadastro de contato de
-// confiança, mesmo que tenham a quantidade certa de dígitos.
-const DDDS_VALIDOS = new Set([
-  11, 12, 13, 14, 15, 16, 17, 18, 19,
-  21, 22, 24, 27, 28,
-  31, 32, 33, 34, 35, 37, 38,
-  41, 42, 43, 44, 45, 46, 47, 48, 49,
-  51, 53, 54, 55,
-  61, 62, 63, 64, 65, 66, 67, 68, 69,
-  71, 73, 74, 75, 77, 79,
-  81, 82, 83, 84, 85, 86, 87, 88, 89,
-  91, 92, 93, 94, 95, 96, 97, 98, 99
-]);
+// A lista de DDDs válidos e a regra de formato vivem em whatsappService
+// (validarTelefoneCelularBR), compartilhadas com o cadastro de telefone do
+// próprio usuário no fluxo de pagamento.
 
 // Log de tentativa rejeitada de cadastro de contato de confiança. Não loga o
 // telefone completo (dado sensível) — só o suficiente pra auditoria/debug.
@@ -82,18 +75,10 @@ const criarContato = async (req, res) => {
     // 13 dígitos = 55 (DDI) + DDD (2) + 9º dígito + número (8). Qualquer
     // coisa fora disso indica DDD ausente/errado ou número incompleto —
     // a normalização não tem como "consertar" esses casos, só sinalizar.
-    // 55 (DDI) + DDD (2) + "9" obrigatório (todo celular brasileiro de 9
-    // dígitos começa assim) + 8 dígitos restantes. Sem o "9" fixo aqui, um
-    // número como 13 dígitos mas começando em 1-5 depois do DDD passava
-    // como válido mesmo não existindo como celular real.
-    if (!/^55\d{2}9\d{8}$/.test(telefoneNormalizado)) {
-      logTentativaContatoRejeitada(req.usuarioId, 'formato E.164 inválido');
-      return res.status(400).json({ erro: 'Telefone inválido. Use o formato (DD) 9XXXX-XXXX' });
-    }
-
-    const ddd = Number(telefoneNormalizado.slice(2, 4));
-    if (!DDDS_VALIDOS.has(ddd)) {
-      logTentativaContatoRejeitada(req.usuarioId, `DDD inexistente (${ddd})`);
+    // Formato E.164 de celular brasileiro + DDD real. A regra completa está em
+    // whatsappService, compartilhada com o cadastro de telefone do usuário.
+    if (!validarTelefoneCelularBR(telefoneNormalizado)) {
+      logTentativaContatoRejeitada(req.usuarioId, 'telefone inválido (formato ou DDD)');
       return res.status(400).json({ erro: 'Telefone inválido. Use o formato (DD) 9XXXX-XXXX' });
     }
 
