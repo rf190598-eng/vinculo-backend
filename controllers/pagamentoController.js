@@ -169,16 +169,42 @@ const ENDPOINT_POR_TOPICO = {
 async function investigarRecursoAssinatura(tipo, id) {
   const caminho = ENDPOINT_POR_TOPICO[tipo];
   if (!caminho || !id) return;
-  try {
-    const resposta = await fetch(`https://api.mercadopago.com/${caminho}/${id}`, {
-      headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` }
-    });
-    const corpo = await resposta.json().catch(() => null);
-    console.log(`[webhook-assinatura] RECURSO ${caminho}/${id} (HTTP ${resposta.status}):`,
-      JSON.stringify(corpo));
-  } catch (erro) {
-    console.error(`[webhook-assinatura] falha ao ler ${caminho}/${id}:`, erro.message);
+
+  // Um recurso só pode ser lido pela conta que o criou ("callerId"). Durante a
+  // investigação, as assinaturas de teste nascem na conta de TESTE, mas este
+  // servidor só tem o token de PRODUÇÃO — daí o
+  //   {"message":"the preapprovalId is not valid for callerId","status":400}
+  //
+  // Então tentamos os dois, em ordem, e logamos qual funcionou. Isso é
+  // artefato de teste, não de arquitetura: em produção, assinaturas reais
+  // nascem com o token de produção e são lidas pelo mesmo token.
+  const tentativas = [
+    { rotulo: 'producao', token: process.env.MP_ACCESS_TOKEN },
+    { rotulo: 'teste', token: process.env.MP_TEST_ACCESS_TOKEN }
+  ].filter((t) => t.token);
+
+  for (const tentativa of tentativas) {
+    try {
+      const resposta = await fetch(`https://api.mercadopago.com/${caminho}/${id}`, {
+        headers: { Authorization: `Bearer ${tentativa.token}` }
+      });
+      const corpo = await resposta.json().catch(() => null);
+
+      if (resposta.ok) {
+        console.log(`[webhook-assinatura] RECURSO ${caminho}/${id} lido com token de ${tentativa.rotulo}:`,
+          JSON.stringify(corpo));
+        return;
+      }
+
+      console.log(`[webhook-assinatura] token de ${tentativa.rotulo} não serviu para ${caminho}/${id}` +
+        ` (HTTP ${resposta.status}): ${JSON.stringify(corpo)}`);
+    } catch (erro) {
+      console.error(`[webhook-assinatura] erro de rede lendo ${caminho}/${id}` +
+        ` com token de ${tentativa.rotulo}:`, erro.message);
+    }
   }
+
+  console.error(`[webhook-assinatura] NENHUM token conseguiu ler ${caminho}/${id}.`);
 }
 
 const webhook = async (req, res) => {
