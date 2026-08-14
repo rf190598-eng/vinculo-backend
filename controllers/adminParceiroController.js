@@ -5,6 +5,14 @@ const Indicacao = require('../models/Indicacao');
 const Comissao = require('../models/Comissao');
 const BonusMeta = require('../models/BonusMeta');
 const { verificarMetasAtingidas } = require('./parceiroController');
+const { enviarEmail } = require('../utils/email');
+
+// Destinatário do lembrete de pagamento. Variável de ambiente com fallback:
+// funciona sem configurar nada, mas permite trocar o destinatário pelo painel
+// do Railway, sem deploy. Buscar por is_admin=true no banco seria automático
+// demais — um admin novo passaria a receber cobrança de pagamento sem querer.
+const EMAIL_ADMIN = process.env.EMAIL_ADMIN || 'rf190598@gmail.com';
+const LINK_ADMIN = (process.env.APP_LINK_BASE || 'https://app.vinculoapp.com.br') + '/admin';
 
 // Valores aceitos em parceiros.status. 'rejeitado' foi acrescentado agora,
 // para o fluxo de aprovação institucional do painel — a coluna é STRING (não
@@ -351,6 +359,106 @@ const verificarMetasManualmente = async (req, res) => {
   }
 };
 
+/**
+ * Lembrete por e-mail, só para o admin, de que há comissões a pagar.
+ *
+ * O pagamento das comissões é manual: você faz o Pix e depois marca como pago
+ * no painel. Nada no sistema cobra isso de você — este e-mail é o único
+ * mecanismo que impede o mês passar em branco, e o Guia do Parceiro promete
+ * pagamento "todo dia 5".
+ *
+ * Envia SEMPRE, mesmo sem nada pendente: o silêncio seria ambíguo — você não
+ * saberia se é porque não há nada ou porque o job parou de rodar.
+ *
+ * Nunca lança: enviarEmail() lança em caso de falha, e uma exceção escapando
+ * daqui poluiria o log do ciclo horário sem nenhum ganho.
+ */
+async function enviarLembretePagamentoComissoes() {
+  const pendentes = await Comissao.findAll({
+    where: { status_pagamento: 'pendente' },
+    attributes: ['id', 'valor', 'mes_referencia']
+  });
+
+  const quantidade = pendentes.length;
+  const total = pendentes.reduce((soma, c) => soma + Number(c.valor || 0), 0);
+  const reais = (v) => 'R$ ' + v.toFixed(2).replace('.', ',');
+
+  // Agrupado por mês de competência: ajuda a perceber se sobrou algo de um
+  // mês anterior que passou despercebido, em vez de só ver um total cego.
+  const porMes = new Map();
+  for (const c of pendentes) {
+    const atual = porMes.get(c.mes_referencia) || { qtd: 0, valor: 0 };
+    atual.qtd += 1;
+    atual.valor += Number(c.valor || 0);
+    porMes.set(c.mes_referencia, atual);
+  }
+
+  const assunto = quantidade
+    ? `Vínculo: ${quantidade} comissão(ões) a pagar até dia 5 — ${reais(total)}`
+    : 'Vínculo: nenhuma comissão pendente neste mês';
+
+  const linhasMes = [...porMes.entries()]
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .map(([mes, d]) => `<li>${mes} — ${d.qtd} comissão(ões), ${reais(d.valor)}</li>`)
+    .join('');
+
+  const rodape = '<p style="color:#888;font-size:12px">Lembrete automático do Vínculo. Enviado todo mês nos primeiros dias.</p>';
+
+  const html = quantidade ? `
+    <p>Bom dia, Roberto.</p>
+    <p>Faltam poucos dias para o <b>dia 5</b>, data em que o Guia do Parceiro promete o pagamento das comissões.</p>
+    <p style="font-size:18px"><b>${quantidade} comissão(ões) pendente(s) — total ${reais(total)}</b></p>
+    <p>Por mês de competência:</p>
+    <ul>${linhasMes}</ul>
+    <p>No painel você vê a chave Pix de cada parceiro e marca como pago depois de transferir:</p>
+    <p><a href="${LINK_ADMIN}">Abrir painel de comissões</a></p>
+    ${rodape}
+  ` : `
+    <p>Bom dia, Roberto.</p>
+    <p><b>Nenhuma comissão pendente</b> de pagamento neste momento — não há nada a fazer até o dia 5.</p>
+    <p>Este aviso é enviado mesmo sem pendências, para você saber que a verificação rodou normalmente.</p>
+    <p><a href="${LINK_ADMIN}">Abrir painel de comissões</a></p>
+    ${rodape}
+  `;
+
+  try {
+    await enviarEmail(EMAIL_ADMIN, assunto, html);
+    console.log(`[lembrete-pagamento] enviado para ${EMAIL_ADMIN}: ${quantidade} pendente(s), ${reais(total)}.`);
+    return { enviado: true, quantidade, total };
+  } catch (erro) {
+    console.error('[lembrete-pagamento] falha ao enviar:', erro.message);
+    return { enviado: false, quantidade, total, erro: erro.message };
+  }
+}
+
+/**
+ * ⚠️ TEMPORÁRIO — REMOVER DEPOIS DO TESTE ⚠️
+ *
+ * POST /api/admin/parceiros/testar-lembrete
+ *
+ * Dispara o lembrete de pagamento na hora, sem esperar o dia 3, só para
+ * conferir que o envio pelo Resend funciona de ponta a ponta (chave válida,
+ * remetente aceito, e-mail não caindo em spam).
+ *
+ * Exige admin, como todas as rotas deste arquivo. Não mexe em dado nenhum:
+ * só lê comissões pendentes e manda o e-mail. Não marca a trava mensal, então
+ * usar isto não impede o lembrete real de sair no dia 3.
+ */
+const testarLembretePagamento = async (req, res) => {
+  try {
+    const resultado = await enviarLembretePagamentoComissoes();
+    res.json({
+      mensagem: resultado.enviado
+        ? `Lembrete enviado para ${EMAIL_ADMIN}. Confira a caixa de entrada (e o spam).`
+        : 'O envio falhou — veja o campo "erro" e os logs do Railway.',
+      ...resultado,
+      destinatario: EMAIL_ADMIN
+    });
+  } catch (erro) {
+    res.status(500).json({ erro: 'Erro ao testar lembrete: ' + erro.message });
+  }
+};
+
 module.exports = {
   listarParceiros,
   atualizarStatusParceiro,
@@ -359,5 +467,7 @@ module.exports = {
   listarMetas,
   criarMeta,
   verificarMetasManualmente,
+  enviarLembretePagamentoComissoes,
+  testarLembretePagamento, // TEMPORÁRIO — remover junto com a rota
   STATUS_PARCEIRO_VALIDOS
 };

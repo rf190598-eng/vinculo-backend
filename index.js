@@ -66,6 +66,7 @@ const {
   verificarAssinaturasVencidas,
   verificarLembretesRenovacao
 } = require('./controllers/pagamentoController');
+const { enviarLembretePagamentoComissoes } = require('./controllers/adminParceiroController');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -336,6 +337,41 @@ const iniciar = async () => {
   };
   rodarLembretesRenovacao();
   setInterval(rodarLembretesRenovacao, UM_DIA);
+
+  // Lembrete (só para o admin) de pagar as comissões dos parceiros.
+  //
+  // Mesma estratégia do fechamento mensal: em vez de agendar "dia 3 à
+  // meia-noite" — que o processo pode perder se estiver reiniciando naquele
+  // instante, e aí o mês inteiro passa sem aviso — roda de hora em hora e
+  // pergunta se estamos na janela. Dispara no primeiro tique dentro dela.
+  //
+  // A janela de dois dias (3 e 4) é a folga: se o serviço ficar fora do ar o
+  // dia 3 todo, o dia 4 ainda salva o lembrete antes do prazo do dia 5.
+  //
+  // A trava ultimoMesLembretePagamento é em memória. Um restart dentro da
+  // janela pode gerar um segundo e-mail — preço aceitável: para um lembrete,
+  // duplicar é inofensivo; não avisar, não.
+  //
+  // A trava só é marcada quando o envio dá CERTO (mesma regra do lembrete de
+  // renovação por WhatsApp). Se o Resend estiver fora do ar, o job continua
+  // tentando de hora em hora até o fim do dia 4, em vez de dar o mês por
+  // resolvido só porque tentou uma vez.
+  const DIAS_LEMBRETE_PAGAMENTO = [3, 4];
+  let ultimoMesLembretePagamento = null;
+  const rodarLembretePagamento = async () => {
+    const agora = new Date();
+    if (!DIAS_LEMBRETE_PAGAMENTO.includes(agora.getDate())) return;
+    const mesAtual = `${agora.getFullYear()}-${agora.getMonth() + 1}`;
+    if (ultimoMesLembretePagamento === mesAtual) return;
+    try {
+      const resultado = await enviarLembretePagamentoComissoes();
+      if (resultado && resultado.enviado) ultimoMesLembretePagamento = mesAtual;
+    } catch (err) {
+      console.error('Erro no lembrete de pagamento de comissões:', err);
+    }
+  };
+  rodarLembretePagamento();
+  setInterval(rodarLembretePagamento, UMA_HORA);
 };
 
 // ===== Graceful shutdown =====
