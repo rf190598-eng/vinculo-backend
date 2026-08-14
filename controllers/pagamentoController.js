@@ -140,9 +140,67 @@ const criarPagamentoPix = async (req, res) => {
   }
 };
 
+// ⚠️ TEMPORÁRIO — INVESTIGAÇÃO DE WEBHOOKS DE ASSINATURA ⚠️
+// Remover depois que soubermos quais tópicos chegam e com qual payload.
+const TOPICOS_ASSINATURA = [
+  'subscription_preapproval',
+  'subscription_preapproval_plan',
+  'subscription_authorized_payment'
+];
+
+// Onde consultar cada tipo de recurso. O payload do webhook do Mercado Pago é
+// magro de propósito (traz basicamente um id), então só ele não responde
+// "esse ciclo foi aprovado?" — para isso é preciso ler o recurso.
+const ENDPOINT_POR_TOPICO = {
+  subscription_preapproval: 'preapproval',
+  subscription_preapproval_plan: 'preapproval_plan',
+  subscription_authorized_payment: 'authorized_payments'
+};
+
+/**
+ * ⚠️ TEMPORÁRIO ⚠️
+ * Busca o recurso citado no webhook e loga o corpo inteiro. Somente leitura:
+ * não grava nada, não altera estado. Serve para descobrir qual tópico carrega
+ * a confirmação de pagamento do ciclo.
+ *
+ * Chamada sem await de propósito — o Mercado Pago exige resposta rápida e
+ * reenvia com retry se demorarmos. A investigação não pode atrasar o 200.
+ */
+async function investigarRecursoAssinatura(tipo, id) {
+  const caminho = ENDPOINT_POR_TOPICO[tipo];
+  if (!caminho || !id) return;
+  try {
+    const resposta = await fetch(`https://api.mercadopago.com/${caminho}/${id}`, {
+      headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` }
+    });
+    const corpo = await resposta.json().catch(() => null);
+    console.log(`[webhook-assinatura] RECURSO ${caminho}/${id} (HTTP ${resposta.status}):`,
+      JSON.stringify(corpo));
+  } catch (erro) {
+    console.error(`[webhook-assinatura] falha ao ler ${caminho}/${id}:`, erro.message);
+  }
+}
+
 const webhook = async (req, res) => {
   try {
     const { type, data } = req.body;
+
+    // ⚠️ TEMPORÁRIO — LOG DE INVESTIGAÇÃO ⚠️
+    // Loga TODO evento antes de qualquer filtro. Inclui a query string porque
+    // o Mercado Pago tem dois formatos de notificação: o moderno (JSON no
+    // corpo, com "type") e o antigo/IPN (parâmetros ?topic=&id= na URL) — se
+    // olhássemos só o corpo, poderíamos concluir que "não chegou nada".
+    const topico = type || req.query.topic || req.query.type || '(sem tópico)';
+    console.log(`[webhook-mp] ${new Date().toISOString()} topico=${topico}` +
+      ` query=${JSON.stringify(req.query)} body=${JSON.stringify(req.body)}`);
+
+    if (TOPICOS_ASSINATURA.includes(topico)) {
+      const idRecurso = (data && data.id) || req.query.id || req.query['data.id'];
+      console.log(`[webhook-assinatura] EVENTO topico=${topico} action=${req.body.action || '-'} id=${idRecurso}`);
+      // Sem await: responde 200 primeiro, investiga depois.
+      investigarRecursoAssinatura(topico, idRecurso);
+      return res.status(200).json({ ok: true });
+    }
 
     if (type === 'payment') {
       const payment = new Payment(client);
