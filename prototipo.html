@@ -1661,6 +1661,19 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   </div>
   <div style="padding:0 18px 32px">
 
+    <!-- Acesso ao Guia. Fica no TOPO porque, depois que a explicação saiu
+         desta tela, ele é a única porta para entender o programa — quem chega
+         pela primeira vez precisa esbarrar nele antes de qualquer outra coisa. -->
+    <div onclick="goTo('guia-parceiro')" style="background:linear-gradient(135deg,rgba(212,131,154,.2),rgba(201,160,107,.14));border:1.5px solid rgba(201,160,107,.5);border-radius:18px;padding:18px;margin-bottom:20px;cursor:pointer;display:flex;align-items:center;gap:15px;box-shadow:0 6px 20px rgba(201,160,107,.12)">
+      <div style="width:52px;height:52px;border-radius:14px;background:rgba(201,160,107,.16);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">&#128218;</div>
+      <div style="flex:1">
+        <div style="font-size:10px;font-weight:800;color:#d4b87a;text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px">Comece por aqui</div>
+        <div style="font-size:15px;font-weight:800;color:#fdf6f2;margin-bottom:3px">Guia do Parceiro</div>
+        <div style="font-size:12.5px;color:#d0a8b8;line-height:1.5">Como funciona, quanto você recebe por plano e como indicar melhor. Leitura de 3 minutos.</div>
+      </div>
+      <div style="color:#d4b87a;font-size:22px">&#8250;</div>
+    </div>
+
     <!-- Manifesto -->
     <div style="background:linear-gradient(135deg,#3a1a2e,#1a0810);border:1.5px solid rgba(201,160,107,.35);border-radius:20px;padding:24px 18px;margin-bottom:20px;position:relative;overflow:hidden">
       <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(201,160,107,.12),transparent 70%);pointer-events:none"></div>
@@ -1669,17 +1682,6 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <p style="margin:0 0 12px">O Vínculo nasceu com um compromisso: colocar a segurança em primeiro lugar. Verificação de identidade real, botão de pânico, check-in com alerta automático, contatos de confiança — cada recurso do app existe para que você possa se conectar com outras pessoas com tranquilidade. Essa é, e sempre vai ser, nossa prioridade número um.</p>
         <p style="margin:0">Mas eu decidi que o Vínculo podia ir além de conectar pessoas com segurança. Ele também podia conectar pessoas a oportunidades reais de mudar de vida — inclusive financeiramente. É por isso que existe o <b style="color:#d4b87a">Parceiros Vínculo.</b></p>
       </div>
-    </div>
-
-    <!-- Acesso ao guia. Fica antes de "Seus números" de propósito: quem chega
-         pela primeira vez lê como funciona antes de ver os contadores zerados. -->
-    <div onclick="goTo('guia-parceiro')" style="background:linear-gradient(135deg,rgba(212,131,154,.14),rgba(201,160,107,.1));border:1.5px solid rgba(201,160,107,.35);border-radius:16px;padding:16px;margin-bottom:20px;cursor:pointer;display:flex;align-items:center;gap:14px">
-      <div style="font-size:28px">&#128218;</div>
-      <div style="flex:1">
-        <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:3px">Guia do Parceiro</div>
-        <div style="font-size:12.5px;color:#d0a8b8;line-height:1.5">Como funciona, quanto você recebe por plano e como indicar melhor. Leitura de 3 minutos.</div>
-      </div>
-      <div style="color:#d4b87a;font-size:20px">&#8250;</div>
     </div>
 
     <!-- Resumo do parceiro (dados reais) -->
@@ -1716,70 +1718,6 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <button onclick="compartilharLinkIndicacao()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(37,211,102,.12);border:1.5px solid rgba(37,211,102,.35);border-radius:12px;padding:15px;color:#fdf6f2;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;margin-bottom:24px">
       <span style="font-size:20px">&#128172;</span> Compartilhar link
     </button>
-
-    <!-- Como funciona -->
-    <div style="font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">Como funciona</div>
-    <div style="display:flex;flex-direction:column;gap:0;margin-bottom:14px">
-      <div style="display:flex;gap:14px;align-items:flex-start;padding-bottom:14px;position:relative">
-        <div style="position:absolute;left:17px;top:36px;bottom:0;width:2px;background:rgba(255,255,255,.1)"></div>
-        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#d4839a,#c9a06b);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#1a0508;flex-shrink:0;z-index:1">1</div>
-        <div style="padding-top:6px">
-          <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:3px">Seu código pessoal</div>
-          <div style="font-size:12.5px;color:#d0a8b8;line-height:1.5">Você recebe seu código e link pessoal de indicação</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:14px;align-items:flex-start;padding-bottom:14px;position:relative">
-        <div style="position:absolute;left:17px;top:36px;bottom:0;width:2px;background:rgba(255,255,255,.1)"></div>
-        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#d4839a,#c9a06b);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#1a0508;flex-shrink:0;z-index:1">2</div>
-        <div style="padding-top:6px">
-          <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:3px">Compartilhe</div>
-          <div style="font-size:12.5px;color:#d0a8b8;line-height:1.5">Com quem quiser, onde quiser</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:14px;align-items:flex-start;padding-bottom:14px;position:relative">
-        <div style="position:absolute;left:17px;top:36px;bottom:0;width:2px;background:rgba(255,255,255,.1)"></div>
-        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#d4839a,#c9a06b);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#1a0508;flex-shrink:0;z-index:1">3</div>
-        <div style="padding-top:6px">
-          <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:3px">Ela vira sua indicação</div>
-          <div style="font-size:12.5px;color:#d0a8b8;line-height:1.5">Toda pessoa que se cadastrar pelo seu link e assinar um plano pago</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:14px;align-items:flex-start">
-        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#d4839a,#c9a06b);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#1a0508;flex-shrink:0">4</div>
-        <div style="padding-top:6px">
-          <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:3px">Você recebe de R$ 3,30 a R$ 7,00/mês</div>
-          <div style="font-size:12.5px;color:#d0a8b8;line-height:1.5">Todo mês que ela continuar ativa. O valor depende do plano que ela assina — veja a tabela no Guia do Parceiro</div>
-        </div>
-      </div>
-    </div>
-
-    <div style="background:rgba(255,255,255,.05);border-left:3px solid rgba(201,160,107,.5);border-radius:0 10px 10px 0;padding:12px 14px;font-size:12.5px;color:#d0a8b8;line-height:1.6;margin-bottom:24px">
-      Essa comissão é <b style="color:#fdf6f2">recorrente</b> enquanto a pessoa continuar assinando. Se ela cancelar, você para de receber por essa pessoa específica — mas continua recebendo normalmente por todas as outras indicações que seguirem ativas. Não tem limite de quantas pessoas você pode indicar, nem de quanto pode ganhar.<br/><br/>Uma indicação começa a contar comissão depois de <b style="color:#fdf6f2">7 dias</b> de assinatura ativa da pessoa indicada.
-    </div>
-
-    <!-- Projeção -->
-    <div style="font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">Quanto isso pode significar pra você</div>
-    <div style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:14px;overflow:hidden;margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08)">
-        <span style="font-size:13px;color:#d0a8b8">10 indicados ativos</span>
-        <span style="font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:700;color:#fdf6f2">R$ 50/mês</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08)">
-        <span style="font-size:13px;color:#d0a8b8">50 indicados ativos</span>
-        <span style="font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:700;color:#fdf6f2">R$ 250/mês</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08)">
-        <span style="font-size:13px;color:#d0a8b8">100 indicados ativos</span>
-        <span style="font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:700;color:#d4b87a">R$ 500/mês</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px">
-        <span style="font-size:13px;color:#d0a8b8">1.000 indicados ativos</span>
-        <span style="font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:700;color:#d4b87a">R$ 5.000/mês</span>
-      </div>
-    </div>
-    <div style="font-size:12.5px;color:#d0a8b8;line-height:1.6;margin-bottom:24px">
-      <b style="color:#fdf6f2">Renda recorrente.</b> O dinheiro continua entrando todo mês, enquanto as pessoas que você trouxe continuarem no Vínculo. Valores estimados com base no plano mensal.
-    </div>
 
     <!-- História do fundador -->
     <div style="font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">A história por trás do Vínculo</div>
