@@ -207,6 +207,31 @@ async function investigarRecursoAssinatura(tipo, id) {
   console.error(`[webhook-assinatura] NENHUM token conseguiu ler ${caminho}/${id}.`);
 }
 
+/**
+ * ⚠️ TEMPORÁRIO — INVESTIGAÇÃO ⚠️
+ * Tenta ler um pagamento com o token de TESTE. Devolve o pagamento ou null.
+ *
+ * Existe porque as cobranças das assinaturas de teste nascem na conta de
+ * teste, e o token de produção não as enxerga — o Mercado Pago responde
+ * "Payment not found", que parece um pagamento sumido quando na verdade é
+ * falta de permissão entre contas.
+ *
+ * Somente leitura, nunca lança.
+ */
+async function lerPagamentoComTokenDeTeste(id) {
+  const token = process.env.MP_TEST_ACCESS_TOKEN;
+  if (!token || !id) return null;
+  try {
+    const resposta = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!resposta.ok) return null;
+    return await resposta.json();
+  } catch (erro) {
+    return null;
+  }
+}
+
 const webhook = async (req, res) => {
   try {
     const { type, data } = req.body;
@@ -229,8 +254,30 @@ const webhook = async (req, res) => {
     }
 
     if (type === 'payment') {
-      const payment = new Payment(client);
-      const pagamento = await payment.get({ id: data.id });
+      let pagamento;
+      try {
+        const payment = new Payment(client);
+        pagamento = await payment.get({ id: data.id });
+      } catch (erroLeitura) {
+        // ⚠️ TEMPORÁRIO — INVESTIGAÇÃO ⚠️
+        // Falhou com o token de produção. Antes de tratar como erro, checa se
+        // não é um pagamento da conta de TESTE (cobrança de assinatura de
+        // teste). Se for, loga inteiro e responde 200: não há cliente real
+        // esperando, e devolver 500 só faria o Mercado Pago reenviar para
+        // sempre — foi o que encheu o log de "Payment not found" repetido.
+        const doTeste = await lerPagamentoComTokenDeTeste(data && data.id);
+        if (doTeste) {
+          console.log(`[webhook-investigacao] PAGAMENTO ${data.id} pertence à conta de TESTE.` +
+            ` status=${doTeste.status} status_detail=${doTeste.status_detail}` +
+            ` valor=${doTeste.transaction_amount}`);
+          console.log(`[webhook-investigacao] PAGAMENTO ${data.id} completo:`, JSON.stringify(doTeste));
+          return res.status(200).json({ ok: true, investigacao: 'pagamento de conta de teste' });
+        }
+        // Nenhum dos dois tokens leu: comportamento de sempre — deixa subir,
+        // vira 500, e o Mercado Pago reenvia. Um Pix real que falhou por
+        // instabilidade NÃO pode ser engolido em silêncio.
+        throw erroLeitura;
+      }
 
       if (pagamento.status === 'approved') {
         const { usuario_id, plano } = pagamento.metadata;
