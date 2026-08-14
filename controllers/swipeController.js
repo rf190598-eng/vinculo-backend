@@ -4,6 +4,7 @@ const Usuario = require('../models/Usuario');
 const Notificacao = require('../models/Notificacao');
 const Bloqueio = require('../models/Bloqueio');
 const { Op } = require('sequelize');
+const { temPremiumAtivo } = require('../utils/premium');
 
 function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -167,7 +168,7 @@ const listarPerfis = async (req, res) => {
       candidatos = candidatos.filter(c => c.objetivo === eu.pref_objetivo);
     }
 
-    if (eu.premium) {
+    if (temPremiumAtivo(eu)) {
       candidatos = candidatos.filter(c => {
         if (eu.pref_altura_min && c.altura && c.altura < eu.pref_altura_min) return false;
         if (eu.pref_altura_max && c.altura && c.altura > eu.pref_altura_max) return false;
@@ -229,6 +230,9 @@ const listarMatches = async (req, res) => {
 const listarCurtidasRecebidas = async (req, res) => {
   try {
     const usuario_id = req.usuarioId;
+    const eu = await Usuario.findByPk(usuario_id, {
+      attributes: ['id', 'premium', 'premium_ate']
+    });
 
     const curtidasRecebidas = await Swipe.findAll({
       where: { alvo_id: usuario_id, tipo: ['like', 'superlike'] }
@@ -248,12 +252,24 @@ const listarCurtidasRecebidas = async (req, res) => {
     );
 
     const idsPendentes = pendentes.map(p => p.usuario_id);
+
+    // PAYWALL NO SERVIDOR. Até esta versão, os perfis completos (nome, foto,
+    // idade) eram devolvidos a qualquer usuário autenticado e o bloqueio era
+    // só um blur de CSS no cliente — bastava abrir a aba Network do navegador
+    // para ver de graça exatamente a lista que a assinatura vende.
+    //
+    // O total continua público de propósito: é ele que alimenta o
+    // "N pessoas já curtiram seu perfil". O que fica protegido é QUEM são.
+    if (!temPremiumAtivo(eu)) {
+      return res.json({ total: idsPendentes.length, perfis: [], premium: false });
+    }
+
     const perfis = await Usuario.findAll({
       where: { id: { [Op.in]: idsPendentes } },
       attributes: { exclude: ['senha', 'foto_verificacao'] }
     });
 
-    res.json({ total: perfis.length, perfis });
+    res.json({ total: perfis.length, perfis, premium: true });
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao listar curtidas: ' + erro.message });
   }

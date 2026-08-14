@@ -1265,21 +1265,16 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       </div>
       <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)">
         <span style="font-size:20px">&#127937;</span>
-        <div><div style="font-size:13px;font-weight:700">Filtros avancados</div><div style="font-size:12px;color:#d0b0c8">Profissao, signo, escolaridade e mais</div></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
-        <span style="font-size:20px">&#128274;</span>
-        <div style="flex:1"><div style="font-size:13px;font-weight:700">Modo incognito</div><div style="font-size:12px;color:#d0b0c8">Navegue sem aparecer para ninguem</div></div>
-        <div class="switch" id="incognitoSwitch" onclick="alternarPreferencia(this,'priv','incognito')"></div>
+        <div><div style="font-size:13px;font-weight:700">Filtros avancados</div><div style="font-size:12px;color:#d0b0c8">Filtre por altura, peso e cor do cabelo</div></div>
       </div>
     </div>
     <div style="background:linear-gradient(135deg,rgba(212,131,154,.12),rgba(201,160,107,.08));border:1px solid rgba(201,160,107,.3);border-radius:14px;padding:16px;text-align:center;margin-bottom:12px">
       <div style="font-size:11px;color:#d8b0c4;margin-bottom:4px">MAIS POPULAR</div>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:#c9a06b">R$ 29,90/mes</div>
-      <div style="font-size:11px;color:#d8b0c4;margin-top:2px">Cancele quando quiser</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:#c9a06b">R$ 24,90/mes</div>
+      <div style="font-size:11px;color:#d8b0c4;margin-top:2px">Pagamento unico, sem renovacao automatica</div>
     </div>
     <button class="btn btn-primary" onclick="goTo('assinatura')">Assinar Premium</button>
-    <div style="text-align:center;color:#a08090;font-size:12px;margin-top:12px;padding-bottom:10px">Cobranca via Google Pay ou App Store</div>
+    <div style="text-align:center;color:#a08090;font-size:12px;margin-top:12px;padding-bottom:10px">Pagamento via Pix</div>
   </div>
 </div>
 
@@ -1324,39 +1319,26 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     </div>
 
     <!-- Perfis borrados com urgência -->
-    <div style="display:flex;justify-content:center;gap:-8px;margin-bottom:6px;position:relative">
+    <div id="assinaturaAvataresBorrados" style="display:none;justify-content:center;gap:-8px;margin-bottom:6px;position:relative">
       <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#7a2a4a,#4a1428);border:2.5px solid #d4839a;display:flex;align-items:center;justify-content:center;font-size:22px;filter:blur(4px);z-index:3">&#128100;</div>
       <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#5a2060,#2a1030);border:2.5px solid #c9a06b;display:flex;align-items:center;justify-content:center;font-size:22px;filter:blur(4px);z-index:2;margin-left:-10px">&#128100;</div>
       <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#3a3a20,#1a2010);border:2.5px solid #d4839a;display:flex;align-items:center;justify-content:center;font-size:22px;filter:blur(4px);z-index:1;margin-left:-10px">&#128104;</div>
-      <div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.08);border:2.5px dashed rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:18px;color:#d0a8b8;margin-left:-10px">+4</div>
     </div>
-    <div style="font-size:11px;color:#d0a0b8;margin-bottom:6px">Desbloqueie e veja quem já está interessado em você</div>
+    <div id="assinaturaSubtituloCurtidas" style="display:none;font-size:11px;color:#d0a0b8;margin-bottom:6px">Desbloqueie e veja quem já está interessado em você</div>
   </div>
 
   <div style="padding:0 18px 24px">
 
-    <!-- BLOCO 1 — Match garantido -->
+    <!-- BLOCO 1 — Ver quem curtiu você -->
     <div style="background:linear-gradient(135deg,rgba(212,131,154,.15),rgba(201,160,107,.08));border:1.5px solid rgba(212,131,154,.3);border-radius:18px;padding:18px;margin:16px 0 12px">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
         <div style="font-size:32px">&#128150;</div>
         <div>
-          <div style="font-size:16px;font-weight:800;color:#fdf6f2">Match garantido</div>
+          <div style="font-size:16px;font-weight:800;color:#fdf6f2">Veja quem já curtiu você</div>
           <div style="font-size:12px;color:#f0a0b8;font-weight:600">Sem depender da sorte do swipe</div>
         </div>
       </div>
       <div style="font-size:13px;color:#e0c8d8;line-height:1.6">Veja quem já curtiu você e dê match na hora — antes de desperdiçar tempo com quem não está interessado.</div>
-    </div>
-
-    <!-- BLOCO 3 — Super curtida -->
-    <div style="background:linear-gradient(135deg,rgba(109,204,109,.08),rgba(201,160,107,.06));border:1.5px solid rgba(109,204,109,.25);border-radius:18px;padding:18px;margin-bottom:18px">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-        <div style="font-size:32px">&#11088;</div>
-        <div>
-          <div style="font-size:16px;font-weight:800;color:#fdf6f2">Super curtidas ilimitadas</div>
-          <div style="font-size:12px;color:#6dcc6d;font-weight:600">3x mais chance de match</div>
-        </div>
-      </div>
-      <div style="font-size:13px;color:#e0c8d8;line-height:1.6">Mostre que você está <b style="color:#fdf6f2">muito</b> interessado(a). Quem recebe uma Super curtida tem 3x mais chance de responder.</div>
     </div>
 
     <!-- Planos -->
@@ -1369,20 +1351,20 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <div class="plan-price">R$ 9<span style="font-size:16px;font-weight:500">,90</span></div>
         <div class="plan-period">por semana</div>
       </div>
-      <div style="font-size:12px;color:#e0c8d8;margin-top:4px">Acesso completo por 7 dias · Cancele quando quiser</div>
+      <div style="font-size:12px;color:#e0c8d8;margin-top:4px">Acesso completo por 7 dias · Renove só se quiser continuar</div>
     </div>
 
     <!-- MENSAL -->
     <div class="plan-card popular" id="plan-mensal" onclick="selectPlan('mensal')">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div class="plan-badge">MAIS ESCOLHIDO</div>
-        <div style="font-size:11px;color:#f0a0b8;font-weight:700">&#128274; 7 curtidas esperando</div>
+        <div id="assinaturaBadgeCurtidas" style="font-size:11px;color:#f0a0b8;font-weight:700;display:none"></div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:baseline">
         <div class="plan-price">R$ 24<span style="font-size:16px;font-weight:500">,90</span></div>
         <div class="plan-period">por mês</div>
       </div>
-      <div style="font-size:12px;color:#e0c8d8;margin-top:4px">Equivale a R$6,22/semana · Cancele quando quiser</div>
+      <div style="font-size:12px;color:#e0c8d8;margin-top:4px">Equivale a R$6,22/semana · Renove só se quiser continuar</div>
     </div>
 
     <!-- ANUAL -->
@@ -1399,19 +1381,18 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 16px;margin:14px 0">
       <div style="font-size:11px;font-weight:700;color:#d0a8b8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Também incluído</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px">
-        <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:6px 12px;font-size:12px;color:#e0d0e8">&#128274; Modo incógnito</span>
         <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:6px 12px;font-size:12px;color:#e0d0e8">&#127919; Filtros avançados</span>
         <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:6px 12px;font-size:12px;color:#e0d0e8">&#128204; Curtidas ilimitadas</span>
       </div>
     </div>
 
     <button class="btn btn-primary" id="assinaturaCTA" onclick="openModal('confirma-assinatura')" style="font-size:15px;padding:17px">
-      &#128274; Ver as 7 curtidas — a partir de R$ 9,90
+      Assinar — a partir de R$ 9,90
     </button>
     <div style="text-align:center;color:#b0909a;font-size:12px;margin-top:10px;line-height:1.7">
-      Pix, cartão ou Google Pay · Acesso imediato<br>Cancele a qualquer momento, sem multa
+      Pagamento via Pix · Acesso imediato<br>Sem renovação automática — você só paga de novo se quiser continuar
     </div>
-    <button class="btn btn-ghost" style="margin-top:10px;color:#907080;border-color:rgba(255,255,255,.12)" onclick="goTo('discover')">Continuar sem ver quem curtiu</button>
+    <button class="btn btn-ghost" style="margin-top:10px;color:#907080;border-color:rgba(255,255,255,.12)" onclick="goTo('discover')">Continuar sem assinar</button>
   </div>
 </div>
 
@@ -2617,36 +2598,18 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <span style="color:#d4b87a" id="modal-plan-preco">R$ 24,90</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12px;color:#e0c8d8">
-        <span id="modal-plan-sub">Renovação automática mensal</span>
-        <span>Cancele quando quiser</span>
+        <span id="modal-plan-sub">Acesso por 30 dias</span>
+        <span>Pagamento único</span>
       </div>
     </div>
-    <div style="font-size:13px;color:#e0c8d8;margin-bottom:12px;text-align:left;font-weight:600">Como deseja pagar?</div>
-    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
-      <div onclick="selectPayment(this)" class="plan-card" style="padding:13px 16px;display:flex;align-items:center;gap:12px;border-color:rgba(255,255,255,.15)">
-        <span style="font-size:22px">&#128179;</span>
-        <div style="flex:1">
-          <div style="font-size:13.5px;font-weight:700">Pix</div>
-          <div style="font-size:11px;color:#6dcc6d;font-weight:600">Aprovação imediata</div>
-        </div>
-        <span style="font-size:18px;color:#6dcc6d">&#10003;</span>
-      </div>
-      <div onclick="selectPayment(this)" class="plan-card" style="padding:13px 16px;display:flex;align-items:center;gap:12px;border-color:rgba(255,255,255,.15)">
-        <span style="font-size:22px">&#128184;</span>
-        <div style="flex:1">
-          <div style="font-size:13.5px;font-weight:700">Cartão de crédito</div>
-          <div style="font-size:11px;color:#d0a8b8">Débito ou crédito</div>
-        </div>
-      </div>
-      <div onclick="selectPayment(this)" class="plan-card" style="padding:13px 16px;display:flex;align-items:center;gap:12px;border-color:rgba(255,255,255,.15)">
-        <span style="font-size:22px">&#127837;</span>
-        <div style="flex:1">
-          <div style="font-size:13.5px;font-weight:700">Google Pay</div>
-          <div style="font-size:11px;color:#d0a8b8">Rápido e seguro</div>
-        </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:13px 16px;background:rgba(109,204,109,.08);border:1px solid rgba(109,204,109,.25);border-radius:14px;margin-bottom:16px">
+      <span style="font-size:22px">&#128179;</span>
+      <div style="flex:1;text-align:left">
+        <div style="font-size:13.5px;font-weight:700">Pagamento via Pix</div>
+        <div style="font-size:11px;color:#6dcc6d;font-weight:600">Aprovação imediata</div>
       </div>
     </div>
-    <button class="btn btn-primary" style="font-size:15px;padding:16px" onclick="finalizarAssinatura()">&#128274; Confirmar e desbloquear chat</button>
+    <button class="btn btn-primary" style="font-size:15px;padding:16px" onclick="finalizarAssinatura()">Confirmar e pagar com Pix</button>
     <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('confirma-assinatura')">Cancelar</button>
   </div>
 </div>
@@ -2704,14 +2667,10 @@ function goTo(name){
   if(name==='admin'){ carregarPainelAdmin(); }
   if(name==='edit-profile'){ preencherEdicaoPerfilComDadosSalvos(); }
   if(name==='notifications'){ carregarNotificacoesReais(); }
-  if(name==='premium'){
-    const sw = document.getElementById('incognitoSwitch');
-    if(sw) sw.classList.toggle('on', !!valorPreferencia('priv','incognito'));
-  }
   if(name==='assinatura'){
     fetch(`${API_URL}/api/swipe/curtidas-recebidas`, { headers:{'Authorization':`Bearer ${tokenAtual}`} })
-      .then(r=>r.json()).then(d=>{ const el=document.getElementById('assinaturaContagemCurtidas'); if(el) el.textContent = d.total||0; })
-      .catch(()=>{});
+      .then(r=>r.json()).then(d=>aplicarContagemCurtidasNaTela(d.total))
+      .catch(()=>aplicarContagemCurtidasNaTela(0));
   }
   if((name==='myprofile' || name==='edit-profile') && usuarioAtual && usuarioAtual.foto_url){ atualizarFotoNaTela(usuarioAtual.foto_url); }
   if(name==='edit-profile'){ carregarGaleria(); }
@@ -3397,25 +3356,33 @@ async function carregarCurtidasRecebidas(){
     const resp = await fetch(`${API_URL}/api/swipe/curtidas-recebidas`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
     const dados = await resp.json();
     const perfis = dados.perfis || [];
-    contagemEl.textContent = dados.total || 0;
+    const totalReal = dados.total || 0;
+    contagemEl.textContent = totalReal;
 
-    if(perfis.length === 0){
+    // Quem manda é o servidor: sem premium ele devolve perfis:[] com total>0,
+    // então a tela precisa distinguir "ninguém curtiu" de "curtiram, mas você
+    // não pode ver quem". Antes isso vinha de usuarioAtual.premium (cliente).
+    const souPremium = dados.premium === true;
+
+    if(totalReal === 0){
       vazio.style.display = 'block';
       bannerEl.style.display = 'none';
       return;
     }
     vazio.style.display = 'none';
 
-    const souPremium = usuarioAtual && usuarioAtual.premium;
     bannerEl.style.display = souPremium ? 'none' : 'block';
 
     grid.style.display = 'grid';
     grid.style.gridTemplateColumns = '1fr 1fr';
     grid.style.gap = '10px';
 
-    perfis.forEach(p=>{
+    // Premium: um card por perfil real. Sem premium: N cards borrados, onde N
+    // é o total — não existe perfil nenhum no cliente para vazar.
+    const itens = souPremium ? perfis : Array.from({ length: totalReal });
+    itens.forEach(p=>{
       const card = document.createElement('div');
-      const idade = p.data_nascimento ? calcularIdade(p.data_nascimento) : '';
+      const idade = (p && p.data_nascimento) ? calcularIdade(p.data_nascimento) : '';
       if(souPremium){
         card.innerHTML = `<div style="background:rgba(0,0,0,.5);border-radius:8px;padding:4px 8px;font-size:12px;color:#fff;font-weight:700">${escapeHtml(p.nome)}, ${idade}</div>`;
         if(p.foto_url){ card.style.backgroundImage = `url(${API_URL}${p.foto_url})`; card.style.backgroundSize='cover'; card.style.backgroundPosition='center'; }
@@ -4556,15 +4523,6 @@ function showToastVinculo(msg){
   t.style.cssText='position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#1a0a0e;color:#fdf6f2;padding:10px 20px;border-radius:20px;font-size:12.5px;font-weight:600;z-index:600;border:1px solid rgba(212,131,154,.3);box-shadow:0 8px 24px rgba(0,0,0,.4)';
   document.body.appendChild(t);
   setTimeout(()=>t.remove(),2000);
-}
-
-function toggleIncognito(el){
-  el.classList.toggle('on');
-  if(el.classList.contains('on')){
-    showToastVinculo('Modo incognito ativado &mdash; voce nao aparece para outros'.replace('&mdash;','\u2014'));
-  }else{
-    showToastVinculo('Modo incognito desativado');
-  }
 }
 
 const defaultsNotif = { matches:true, mensagens:true, curtidas:true, promo:false };
@@ -8007,6 +7965,48 @@ function activateFilter(el){
 }
 
 
+// Total real de quem curtiu, vindo da API. Guardado em variável porque
+// selectPlan() reescreve o texto do botão a cada clique num plano e precisa
+// do número atualizado — antes havia um "7" fixo em três lugares diferentes,
+// e corrigir só o HTML não resolvia: o clique num plano trazia o "7" de volta.
+let totalCurtidasRecebidas = 0;
+
+function textoCTAAssinatura(sufixoPreco){
+  if(totalCurtidasRecebidas === 1) return `\u{1F512} Ver quem curtiu você — ${sufixoPreco}`;
+  if(totalCurtidasRecebidas > 1)  return `\u{1F512} Ver as ${totalCurtidasRecebidas} curtidas — ${sufixoPreco}`;
+  return `Assinar — ${sufixoPreco}`; // com 0 curtidas, não inventa urgência
+}
+
+// Aplica o total real em todos os pontos da tela de assinatura que falavam
+// de curtidas. Com 0, esconde os elementos que só fazem sentido quando há
+// gente esperando (avatares borrados, badge do plano, subtítulo).
+function aplicarContagemCurtidasNaTela(total){
+  totalCurtidasRecebidas = Number(total) || 0;
+  const temCurtidas = totalCurtidasRecebidas > 0;
+
+  const contagemEl = document.getElementById('assinaturaContagemCurtidas');
+  if(contagemEl) contagemEl.textContent = totalCurtidasRecebidas;
+
+  const badge = document.getElementById('assinaturaBadgeCurtidas');
+  if(badge){
+    badge.style.display = temCurtidas ? 'block' : 'none';
+    badge.textContent = totalCurtidasRecebidas === 1
+      ? '\u{1F512} 1 curtida esperando'
+      : `\u{1F512} ${totalCurtidasRecebidas} curtidas esperando`;
+  }
+
+  // Os avatares borrados e o antigo "+4" eram totalmente decorativos e fixos:
+  // apareciam sugerindo fila de interessados mesmo com o contador em 0.
+  const avatares = document.getElementById('assinaturaAvataresBorrados');
+  if(avatares) avatares.style.display = temCurtidas ? 'flex' : 'none';
+
+  const subtitulo = document.getElementById('assinaturaSubtituloCurtidas');
+  if(subtitulo) subtitulo.style.display = temCurtidas ? 'block' : 'none';
+
+  const cta = document.getElementById('assinaturaCTA');
+  if(cta) cta.innerHTML = textoCTAAssinatura('a partir de R$ 9,90');
+}
+
 function selectPlan(plan){
   planoSelecionado = plan;
   document.querySelectorAll('.plan-card[id^="plan-"]').forEach(c=>{c.classList.remove('selected','popular');c.style.borderColor='rgba(255,255,255,.15)';});
@@ -8014,18 +8014,15 @@ function selectPlan(plan){
   if(el){el.classList.add('selected');el.style.borderColor='#c9a06b';}
   const cta=document.getElementById('assinaturaCTA');
   if(cta){
-    const labels={
-      'semanal':'&#128274; Ver as 7 curtidas — R$ 9,90/semana',
-      'mensal':'&#128274; Ver as 7 curtidas — R$ 24,90/mês',
-      'anual':'&#128274; Assinar plano anual — R$ 199,90/ano'
-    };
-    cta.innerHTML=labels[plan]||labels['mensal'];
+    const precos={ semanal:'R$ 9,90/semana', mensal:'R$ 24,90/mês', anual:'R$ 199,90/ano' };
+    cta.innerHTML = textoCTAAssinatura(precos[plan] || precos.mensal);
   }
-  // Atualizar modal de confirmação
+  // Atualizar modal de confirmação. "Acesso por N dias" em vez de "Renovação
+  // automática": o pagamento é Pix avulso, nada renova sozinho.
   const vals={
-    'semanal':['Vínculo Premium Semanal','R$ 9,90','Renovação automática semanal'],
-    'mensal':['Vínculo Premium Mensal','R$ 24,90','Renovação automática mensal'],
-    'anual':['Vínculo Premium Anual','R$ 199,90','Cobrado anualmente']
+    'semanal':['Vínculo Premium Semanal','R$ 9,90','Acesso por 7 dias'],
+    'mensal':['Vínculo Premium Mensal','R$ 24,90','Acesso por 30 dias'],
+    'anual':['Vínculo Premium Anual','R$ 199,90','Acesso por 365 dias']
   };
   const v=vals[plan]||vals['mensal'];
   const nm=document.getElementById('modal-plan-nome');
@@ -8034,13 +8031,6 @@ function selectPlan(plan){
   if(nm)nm.textContent=v[0];
   if(np)np.textContent=v[1];
   if(ns)ns.textContent=v[2];
-}
-
-let selectedPayment=null;
-function selectPayment(el){
-  document.querySelectorAll('.plan-card').forEach(c=>{if(!c.id)c.style.borderColor='rgba(255,255,255,.15)';});
-  el.style.borderColor='#c9a06b';
-  selectedPayment=el;
 }
 
 // Telefone digitado no modal, enviado junto do POST que gera o Pix. Fica em
@@ -8062,11 +8052,6 @@ function confirmarTelefoneAssinatura(){
 }
 
 async function finalizarAssinatura(){
-  const metodoTexto = selectedPayment ? selectedPayment.textContent : '';
-  if(!metodoTexto.includes('Pix')){
-    showToastVinculo('Por enquanto, só o pagamento via Pix está funcionando de verdade no protótipo. Escolhe o Pix pra continuar.');
-    return;
-  }
   closeModal('confirma-assinatura');
   openModal('pix');
   document.getElementById('pixConteudo').innerHTML = '<div style="text-align:center;padding:30px;color:#d8b0c4">Gerando Pix...</div>';

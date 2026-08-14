@@ -93,7 +93,10 @@ const Usuario = sequelize.define('Usuario', {
   },
   premium: {
     type: DataTypes.BOOLEAN,
-    defaultValue: true
+    // false desde a ativação da cobrança real (antes era true: todo mundo
+    // nascia premium na fase gratuita). Contas com premium=true e
+    // premium_ate=NULL contam como acesso vitalício — ver utils/premium.js.
+    defaultValue: false
   },
   premium_ate: {
     type: DataTypes.DATE,
