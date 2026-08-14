@@ -431,34 +431,6 @@ async function enviarLembretePagamentoComissoes() {
   }
 }
 
-/**
- * ⚠️ TEMPORÁRIO — REMOVER DEPOIS DO TESTE ⚠️
- *
- * POST /api/admin/parceiros/testar-lembrete
- *
- * Dispara o lembrete de pagamento na hora, sem esperar o dia 3, só para
- * conferir que o envio pelo Resend funciona de ponta a ponta (chave válida,
- * remetente aceito, e-mail não caindo em spam).
- *
- * Exige admin, como todas as rotas deste arquivo. Não mexe em dado nenhum:
- * só lê comissões pendentes e manda o e-mail. Não marca a trava mensal, então
- * usar isto não impede o lembrete real de sair no dia 3.
- */
-const testarLembretePagamento = async (req, res) => {
-  try {
-    const resultado = await enviarLembretePagamentoComissoes();
-    res.json({
-      mensagem: resultado.enviado
-        ? `Lembrete enviado para ${EMAIL_ADMIN}. Confira a caixa de entrada (e o spam).`
-        : 'O envio falhou — veja o campo "erro" e os logs do Railway.',
-      ...resultado,
-      destinatario: EMAIL_ADMIN
-    });
-  } catch (erro) {
-    res.status(500).json({ erro: 'Erro ao testar lembrete: ' + erro.message });
-  }
-};
-
 module.exports = {
   listarParceiros,
   atualizarStatusParceiro,
@@ -468,6 +440,5 @@ module.exports = {
   criarMeta,
   verificarMetasManualmente,
   enviarLembretePagamentoComissoes,
-  testarLembretePagamento, // TEMPORÁRIO — remover junto com a rota
   STATUS_PARCEIRO_VALIDOS
 };

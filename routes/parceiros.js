@@ -20,8 +20,7 @@ const {
   marcarComissaoPaga,
   listarMetas,
   criarMeta,
-  verificarMetasManualmente,
-  testarLembretePagamento // TEMPORÁRIO — remover junto com a rota abaixo
+  verificarMetasManualmente
 } = require('../controllers/adminParceiroController');
 
 // Montado em /api/admin/parceiros
@@ -30,10 +29,6 @@ rotasAdmin.use(autenticar, verificarAdmin); // tudo aqui exige admin
 rotasAdmin.get('/', listarParceiros);
 rotasAdmin.patch('/:id/status', atualizarStatusParceiro);
 rotasAdmin.post('/fechar-comissoes-mes', fecharComissoesManualmente);
-
-// ⚠️ TEMPORÁRIO — REMOVER DEPOIS DE CONFIRMAR QUE O E-MAIL CHEGA ⚠️
-// Dispara o lembrete de pagamento das comissões na hora, sem esperar o dia 3.
-rotasAdmin.post('/testar-lembrete', testarLembretePagamento);
 
 // Montado em /api/admin/comissoes
 const rotasAdminComissoes = express.Router();
