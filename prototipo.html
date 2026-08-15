@@ -60,6 +60,10 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 .btn-primary{background:linear-gradient(135deg,#e0607a,#d4839a 50%,#c9a06b);color:#fff;font-weight:700;letter-spacing:.3px;box-shadow:0 4px 16px rgba(212,131,154,.35);}
 .btn-ghost{background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.3);color:#fdf6f2;margin-top:10px;font-weight:600;}
 .btn-danger{background:linear-gradient(135deg,#c0293f,#8a1520);color:#fff;}
+/* Toggle Pix/Cartão no modal de confirmação de assinatura — Fatia 5 */
+.metodo-toggle{display:flex;gap:8px;margin-bottom:14px}
+.metodo-toggle button{flex:1;padding:11px;border-radius:12px;border:1.5px solid rgba(255,255,255,.18);background:rgba(255,255,255,.05);color:#d8b0c4;font-weight:700;font-size:13px;cursor:pointer;transition:.15s;font-family:inherit}
+.metodo-toggle button.ativo{background:linear-gradient(135deg,#e0607a,#d4839a 50%,#c9a06b);color:#fff;border-color:transparent}
 .verify-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(201,160,107,.15);border:1px solid rgba(201,160,107,.5);border-radius:20px;padding:8px 15px;font-size:11.5px;color:#d4b87a;margin:18px 0 10px;font-weight:600;}
 .auth-foot{color:#b08898;font-size:12px;}
 .auth-foot a{color:#f0a0b8;}
@@ -303,6 +307,8 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 .interest-tag{display:inline-block;border-radius:20px;border:1.5px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);padding:6px 12px;font-size:12px;color:#e0c8d0;margin:0 6px 7px 0;}
 
 </style>
+<!-- SDK do Mercado Pago (Card Payment Brick) — cartão recorrente, Fatia 5 -->
+<script src="https://sdk.mercadopago.com/js/v2"></script>
 </head>
 <body>
 <div class="demo-bar">&#128274; PROTOTIPO VISUAL &mdash; Vinculo App</div>
@@ -1386,7 +1392,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       </div>
     </div>
 
-    <button class="btn btn-primary" id="assinaturaCTA" onclick="openModal('confirma-assinatura')" style="font-size:15px;padding:17px">
+    <button class="btn btn-primary" id="assinaturaCTA" onclick="abrirModalConfirmacaoAssinatura()" style="font-size:15px;padding:17px">
       Assinar — a partir de R$ 9,90
     </button>
     <div style="text-align:center;color:#b0909a;font-size:12px;margin-top:10px;line-height:1.7">
@@ -2733,14 +2739,34 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <span>Pagamento único</span>
       </div>
     </div>
-    <div style="display:flex;align-items:center;gap:12px;padding:13px 16px;background:rgba(109,204,109,.08);border:1px solid rgba(109,204,109,.25);border-radius:14px;margin-bottom:16px">
-      <span style="font-size:22px">&#128179;</span>
-      <div style="flex:1;text-align:left">
-        <div style="font-size:13.5px;font-weight:700">Pagamento via Pix</div>
-        <div style="font-size:11px;color:#6dcc6d;font-weight:600">Aprovação imediata</div>
-      </div>
+    <div class="metodo-toggle">
+      <button type="button" id="btnMetodoPix" class="ativo" onclick="selecionarMetodoPagamento('pix')">Pix</button>
+      <button type="button" id="btnMetodoCartao" onclick="selecionarMetodoPagamento('cartao')">Cartão</button>
     </div>
-    <button class="btn btn-primary" style="font-size:15px;padding:16px" onclick="finalizarAssinatura()">Confirmar e pagar com Pix</button>
+
+    <div id="blocoMetodoPix">
+      <div style="display:flex;align-items:center;gap:12px;padding:13px 16px;background:rgba(109,204,109,.08);border:1px solid rgba(109,204,109,.25);border-radius:14px;margin-bottom:16px">
+        <span style="font-size:22px">&#128179;</span>
+        <div style="flex:1;text-align:left">
+          <div style="font-size:13.5px;font-weight:700">Pagamento via Pix</div>
+          <div style="font-size:11px;color:#6dcc6d;font-weight:600">Aprovação imediata</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="font-size:15px;padding:16px" onclick="finalizarAssinatura()">Confirmar e pagar com Pix</button>
+    </div>
+
+    <div id="blocoMetodoCartao" style="display:none">
+      <div style="display:flex;align-items:center;gap:12px;padding:13px 16px;background:rgba(224,96,122,.08);border:1px solid rgba(224,96,122,.25);border-radius:14px;margin-bottom:14px">
+        <span style="font-size:22px">&#128179;</span>
+        <div style="flex:1;text-align:left">
+          <div style="font-size:13.5px;font-weight:700">Pagamento via Cartão</div>
+          <div style="font-size:11px;color:#e0a0b0;font-weight:600">Confirmação em alguns minutos</div>
+        </div>
+      </div>
+      <div id="cardPaymentBrick_assinatura" style="min-height:200px"></div>
+      <div id="cartaoAssinaturaErro" style="color:#ff8fa3;font-size:12.5px;margin:8px 0;min-height:14px"></div>
+    </div>
+
     <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('confirma-assinatura')">Cancelar</button>
   </div>
 </div>
@@ -2749,9 +2775,9 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div class="modal modal-center">
     <div class="modal-handle"></div>
     <div class="big-ic">&#128179;</div>
-    <h3 class="serif" style="margin-bottom:14px">Pague com Pix</h3>
+    <h3 class="serif" style="margin-bottom:14px" id="pixModalTitulo">Pague com Pix</h3>
     <div id="pixConteudo"></div>
-    <button class="btn btn-primary" style="font-size:14px;padding:14px" onclick="verificarStatusPremium()">Já paguei — verificar</button>
+    <button class="btn btn-primary" style="font-size:14px;padding:14px" onclick="verificarStatusPremium()" id="pixModalBotaoVerificar">Já paguei — verificar</button>
     <div id="pixStatus" style="font-size:12px;color:#d8b0c4;margin-top:10px;min-height:16px"></div>
     <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('pix')">Fechar</button>
   </div>
@@ -8225,12 +8251,127 @@ function selectPlan(plan){
   if(ns)ns.textContent=v[2];
 }
 
-// Telefone digitado no modal, enviado junto do POST que gera o Pix. Fica em
-// memória só até o request ir — não é guardado no localStorage.
+// Telefone digitado no modal, enviado junto do POST que gera o Pix (ou a
+// assinatura de cartão). Fica em memória só até o request ir — não é
+// guardado no localStorage.
 let telefoneParaAssinatura = null;
 
+// Qual método estava em andamento quando o telefone foi pedido — usado por
+// confirmarTelefoneAssinatura() pra saber pra onde retomar o fluxo.
+let proximoMetodoAposTelefone = 'pix';
+
+// Public Key é dado público (ao contrário do Access Token, que fica só no
+// backend) — é assim que o Mercado Pago espera que ela seja usada, direto no
+// código do frontend. Cartão recorrente, Fatia 5.
+const MP_PUBLIC_KEY = 'APP_USR-cb89e38d-ce2e-4e4f-aab2-63577a81aceb';
+const planosValores = { semanal: 9.90, mensal: 24.90, anual: 199.90 };
+let mpInstanciaAssinatura = null;
+let brickCartaoAssinatura = null;
+
+// Chamado pelo CTA de assinatura: garante que o modal sempre abre na aba Pix
+// (mesmo que a última visita tenha ficado na aba Cartão).
+function abrirModalConfirmacaoAssinatura(){
+  selecionarMetodoPagamento('pix');
+  openModal('confirma-assinatura');
+}
+
+function selecionarMetodoPagamento(metodo){
+  document.getElementById('btnMetodoPix').classList.toggle('ativo', metodo==='pix');
+  document.getElementById('btnMetodoCartao').classList.toggle('ativo', metodo==='cartao');
+  document.getElementById('blocoMetodoPix').style.display = metodo==='pix' ? 'block' : 'none';
+  document.getElementById('blocoMetodoCartao').style.display = metodo==='cartao' ? 'block' : 'none';
+  if(metodo==='cartao') renderizarBrickCartaoAssinatura();
+}
+
+async function renderizarBrickCartaoAssinatura(){
+  const erroEl = document.getElementById('cartaoAssinaturaErro');
+  erroEl.textContent = '';
+
+  if(!mpInstanciaAssinatura){
+    mpInstanciaAssinatura = new MercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' });
+  }
+  // Se já existia um Brick montado (ex: usuário voltou pra aba Cartão),
+  // desmonta antes — o Brick não permite criar dois na mesma div.
+  if(brickCartaoAssinatura){
+    try{ await brickCartaoAssinatura.unmount(); }catch(e){}
+    brickCartaoAssinatura = null;
+  }
+
+  const valor = planosValores[planoSelecionado] || planosValores.mensal;
+
+  try{
+    brickCartaoAssinatura = await mpInstanciaAssinatura.bricks().create('cardPayment', 'cardPaymentBrick_assinatura', {
+      initialization: { amount: valor },
+      callbacks: {
+        onReady: () => {},
+        onError: (erro) => {
+          console.error('[brick-assinatura] erro:', erro);
+          erroEl.textContent = 'Não foi possível carregar o formulário de cartão. Tenta de novo, ou usa o Pix.';
+        },
+        onSubmit: (formData) => enviarTokenCartaoAssinatura(formData.token)
+      }
+    });
+  }catch(e){
+    erroEl.textContent = 'Não foi possível carregar o formulário de cartão. Tenta de novo, ou usa o Pix.';
+  }
+}
+
+async function enviarTokenCartaoAssinatura(cardTokenId){
+  const erroEl = document.getElementById('cartaoAssinaturaErro');
+  erroEl.textContent = '';
+
+  try{
+    const corpo = { plano: planoSelecionado, card_token_id: cardTokenId };
+    if(telefoneParaAssinatura) corpo.telefone = telefoneParaAssinatura;
+
+    const resp = await fetch(`${API_URL}/api/pagamento/assinatura-cartao`, {
+      method:'POST',
+      headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
+      body: JSON.stringify(corpo)
+    });
+    const dados = await resp.json();
+
+    // Mesmo padrão do Pix: backend pede telefone se ainda não tiver um salvo.
+    if(!resp.ok && dados.requer_telefone){
+      closeModal('confirma-assinatura');
+      document.getElementById('telefoneAssinatura').value = telefoneParaAssinatura || '';
+      document.getElementById('telefoneAssinaturaErro').textContent =
+        telefoneParaAssinatura ? (dados.erro || '') : '';
+      telefoneParaAssinatura = null;
+      proximoMetodoAposTelefone = 'cartao';
+      openModal('telefone-assinatura');
+      return;
+    }
+
+    if(!resp.ok){
+      erroEl.textContent = dados.erro || 'Não foi possível criar a assinatura.';
+      return;
+    }
+
+    telefoneParaAssinatura = null;
+    closeModal('confirma-assinatura');
+    abrirModalConfirmandoPagamentoCartao();
+  }catch(e){
+    erroEl.textContent = 'Erro de conexão. Tenta de novo.';
+  }
+}
+
+// Reaproveita o modal do Pix (título e botão trocam de texto via id) em vez
+// de criar um modal novo — o botão "Verificar agora" chama a mesma
+// verificarStatusPremium() de sempre, que já é agnóstica de método de
+// pagamento (só olha premium no banco).
+function abrirModalConfirmandoPagamentoCartao(){
+  document.getElementById('pixModalTitulo').textContent = 'Confirmando pagamento';
+  document.getElementById('pixModalBotaoVerificar').textContent = 'Verificar agora';
+  document.getElementById('pixConteudo').innerHTML =
+    '<div style="text-align:center;padding:20px;color:#d8b0c4">Estamos confirmando seu pagamento com o Mercado Pago — pode levar alguns minutos. Você pode fechar esta tela e voltar depois: assim que confirmar, seu acesso Premium é liberado automaticamente.</div>';
+  document.getElementById('pixStatus').textContent = '';
+  openModal('pix');
+}
+
 // Chamado pelo modal de telefone: valida no cliente (a validação que vale é a
-// do backend) e retoma o fluxo de assinatura de onde parou.
+// do backend) e retoma o fluxo de assinatura de onde parou — Pix ou Cartão,
+// conforme proximoMetodoAposTelefone.
 function confirmarTelefoneAssinatura(){
   const erroEl = document.getElementById('telefoneAssinaturaErro');
   const valor = document.getElementById('telefoneAssinatura').value.trim();
@@ -8240,10 +8381,20 @@ function confirmarTelefoneAssinatura(){
   }
   telefoneParaAssinatura = valor;
   closeModal('telefone-assinatura');
-  finalizarAssinatura();
+  if(proximoMetodoAposTelefone === 'cartao'){
+    // O token do Brick usado na tentativa anterior já foi consumido (token é
+    // de uso único) — reabre a aba Cartão pra gerar um token novo, em vez de
+    // tentar reenviar o velho.
+    openModal('confirma-assinatura');
+    selecionarMetodoPagamento('cartao');
+  } else {
+    finalizarAssinatura();
+  }
 }
 
 async function finalizarAssinatura(){
+  document.getElementById('pixModalTitulo').textContent = 'Pague com Pix';
+  document.getElementById('pixModalBotaoVerificar').textContent = 'Já paguei — verificar';
   closeModal('confirma-assinatura');
   openModal('pix');
   document.getElementById('pixConteudo').innerHTML = '<div style="text-align:center;padding:30px;color:#d8b0c4">Gerando Pix...</div>';
