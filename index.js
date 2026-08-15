@@ -10,8 +10,11 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const crypto = require('crypto');
 require('dotenv').config();
 const { conectarBanco, sequelize } = require('./database');
+const { Op } = require('sequelize');
+const TokenRevogado = require('./models/TokenRevogado');
 const Usuario = require('./models/Usuario');
 const Swipe = require('./models/Swipe');
 const Match = require('./models/Match');
@@ -94,7 +97,13 @@ app.use(helmet({
 }));
 
 // ===== SEGURANÇA: Limite de tamanho de payload (evita DoS por payload gigante) =====
-app.use(express.json({ limit: '2mb' }));
+// verify: guarda os bytes brutos do corpo em req.rawBody — necessário pra
+// validar a assinatura HMAC do webhook do WhatsApp (X-Hub-Signature-256 é
+// calculada sobre o corpo EXATO como chegou, não sobre o JSON reserializado).
+app.use(express.json({
+  limit: '2mb',
+  verify: (req, res, buf) => { req.rawBody = buf; }
+}));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
 // ===== SEGURANÇA: Rate limiting geral =====
@@ -195,11 +204,31 @@ app.get('/webhook/whatsapp', (req, res) => {
 // realmente tratar os eventos (responder mensagem, atualizar status no banco
 // etc), o ideal é enfileirar aqui e processar fora do ciclo de request.
 //
-// TODO segurança: validar o header X-Hub-Signature-256 (HMAC-SHA256 do corpo
-// bruto da requisição com o App Secret do Meta) antes de confiar no payload —
-// sem isso, qualquer um que descubra a URL pode forjar eventos. Ainda não
-// implementado.
+// Correção do achado IMPORTANTE da auditoria: valida o header
+// X-Hub-Signature-256 (HMAC-SHA256 do corpo bruto com o App Secret do Meta —
+// NÃO é o WHATSAPP_WEBHOOK_VERIFY_TOKEN usado no GET acima, que é outro
+// segredo, só para a checagem inicial da URL). Fail-closed: sem
+// WHATSAPP_APP_SECRET configurado, ou com assinatura que não bate, o evento
+// é rejeitado.
+function validarAssinaturaWhatsapp(rawBody, assinaturaRecebida) {
+  if (!assinaturaRecebida || !rawBody) return false;
+  const segredo = process.env.WHATSAPP_APP_SECRET;
+  if (!segredo) {
+    console.error('[whatsapp-webhook] WHATSAPP_APP_SECRET não configurado — rejeitando por segurança.');
+    return false;
+  }
+  const esperada = 'sha256=' + crypto.createHmac('sha256', segredo).update(rawBody).digest('hex');
+  const bufEsperada = Buffer.from(esperada);
+  const bufRecebida = Buffer.from(String(assinaturaRecebida));
+  if (bufEsperada.length !== bufRecebida.length) return false;
+  return crypto.timingSafeEqual(bufEsperada, bufRecebida);
+}
+
 app.post('/webhook/whatsapp', (req, res) => {
+  if (!validarAssinaturaWhatsapp(req.rawBody, req.headers['x-hub-signature-256'])) {
+    console.error('[whatsapp-webhook] assinatura inválida — evento rejeitado.');
+    return res.sendStatus(403);
+  }
   console.log('[whatsapp-webhook] evento recebido:', JSON.stringify(req.body));
   res.sendStatus(200);
 });
@@ -384,6 +413,16 @@ const iniciar = async () => {
   };
   rodarLembretePagamento();
   setInterval(rodarLembretePagamento, UMA_HORA);
+
+  // Limpeza da blacklist de tokens revogados (logout — ver TokenRevogado.js).
+  // Uma vez por dia basta: uma linha só vira "lixo" depois que seu próprio
+  // exp já teria expirado o JWT de qualquer forma, então não há urgência.
+  const limparTokensRevogados = () => {
+    TokenRevogado.destroy({ where: { expira_em: { [Op.lt]: new Date() } } })
+      .catch((err) => console.error('Erro ao limpar tokens revogados:', err));
+  };
+  limparTokensRevogados();
+  setInterval(limparTokensRevogados, UM_DIA);
 };
 
 // ===== Graceful shutdown =====

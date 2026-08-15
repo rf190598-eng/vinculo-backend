@@ -58,7 +58,9 @@ async function gerarCodigoIndicacaoUnico(nome) {
 }
 
 function tokenDeSessao(usuario) {
-  return jwt.sign({ id: usuario.id, email: usuario.email }, process.env.JWT_SECRET, { expiresIn: '30d' });
+  // jti: correção do achado IMPORTANTE da auditoria (sem logout/revogação de
+  // JWT) — ver TokenRevogado.js e authMiddleware.js.
+  return jwt.sign({ id: usuario.id, email: usuario.email, jti: crypto.randomUUID() }, process.env.JWT_SECRET, { expiresIn: '30d' });
 }
 
 /**

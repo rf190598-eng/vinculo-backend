@@ -1,4 +1,4 @@
-const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
+const { MercadoPagoConfig, Preference, Payment, WebhookSignatureValidator } = require('mercadopago');
 const { Op } = require('sequelize');
 const Usuario = require('../models/Usuario');
 const PagamentoAssinaturaProcessado = require('../models/PagamentoAssinaturaProcessado');
@@ -373,6 +373,31 @@ async function lerPagamentoComTokenDeTeste(id) {
 
 const webhook = async (req, res) => {
   try {
+    // Correção do achado IMPORTANTE da auditoria (webhook sem validação de
+    // assinatura). Opcional por enquanto — MP_WEBHOOK_SECRET precisa ser
+    // configurado no painel do Mercado Pago antes de virar obrigatório; sem
+    // a variável, mantém o comportamento de sempre (aceita e reconsulta o
+    // recurso na API do MP antes de agir, que já mitigava o risco).
+    const segredoWebhook = process.env.MP_WEBHOOK_SECRET;
+    if (segredoWebhook) {
+      try {
+        WebhookSignatureValidator.validate({
+          xSignature: req.headers['x-signature'],
+          xRequestId: req.headers['x-request-id'],
+          dataId: req.query['data.id'],
+          secret: segredoWebhook
+        });
+      } catch (erroAssinatura) {
+        console.error('[webhook-mp] assinatura inválida — evento rejeitado.', {
+          motivo: erroAssinatura.reason || erroAssinatura.message,
+          xRequestId: req.headers['x-request-id']
+        });
+        return res.sendStatus(401);
+      }
+    } else {
+      console.warn('[webhook-mp] MP_WEBHOOK_SECRET não configurado — aceitando sem validar assinatura.');
+    }
+
     const { type, data } = req.body;
 
     // ⚠️ TEMPORÁRIO — LOG DE INVESTIGAÇÃO ⚠️

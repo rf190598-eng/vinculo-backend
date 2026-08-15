@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const Usuario = require('../models/Usuario');
+const TokenRevogado = require('../models/TokenRevogado');
 const { resolverParceiroPorCodigo } = require('./parceiroController');
 
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -100,7 +102,7 @@ const cadastrar = async (req, res) => {
       throw erroCriacao;
     }
 
-    const token = jwt.sign({ id: usuario.id, email: usuario.email }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ id: usuario.id, email: usuario.email, jti: crypto.randomUUID() }, process.env.JWT_SECRET, { expiresIn: '30d' });
     const usuarioCompleto = await Usuario.findByPk(usuario.id, { attributes: { exclude: ['senha', 'foto_verificacao', 'foto_referencia_liveness'] } });
     res.status(201).json({ mensagem: 'Cadastro realizado!', token, usuario: usuarioCompleto });
   } catch (erro) {
@@ -120,7 +122,7 @@ const login = async (req, res) => {
     if (!usuario) return res.status(401).json({ erro: 'Email ou senha incorretos' });
     const senhaCorreta = await bcrypt.compare(senha, usuario.senha);
     if (!senhaCorreta) return res.status(401).json({ erro: 'Email ou senha incorretos' });
-    const token = jwt.sign({ id: usuario.id, email: usuario.email }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ id: usuario.id, email: usuario.email, jti: crypto.randomUUID() }, process.env.JWT_SECRET, { expiresIn: '30d' });
     const usuarioCompleto = await Usuario.findByPk(usuario.id, { attributes: { exclude: ['senha', 'foto_verificacao', 'foto_referencia_liveness'] } });
     res.json({ mensagem: 'Login realizado!', token, usuario: usuarioCompleto });
   } catch (erro) {
@@ -139,4 +141,25 @@ const perfil = async (req, res) => {
   }
 };
 
-module.exports = { cadastrar, login, perfil };
+// POST /api/auth/logout — correção do achado IMPORTANTE da auditoria (sem
+// logout/revogação de JWT). Coloca o jti do token atual na blacklist, então
+// authMiddleware passa a rejeitá-lo mesmo dentro dos 30 dias de validade.
+// Tokens antigos (emitidos antes desta correção) não têm jti — não tem como
+// revogar individualmente, então só encerra a sessão localmente no app.
+const logout = async (req, res) => {
+  try {
+    if (!req.tokenJti || !req.tokenExp) {
+      return res.json({ mensagem: 'Sessão encerrada.' });
+    }
+    await TokenRevogado.findOrCreate({
+      where: { jti: req.tokenJti },
+      defaults: { usuario_id: req.usuarioId, expira_em: new Date(req.tokenExp * 1000) }
+    });
+    res.json({ mensagem: 'Sessão encerrada.' });
+  } catch (erro) {
+    console.error('Erro ao encerrar sessão:', erro);
+    res.status(500).json({ erro: 'Não foi possível encerrar a sessão.' });
+  }
+};
+
+module.exports = { cadastrar, login, perfil, logout };

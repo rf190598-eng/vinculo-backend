@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { cadastrar, login, perfil } = require('../controllers/authController');
+const { cadastrar, login, perfil, logout } = require('../controllers/authController');
 const {
   iniciarLoginGoogle,
   callbackGoogle,
@@ -22,5 +22,6 @@ router.post('/google/finalizar', limitarTaxa({ maxTentativas: 8 }), finalizarCad
 
 // Rotas protegidas
 router.get('/perfil', autenticar, perfil);
+router.post('/logout', autenticar, logout);
 
 module.exports = router;

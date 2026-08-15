@@ -3165,11 +3165,22 @@ async function processarRetornoGoogle(){
 }
 
 function sairDaConta(){
+  const tokenParaRevogar = tokenAtual;
   localStorage.removeItem('vinculo_token');
   localStorage.removeItem('vinculo_usuario');
   tokenAtual = null;
   usuarioAtual = null;
   goTo('landing');
+  // Revoga o token no servidor (correção do achado IMPORTANTE da auditoria —
+  // sem isso, o token continuava válido por até 30 dias mesmo depois do
+  // "sair"). Best-effort: já saiu localmente, então mesmo sem internet a
+  // pessoa não fica presa aqui — a sessão antiga só expira sozinha mais tarde.
+  if (tokenParaRevogar) {
+    fetch(`${API_URL}/api/auth/logout`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${tokenParaRevogar}` }
+    }).catch(() => {});
+  }
 }
 
 /* ===== EXCLUSÃO DE CONTA (LGPD) ===== */

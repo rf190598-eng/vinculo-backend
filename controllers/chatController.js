@@ -2,7 +2,24 @@ const Mensagem = require('../models/Mensagem');
 const Match = require('../models/Match');
 const Usuario = require('../models/Usuario');
 const Notificacao = require('../models/Notificacao');
+const Bloqueio = require('../models/Bloqueio');
 const { Op } = require('sequelize');
+
+// Correção do achado IMPORTANTE da auditoria: bloqueio impedia swipe/perfil
+// mas não cortava o chat de um match já existente. Checado em enviarMensagem
+// E listarMensagens — nem mandar, nem ler mensagem nova funciona depois que
+// qualquer um dos dois bloqueia o outro, dos dois lados.
+async function existeBloqueioEntre(idA, idB) {
+  const bloqueio = await Bloqueio.findOne({
+    where: {
+      [Op.or]: [
+        { usuario_id: idA, bloqueado_id: idB },
+        { usuario_id: idB, bloqueado_id: idA }
+      ]
+    }
+  });
+  return !!bloqueio;
+}
 
 const enviarMensagem = async (req, res) => {
   try {
@@ -22,10 +39,14 @@ const enviarMensagem = async (req, res) => {
     });
     if (!match) return res.status(403).json({ erro: 'Match não encontrado ou você não faz parte dele' });
 
+    const destinatario_id = match.usuario1_id === remetente_id ? match.usuario2_id : match.usuario1_id;
+    if (await existeBloqueioEntre(remetente_id, destinatario_id)) {
+      return res.status(403).json({ erro: 'Não é possível enviar mensagens nesta conversa.' });
+    }
+
     const conteudoLimpo = String(conteudo).replace(/<[^>]*>/g, '').trim().slice(0, 2000);
     const mensagem = await Mensagem.create({ match_id, remetente_id, conteudo: conteudoLimpo });
 
-    const destinatario_id = match.usuario1_id === remetente_id ? match.usuario2_id : match.usuario1_id;
     const remetente = await Usuario.findByPk(remetente_id);
     await Notificacao.create({
       usuario_id: destinatario_id,
@@ -52,6 +73,11 @@ const listarMensagens = async (req, res) => {
       }
     });
     if (!match) return res.status(403).json({ erro: 'Match não encontrado ou você não faz parte dele' });
+
+    const outro_id = match.usuario1_id === usuario_id ? match.usuario2_id : match.usuario1_id;
+    if (await existeBloqueioEntre(usuario_id, outro_id)) {
+      return res.status(403).json({ erro: 'Não é possível acessar esta conversa.' });
+    }
 
     const mensagens = await Mensagem.findAll({ where: { match_id }, order: [['createdAt', 'ASC']] });
     res.json({ mensagens });
