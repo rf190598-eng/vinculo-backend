@@ -1,6 +1,7 @@
 const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 const { Op } = require('sequelize');
 const Usuario = require('../models/Usuario');
+const PagamentoAssinaturaProcessado = require('../models/PagamentoAssinaturaProcessado');
 const { sincronizarIndicacaoDoUsuario } = require('./parceiroController');
 const {
   enviarMensagemTemplate,
@@ -137,6 +138,144 @@ const criarPagamentoPix = async (req, res) => {
 
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao gerar PIX: ' + erro.message });
+  }
+};
+
+// Cartão recorrente — quantas unidades de que tipo de período cada plano
+// cobra. "weeks" NÃO existe no auto_recurring do Mercado Pago (só "days" e
+// "months" são aceitos), por isso semanal vira frequency:7/frequency_type:days.
+const RECORRENCIA_POR_PLANO = {
+  semanal: { frequency: 7, frequency_type: 'days' },
+  mensal: { frequency: 1, frequency_type: 'months' },
+  anual: { frequency: 12, frequency_type: 'months' }
+};
+
+const criarAssinaturaCartao = async (req, res) => {
+  try {
+    const { plano, card_token_id, telefone } = req.body;
+    const usuario_id = req.usuarioId;
+
+    if (!planos[plano]) {
+      return res.status(400).json({ erro: 'Plano inválido. Use: semanal, mensal ou anual' });
+    }
+    if (!card_token_id) {
+      return res.status(400).json({ erro: 'Token do cartão ausente. Tente novamente.' });
+    }
+
+    const usuario = await Usuario.findByPk(usuario_id);
+    const planoEscolhido = planos[plano];
+
+    // Mesmo requisito do Pix: telefone é obrigatório pra assinar (é por ele
+    // que o lembrete de renovação chega).
+    if (!usuario.telefone) {
+      if (!telefone) {
+        return res.status(400).json({
+          erro: 'Precisamos do seu telefone para avisar sobre a renovação.',
+          requer_telefone: true
+        });
+      }
+      const telefoneNormalizado = normalizarTelefoneE164(telefone);
+      if (!validarTelefoneCelularBR(telefoneNormalizado)) {
+        return res.status(400).json({
+          erro: 'Telefone inválido. Use o formato (DD) 9XXXX-XXXX',
+          requer_telefone: true
+        });
+      }
+      await usuario.update({ telefone: telefoneNormalizado });
+    }
+
+    // Se já existe uma assinatura de cartão ativa vinculada a este usuário,
+    // cancela ANTES de criar a nova — senão as duas cobrariam em paralelo
+    // (cartão trocado, clique duplo, etc). Confere o status primeiro pra não
+    // mandar PUT num recurso que já está cancelado.
+    if (usuario.mercadopago_subscription_id) {
+      const assinaturaAtual = await fetch(
+        `https://api.mercadopago.com/preapproval/${usuario.mercadopago_subscription_id}`,
+        { headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` } }
+      );
+      const dadosAtual = await assinaturaAtual.json().catch(() => null);
+
+      if (assinaturaAtual.ok && dadosAtual.status !== 'cancelled') {
+        const cancelamento = await fetch(
+          `https://api.mercadopago.com/preapproval/${usuario.mercadopago_subscription_id}`,
+          {
+            method: 'PUT',
+            headers: {
+              Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: 'cancelled' })
+          }
+        );
+        if (!cancelamento.ok) {
+          const erroCancelamento = await cancelamento.json().catch(() => null);
+          console.error(`[assinatura-cartao] falha ao cancelar assinatura antiga` +
+            ` ${usuario.mercadopago_subscription_id} do usuario ${usuario_id}:`, JSON.stringify(erroCancelamento));
+          return res.status(500).json({
+            erro: 'Você já tem uma assinatura de cartão ativa e não consegui trocá-la agora. Tente novamente em alguns minutos.'
+          });
+        }
+        console.log(`[assinatura-cartao] assinatura antiga ${usuario.mercadopago_subscription_id}` +
+          ` cancelada antes de criar nova para usuario ${usuario_id}.`);
+      }
+    }
+
+    const agora = new Date();
+    const daquiUmAno = new Date(agora.getTime() + 365 * 24 * 60 * 60 * 1000);
+    const recorrencia = RECORRENCIA_POR_PLANO[plano];
+
+    const resposta = await fetch('https://api.mercadopago.com/preapproval', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        reason: planoEscolhido.nome,
+        // Prefixo "cartao:" identifica esse formato pro webhook e evita
+        // confundir com qualquer outro external_reference no futuro. É daqui
+        // que o webhook sabe qual usuário/plano uma cobrança de ciclo
+        // pertence — metadata do pagamento de assinatura NÃO tem
+        // usuario_id/plano (ver bug documentado na Fatia 1).
+        external_reference: `cartao:${usuario_id}:${plano}`,
+        payer_email: usuario.email,
+        card_token_id,
+        back_url: 'https://app.vinculoapp.com.br/prototipo',
+        status: 'authorized',
+        auto_recurring: {
+          frequency: recorrencia.frequency,
+          frequency_type: recorrencia.frequency_type,
+          start_date: agora.toISOString(),
+          end_date: daquiUmAno.toISOString(),
+          transaction_amount: planoEscolhido.valor,
+          currency_id: 'BRL'
+        }
+      })
+    });
+
+    const dadosAssinatura = await resposta.json().catch(() => null);
+
+    if (!resposta.ok) {
+      console.error(`[assinatura-cartao] falha ao criar /preapproval para usuario ${usuario_id}:`, JSON.stringify(dadosAssinatura));
+      return res.status(500).json({ erro: 'Não foi possível criar a assinatura. Tente novamente ou use o Pix.' });
+    }
+
+    // Guarda o id da assinatura — usado pelo webhook (via mercadopago_subscription_id)
+    // e pra permitir cancelamento futuro pelo próprio usuário.
+    await usuario.update({ mercadopago_subscription_id: dadosAssinatura.id });
+
+    // NÃO libera premium aqui — status 'authorized' não é pagamento aprovado
+    // (Fatia 1). Só o webhook, quando confirmar a cobrança de verdade, ativa.
+    res.json({
+      mensagem: 'Assinatura criada. Confirmando o pagamento...',
+      mercadopago_subscription_id: dadosAssinatura.id,
+      status: dadosAssinatura.status,
+      plano: planoEscolhido.nome
+    });
+
+  } catch (erro) {
+    console.error('[assinatura-cartao] erro:', erro.message);
+    res.status(500).json({ erro: 'Erro ao criar assinatura: ' + erro.message });
   }
 };
 
@@ -279,28 +418,88 @@ const webhook = async (req, res) => {
         throw erroLeitura;
       }
 
-      if (pagamento.status === 'approved') {
-        const { usuario_id, plano } = pagamento.metadata;
-        const premium_ate = await ativarPlanoDoUsuario(usuario_id, plano);
-        if (premium_ate) {
-          console.log(`Usuario ${usuario_id} ativou Premium ${plano} ate ${premium_ate}`);
-        }
-      }
+      const tipoOperacao = pagamento.operation_type;
 
-      // Pagamento que não deu certo (recusado, estornado, cancelado antes de
-      // compensar). Só encerra o plano se o pagamento em questão for o que
-      // sustenta a assinatura atual — um PIX antigo estornado não deve
-      // derrubar uma assinatura nova que já foi paga.
-      const statusEncerram = ['cancelled', 'rejected', 'refunded', 'charged_back'];
-      if (statusEncerram.includes(pagamento.status)) {
-        const { usuario_id, plano } = pagamento.metadata || {};
-        if (usuario_id) {
-          const usuario = await Usuario.findByPk(usuario_id, { attributes: ['id', 'plano_atual'] });
-          if (usuario && usuario.plano_atual === plano) {
-            await encerrarPlanoDoUsuario(usuario_id);
-            console.log(`Usuario ${usuario_id} teve o plano ${plano} encerrado (status ${pagamento.status})`);
+      // Correção do bug documentado na Fatia 1: metadata tem donos
+      // diferentes dependendo do tipo de pagamento. Três ramos explícitos —
+      // um quarto tipo ainda não visto cai no "else" de baixo, logado, não
+      // processado por exclusão.
+      if (tipoOperacao === 'card_validation') {
+        // Validação de cartão que o Mercado Pago faz antes da cobrança —
+        // não é cobrança de verdade. Não libera nem encerra nada.
+        console.log(`[webhook] pagamento ${pagamento.id} é card_validation — ignorado (não é cobrança).`);
+
+      } else if (tipoOperacao === 'recurring_payment') {
+        // Cobrança de ciclo de assinatura (cartão recorrente).
+        const idAssinatura =
+          pagamento.point_of_interaction?.transaction_data?.subscription_id ||
+          pagamento.metadata?.preapproval_id;
+
+        const [prefixoReferencia, usuario_id, plano] = (pagamento.external_reference || '').split(':');
+
+        if (prefixoReferencia !== 'cartao' || !usuario_id || !planos[plano]) {
+          console.error(`[webhook] recurring_payment ${pagamento.id} com external_reference` +
+            ` inesperado ("${pagamento.external_reference}") — premium NÃO liberado automaticamente.` +
+            ` Confira manualmente a assinatura ${idAssinatura || '(desconhecida)'}.`);
+        } else if (pagamento.status === 'approved') {
+          try {
+            // INSERT direto: se mercadopago_payment_id já existir, a
+            // constraint única barra a segunda tentativa — dedup atômico,
+            // sem checar-depois-inserir (ver Fatia 2).
+            await PagamentoAssinaturaProcessado.create({
+              mercadopago_payment_id: String(pagamento.id),
+              usuario_id,
+              mercadopago_subscription_id: idAssinatura || 'desconhecida',
+              numero_ciclo: pagamento.point_of_interaction?.transaction_data?.subscription_sequence?.number ?? null,
+              valor: pagamento.transaction_amount
+            });
+
+            const premium_ate = await ativarPlanoDoUsuario(usuario_id, plano);
+            if (premium_ate) {
+              console.log(`Usuario ${usuario_id} ativou Premium ${plano} (cartão recorrente) ate ${premium_ate}`);
+            }
+          } catch (erroDedup) {
+            if (erroDedup.name === 'SequelizeUniqueConstraintError') {
+              console.log(`[webhook] pagamento ${pagamento.id} já tinha sido processado — ignorando duplicata.`);
+            } else {
+              throw erroDedup;
+            }
           }
         }
+        // Cobrança recusada/em retry num ciclo: não encerra o plano aqui de
+        // propósito. O Mercado Pago já retenta sozinho, e premium_ate segue
+        // valendo até a data do ciclo já pago — verificarAssinaturasVencidas
+        // encerra normalmente se a renovação nunca vier a confirmar.
+
+      } else if (tipoOperacao === 'regular_payment') {
+        // Pix avulso — caminho de sempre, inalterado.
+        if (pagamento.status === 'approved') {
+          const { usuario_id, plano } = pagamento.metadata;
+          const premium_ate = await ativarPlanoDoUsuario(usuario_id, plano);
+          if (premium_ate) {
+            console.log(`Usuario ${usuario_id} ativou Premium ${plano} ate ${premium_ate}`);
+          }
+        }
+
+        // Pagamento que não deu certo (recusado, estornado, cancelado antes
+        // de compensar). Só encerra o plano se o pagamento em questão for o
+        // que sustenta a assinatura atual — um PIX antigo estornado não deve
+        // derrubar uma assinatura nova que já foi paga.
+        const statusEncerram = ['cancelled', 'rejected', 'refunded', 'charged_back'];
+        if (statusEncerram.includes(pagamento.status)) {
+          const { usuario_id, plano } = pagamento.metadata || {};
+          if (usuario_id) {
+            const usuario = await Usuario.findByPk(usuario_id, { attributes: ['id', 'plano_atual'] });
+            if (usuario && usuario.plano_atual === plano) {
+              await encerrarPlanoDoUsuario(usuario_id);
+              console.log(`Usuario ${usuario_id} teve o plano ${plano} encerrado (status ${pagamento.status})`);
+            }
+          }
+        }
+
+      } else {
+        console.error(`[webhook] operation_type desconhecido: "${tipoOperacao}" no pagamento ${pagamento.id}.` +
+          ` Nada foi processado — investigar antes de mapear.`);
       }
     }
 
@@ -479,6 +678,7 @@ async function verificarLembretesRenovacao() {
 
 module.exports = {
   criarPagamentoPix,
+  criarAssinaturaCartao,
   webhook,
   verificarPremium,
   ativarPremiumTeste,
