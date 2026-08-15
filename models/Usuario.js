@@ -255,6 +255,14 @@ cor_cabelo: {
   liveness_session_pendente: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  // Achado ALTA da auditoria de UX: o tour de segurança pós-cadastro nunca
+  // era exibido a ninguém (tela órfã). Este campo faz o guard de navegação
+  // forçar a exibição pra todo mundo — nasce em false pra usuário novo E
+  // pra quem já tinha conta antes desta correção.
+  tour_seguranca_visto: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
 }, {
   tableName: 'usuarios',

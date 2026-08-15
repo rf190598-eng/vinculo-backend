@@ -547,7 +547,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   </div>
   <div class="botao-fixo-rodape" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:0 24px">
     <button class="btn btn-primary" onclick="goTo('tour2')">Proximo</button>
-    <button class="btn btn-ghost" onclick="goTo('discover')" style="background:none;border:none;color:#c0a0b0">Pular tour</button>
+    <button class="btn btn-ghost" onclick="concluirTourSeguranca()" style="background:none;border:none;color:#c0a0b0">Pular tour</button>
   </div>
 </div>
 
@@ -561,7 +561,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   </div>
   <div class="botao-fixo-rodape" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:0 24px">
     <button class="btn btn-primary" onclick="goTo('tour3')">Proximo</button>
-    <button class="btn btn-ghost" onclick="goTo('discover')" style="background:none;border:none;color:#c0a0b0">Pular tour</button>
+    <button class="btn btn-ghost" onclick="concluirTourSeguranca()" style="background:none;border:none;color:#c0a0b0">Pular tour</button>
   </div>
 </div>
 
@@ -575,7 +575,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   </div>
   <div class="botao-fixo-rodape" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:0 24px">
     <button class="btn btn-primary" onclick="goTo('tour4')">Proximo</button>
-    <button class="btn btn-ghost" onclick="goTo('discover')" style="background:none;border:none;color:#c0a0b0">Pular tour</button>
+    <button class="btn btn-ghost" onclick="concluirTourSeguranca()" style="background:none;border:none;color:#c0a0b0">Pular tour</button>
   </div>
 </div>
 
@@ -588,7 +588,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div class="progress-steps" style="margin-top:24px"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot active"></div></div>
   </div>
   <div class="botao-fixo-rodape" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:0 24px">
-    <button class="btn btn-primary" onclick="goTo('discover')">Entendi, vamos comecar!</button>
+    <button class="btn btn-primary" onclick="concluirTourSeguranca()">Entendi, vamos comecar!</button>
   </div>
 </div><!-- VERIFICACAO -->
 <div class="screen" id="screen-liveness" style="background:#1a0810;min-height:100vh;">
@@ -2174,6 +2174,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div class="settings-item" onclick="goTo('edit-profile')"><div class="settings-label"><span class="settings-ic">&#128101;</span>Editar perfil</div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item" onclick="abrirModalFiltros()"><div class="settings-label"><span class="settings-ic">&#128591;</span>Preferências de busca</div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item" onclick="goTo('safety')"><div class="settings-label"><span class="settings-ic">&#128737;</span>Central de Segurança</div><span style="color:#d0a8b8">&#8250;</span></div>
+  <div class="settings-item" onclick="revisarTourSeguranca()"><div class="settings-label"><span class="settings-ic">&#128737;</span>Rever tour de segurança</div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item" onclick="goTo('privacy-prefs')"><div class="settings-label"><span class="settings-ic">&#128274;</span>Privacidade</div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item" onclick="goTo('notif-prefs')"><div class="settings-label"><span class="settings-ic">&#128276;</span>Notificações</div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item" onclick="goTo('indica')"><div class="settings-label"><span class="settings-ic">&#129309;</span>Parceiros Vínculo</div><span style="color:#d0a8b8">&#8250;</span></div>
@@ -2862,6 +2863,9 @@ const telasSemVerificacaoObrigatoria = ['landing','auth','login','welcome','live
 // Telas liberadas no estágio intermediário (liveness já aprovado, mas ainda sem
 // foto de perfil confirmada) e também quando falta só completar o perfil (bio etc).
 const telasSemPerfilCompletoObrigatorio = ['landing','auth','login','welcome','liveness','edit-profile','myprofile'];
+// Achado ALTA da auditoria de UX: telas que não obrigam ter visto o tour de
+// segurança pós-cadastro (senão ninguém conseguiria nem chegar até ele).
+const telasSemTourObrigatorio = ['landing','auth','login','welcome','liveness','edit-profile','tour1','tour2','tour3','tour4'];
 
 function perfilIncompleto(){
   return !usuarioAtual.bio || !usuarioAtual.foto_url;
@@ -2926,6 +2930,14 @@ goTo = function(name){
   // c) Já verificado, mas ainda falta completar o perfil (ex: bio).
   if (usuarioAtual && usuarioAtual.verificado === true && perfilIncompleto() && !telasSemPerfilCompletoObrigatorio.includes(name)) {
     goToBase('edit-profile');
+    return;
+  }
+  // d) Perfil completo, mas ainda não viu o tour de segurança — última porta
+  // antes do acesso pleno ao app. Cobre usuário novo e quem já tinha conta
+  // (achado ALTA da auditoria de UX: o tour nunca era exibido a ninguém).
+  if (usuarioAtual && usuarioAtual.verificado === true && !perfilIncompleto()
+      && !usuarioAtual.tour_seguranca_visto && !telasSemTourObrigatorio.includes(name)) {
+    goToBase('tour1');
     return;
   }
   goToBase(name);
@@ -4516,6 +4528,11 @@ function openNotifications(){
 
 let panicStage='idle', panicInterval=null, panicCount=3;
 async function startPanicCountdown(){
+  // Achado CRÍTICO da auditoria de UX: sem isso, o usuário só descobria que
+  // não tem contato de confiança cadastrado DEPOIS da contagem de 3s — péssimo
+  // numa emergência real. Checa antes de sequer abrir o modal de contagem.
+  const temContato = await temContatoDeConfiancaCadastrado();
+  if(!temContato){ mostrarAvisoSemContatoSeguranca('panico'); return; }
   panicStage='counting';
   panicCount=3;
   document.getElementById('panicCountdownView').style.display='block';
@@ -7685,7 +7702,12 @@ const CHECKIN_MINUTOS_MAX = 24 * 60; // 24h
 
 let checkinMinutosEscolhidos = null; // minutos vindo de um atalho (1h/2h/3h/4h), ou null se for tempo customizado
 
-function abrirModalCheckinSeguranca(){
+async function abrirModalCheckinSeguranca(){
+  // Achado CRÍTICO da auditoria de UX: mesmo problema do botão de pânico —
+  // sem contato de confiança, o check-in não tem pra quem alertar se vencer.
+  // O backend também valida (iniciarSessao), isso aqui é só pra avisar antes.
+  const temContato = await temContatoDeConfiancaCadastrado();
+  if(!temContato){ mostrarAvisoSemContatoSeguranca('checkin'); return; }
   checkinMinutosEscolhidos = null;
   document.getElementById('checkinHoras').value = '';
   document.getElementById('checkinMinutos').value = '';
@@ -7842,6 +7864,46 @@ function formatarTelefoneExibicao(telefoneE164){
   }
   return telefoneE164; // formato inesperado: mostra como veio, sem quebrar a tela
 }
+
+// Achados CRÍTICOS da auditoria de UX (pânico e check-in sem contato de
+// confiança cadastrado): checa se o usuário tem pelo menos um contato antes
+// de deixar ativar essas funções, e mostra o aviso levando direto pro
+// cadastro de contato em vez de deixar a ação falhar sem explicação clara.
+async function temContatoDeConfiancaCadastrado(){
+  try{
+    const resp = await fetch(`${API_URL}/api/seguranca/contatos`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
+    const dados = await resp.json();
+    return Array.isArray(dados.contatos) && dados.contatos.length > 0;
+  }catch(e){
+    return false; // sem confirmação = trata como "sem contato", lado mais seguro
+  }
+}
+
+function mostrarAvisoSemContatoSeguranca(origem){
+  const mensagem = origem === 'panico'
+    ? 'Cadastre pelo menos um contato de confiança antes de usar o botão de pânico — é ele que garante que alguém seja avisado se você precisar de ajuda.'
+    : 'Cadastre pelo menos um contato de confiança antes de iniciar um check-in — é ele que garante que alguém seja avisado se você não confirmar retorno a tempo.';
+  showToastVinculo(mensagem);
+  abrirModalContatoSeguranca();
+}
+
+// Achado ALTA da auditoria de UX: marca o tour de segurança como visto
+// (localmente na hora, e no backend em melhor esforço) e segue pro app.
+async function concluirTourSeguranca(){
+  if(usuarioAtual){
+    usuarioAtual.tour_seguranca_visto = true;
+    localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
+  }
+  goTo('discover');
+  try{
+    await fetch(`${API_URL}/api/perfil/tour-seguranca`, {
+      method:'PATCH',
+      headers:{'Authorization':`Bearer ${tokenAtual}`}
+    });
+  }catch(e){ /* melhor esforço — se falhar, o guard força o tour de novo na próxima navegação, sem drama */ }
+}
+
+function revisarTourSeguranca(){ goTo('tour1'); }
 
 // Abre o modal já limpo, sem resíduo de uma tentativa anterior.
 function abrirModalContatoSeguranca(){

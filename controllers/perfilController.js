@@ -361,7 +361,21 @@ const removerFotoGaleria = async (req, res) => {
     }
 };
 
+// Achado ALTA da auditoria de UX (tour de segurança pós-cadastro era código
+// morto): marca que este usuário já viu o tour, pra liberar o guard de
+// navegação. Chamada tanto ao pular quanto ao concluir o tour normalmente —
+// nos dois casos o usuário já foi exposto ao conteúdo de segurança.
+const marcarTourSegurancaVisto = async (req, res) => {
+    try {
+          await Usuario.update({ tour_seguranca_visto: true }, { where: { id: req.usuarioId } });
+          res.json({ mensagem: 'Tour marcado como visto.' });
+    } catch (erro) {
+          res.status(500).json({ erro: 'Erro ao registrar tour: ' + erro.message });
+    }
+};
+
 module.exports = {
     editarPerfil, uploadFoto, upload, atualizarLocalizacao, estatisticasIndicacao,
-    listarFotosGaleria, adicionarFotoGaleria, removerFotoGaleria
+    listarFotosGaleria, adicionarFotoGaleria, removerFotoGaleria,
+    marcarTourSegurancaVisto
 };

@@ -155,6 +155,16 @@ const iniciarSessao = async (req, res) => {
   try {
     const { minutos, latitude, longitude, com_usuario_id } = req.body;
 
+    // Achado CRÍTICO da auditoria de UX: o check-in podia ser iniciado sem
+    // nenhum contato de confiança cadastrado — se o prazo vencesse, o alerta
+    // automático (verificarCheckinsVencidos) não tinha pra quem avisar. O
+    // botão de pânico (dispararPanico, acima) já tinha essa checagem;
+    // faltava só aqui.
+    const totalContatos = await ContatoConfianca.count({ where: { usuario_id: req.usuarioId } });
+    if (totalContatos === 0) {
+      return res.status(400).json({ erro: 'Cadastre pelo menos um contato de confiança antes de iniciar um check-in.' });
+    }
+
     const minutosNum = Number(minutos);
     if (!Number.isFinite(minutosNum) || minutosNum < CHECKIN_MINUTOS_MIN || minutosNum > CHECKIN_MINUTOS_MAX) {
       return res.status(400).json({
