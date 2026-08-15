@@ -235,6 +235,17 @@ cor_cabelo: {
   indicado_por_parceiro_id: {
     type: DataTypes.UUID,
     allowNull: true
+  },
+  // Cartão recorrente (Fatia 2+): id da assinatura (preapproval) no Mercado
+  // Pago vinculada a este usuário. NULL enquanto o usuário nunca assinou por
+  // cartão recorrente (ou só usa Pix avulso). Usado para: (a) o webhook achar
+  // de quem é um evento de subscription_preapproval/payment recorrente,
+  // (b) permitir que o próprio usuário cancele a assinatura futuramente
+  // (botão que chamará PUT /preapproval/{id} com este id).
+  mercadopago_subscription_id: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true
   }
 }, {
   tableName: 'usuarios',

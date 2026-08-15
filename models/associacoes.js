@@ -19,6 +19,7 @@ const Parceiro = require('./Parceiro');
 const Indicacao = require('./Indicacao');
 const Comissao = require('./Comissao');
 const BonusMeta = require('./BonusMeta');
+const PagamentoAssinaturaProcessado = require('./PagamentoAssinaturaProcessado');
 
 let jaRegistrado = false;
 
@@ -60,6 +61,12 @@ function registrarAssociacoes() {
   // distintas e um mesmo usuário pode ter as duas.
   Usuario.belongsTo(Parceiro, { foreignKey: 'indicado_por_parceiro_id', as: 'parceiroIndicador' });
   Parceiro.hasMany(Usuario, { foreignKey: 'indicado_por_parceiro_id', as: 'usuariosIndicados' });
+
+  // ===== PagamentoAssinaturaProcessado (cartão recorrente, Fatia 2+) =====
+  // Histórico de cobranças de assinatura já processadas para este usuário —
+  // ver comentário no model sobre o uso como chave de idempotência.
+  PagamentoAssinaturaProcessado.belongsTo(Usuario, { foreignKey: 'usuario_id', as: 'usuario' });
+  Usuario.hasMany(PagamentoAssinaturaProcessado, { foreignKey: 'usuario_id', as: 'pagamentosAssinatura' });
 }
 
 module.exports = { registrarAssociacoes };
