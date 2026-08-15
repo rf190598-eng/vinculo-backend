@@ -224,12 +224,32 @@ function validarAssinaturaWhatsapp(rawBody, assinaturaRecebida) {
   return crypto.timingSafeEqual(bufEsperada, bufRecebida);
 }
 
+// Achado MENOR da auditoria: o log anterior gravava o payload inteiro, que
+// pode trazer nome do contato, telefone e texto da mensagem. Este resumo
+// guarda só o necessário pra debugar entrega (tipo de evento, id, status) —
+// nunca telefone, nome ou conteúdo de mensagem.
+function resumirEventoWhatsapp(body) {
+  try {
+    const mudancas = (body.entry || []).flatMap((e) => e.changes || []);
+    return mudancas.map((c) => {
+      const valor = c.value || {};
+      return {
+        campo: c.field,
+        mensagens: (valor.messages || []).map((m) => ({ tipo: m.type, id: m.id })),
+        status: (valor.statuses || []).map((s) => ({ status: s.status, id: s.id }))
+      };
+    });
+  } catch (erro) {
+    return { erro: 'não foi possível resumir o evento' };
+  }
+}
+
 app.post('/webhook/whatsapp', (req, res) => {
   if (!validarAssinaturaWhatsapp(req.rawBody, req.headers['x-hub-signature-256'])) {
     console.error('[whatsapp-webhook] assinatura inválida — evento rejeitado.');
     return res.sendStatus(403);
   }
-  console.log('[whatsapp-webhook] evento recebido:', JSON.stringify(req.body));
+  console.log('[whatsapp-webhook] evento recebido:', JSON.stringify(resumirEventoWhatsapp(req.body)));
   res.sendStatus(200);
 });
 
