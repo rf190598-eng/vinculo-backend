@@ -275,7 +275,7 @@ const finalizarCadastroGoogle = async (req, res) => {
     });
 
     const usuarioCompleto = await Usuario.findByPk(usuario.id, {
-      attributes: { exclude: ['senha', 'foto_verificacao'] }
+      attributes: { exclude: ['senha', 'foto_verificacao', 'foto_referencia_liveness'] }
     });
 
     console.log('[google] conta criada via Google:', usuario.id);

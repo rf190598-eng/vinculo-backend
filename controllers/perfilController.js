@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const { compararRostos } = require('../utils/rekognition');
-const { creditarBonusIndicacaoSeAplicavel } = require('./livenessController'); // referral antigo (gatilho desligado)
+const { creditarBonusIndicacaoSeAplicavel, caminhoArquivoLiveness } = require('./livenessController'); // referral antigo (gatilho desligado)
 const { registrarIndicacaoSeAplicavel } = require('./parceiroController');
 
 const storage = multer.diskStorage({
@@ -121,7 +121,7 @@ const editarPerfil = async (req, res) => {
       await Usuario.update(dados, { where: { id: usuario_id } });
 
       const usuario = await Usuario.findByPk(usuario_id, {
-              attributes: { exclude: ['senha', 'foto_verificacao'] }
+              attributes: { exclude: ['senha', 'foto_verificacao', 'foto_referencia_liveness'] }
       });
 
       res.json({ mensagem: 'Perfil atualizado!', usuario });
@@ -167,7 +167,7 @@ const uploadFoto = async (req, res) => {
           // Trocas posteriores da foto principal não comparam de novo (custo de API) —
           // e fotos da galeria nunca passam por essa checagem.
           if (primeiraFotoDePerfil && usuarioAtual.liveness_aprovado && usuarioAtual.foto_referencia_liveness) {
-                  const caminhoReferencia = path.join(__dirname, '..', usuarioAtual.foto_referencia_liveness.replace(/^\//, ''));
+                  const caminhoReferencia = caminhoArquivoLiveness(usuarioAtual.foto_referencia_liveness);
 
                   let comparacao;
                   try {

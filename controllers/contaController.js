@@ -24,6 +24,7 @@ const SessaoSeguranca = require('../models/SessaoSeguranca');
 const Denuncia = require('../models/Denuncia');
 const Bloqueio = require('../models/Bloqueio');
 const SolicitacaoParceria = require('../models/SolicitacaoParceria');
+const { caminhoArquivoLiveness } = require('./livenessController');
 
 // Apaga um arquivo físico de /uploads de forma silenciosa (ignora se já não existir).
 function apagarArquivoUpload(urlRelativa) {
@@ -32,6 +33,21 @@ function apagarArquivoUpload(urlRelativa) {
   fs.unlink(caminho, (erro) => {
     if (erro && erro.code !== 'ENOENT') {
       console.error('Erro ao apagar arquivo de upload:', caminho, erro.message);
+    }
+  });
+}
+
+// Apaga a foto de referência do liveness (pasta privada — ver livenessController).
+// Antes esta exclusão tentava apagar usuario.foto_verificacao, um campo que nunca é
+// preenchido em nenhum lugar do código — ou seja, nunca apagava nada de verdade.
+// A selfie de verificação de identidade ficava para sempre no disco mesmo depois da
+// exclusão de conta. Corrigido pra apagar o arquivo real (achado MENOR da auditoria).
+function apagarArquivoLivenessSeExistir(valorSalvo) {
+  const caminho = caminhoArquivoLiveness(valorSalvo);
+  if (!caminho) return;
+  fs.unlink(caminho, (erro) => {
+    if (erro && erro.code !== 'ENOENT') {
+      console.error('Erro ao apagar foto de liveness:', caminho, erro.message);
     }
   });
 }
@@ -165,7 +181,7 @@ const excluirConta = async (req, res) => {
 
     // ===== 16. Por fim, o próprio usuário =====
     const fotoUrl = usuario.foto_url;
-    const fotoVerificacao = usuario.foto_verificacao;
+    const fotoReferenciaLiveness = usuario.foto_referencia_liveness;
     await usuario.destroy({ transaction: t });
 
     await t.commit();
@@ -173,7 +189,7 @@ const excluirConta = async (req, res) => {
     // Apaga os arquivos físicos só depois do commit confirmado no banco.
     arquivosParaApagar.forEach(apagarArquivoUpload);
     apagarArquivoUpload(fotoUrl);
-    apagarArquivoUpload(fotoVerificacao);
+    apagarArquivoLivenessSeExistir(fotoReferenciaLiveness);
 
     return res.json({ mensagem: 'Conta excluída com sucesso.' });
   } catch (erro) {

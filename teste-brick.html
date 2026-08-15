@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>⚠️ TESTE — Card Payment Brick + /preapproval (descartável)</title>
+<script src="https://sdk.mercadopago.com/js/v2"></script>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px; }
+  h1 { font-size: 18px; }
+  .aviso { background: #fff3cd; border: 1px solid #ffe69c; border-radius: 8px; padding: 12px; font-size: 13px; margin-bottom: 20px; }
+  #cardPaymentBrick_container { margin: 20px 0; }
+  #resultado { white-space: pre-wrap; font-family: monospace; font-size: 12px; background: #111; color: #0f0; padding: 12px; border-radius: 8px; margin-top: 16px; display: none; }
+  #resultado.erro { color: #f66; }
+  #status { font-size: 13px; color: #555; }
+</style>
+</head>
+<body>
+  <h1>⚠️ Teste descartável — Brick gera token, backend cria /preapproval</h1>
+  <div class="aviso">
+    Isto NÃO é o app Vínculo. É um teste isolado, só pra confirmar se um
+    token gerado pelo Card Payment Brick funciona dentro de <code>/preapproval</code>
+    antes de integrar de verdade no prototipo.html. Usa a conta e o cartão
+    de TESTE — não cobra nada real.
+    <br><br>
+    Cartão de teste (Brasil): <b>5480 8328 0103 3311</b> · CVV <b>123</b> ·
+    validade <b>11/30</b> · titular <b>APRO</b> · CPF <b>123.456.789-09</b>
+  </div>
+
+  <div id="status">Carregando formulário do Mercado Pago...</div>
+  <div id="cardPaymentBrick_container"></div>
+  <div id="resultado"></div>
+
+<script>
+(async () => {
+  const statusEl = document.getElementById('status');
+  const resultadoEl = document.getElementById('resultado');
+
+  function mostrarResultado(texto, ehErro) {
+    resultadoEl.style.display = 'block';
+    resultadoEl.className = ehErro ? 'erro' : '';
+    resultadoEl.textContent = texto;
+  }
+
+  let publicKey;
+  try {
+    const respConfig = await fetch('/config');
+    const config = await respConfig.json();
+    publicKey = config.publicKey;
+    if (!publicKey) throw new Error('publicKey vazio');
+  } catch (e) {
+    statusEl.textContent = 'Erro ao buscar a Public Key de teste do servidor local. Confira MP_TEST_PUBLIC_KEY no .env e reinicie o servidor.';
+    return;
+  }
+
+  const mp = new MercadoPago(publicKey, { locale: 'pt-BR' });
+  const bricksBuilder = mp.bricks();
+
+  try {
+    await bricksBuilder.create('cardPayment', 'cardPaymentBrick_container', {
+      // Valor do plano mensal, só pra o Brick ter um número — não afeta o
+      // valor real da assinatura, que quem manda é o auto_recurring no
+      // /preapproval (isso é testado separadamente, no backend).
+      initialization: { amount: 24.90 },
+      callbacks: {
+        onReady: () => { statusEl.textContent = 'Preencha o cartão de teste acima e clique em pagar.'; },
+        onError: (erro) => {
+          console.error('[brick] erro:', erro);
+          mostrarResultado('Erro no Brick:\n' + JSON.stringify(erro, null, 2), true);
+        },
+        onSubmit: async (formData) => {
+          statusEl.textContent = 'Token gerado pelo Brick. Enviando para o servidor local testar no /preapproval...';
+          console.log('[brick] formData completo:', formData);
+
+          try {
+            const resp = await fetch('/testar-token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ card_token_id: formData.token })
+            });
+            const dados = await resp.json();
+
+            if (dados.ok) {
+              statusEl.textContent = '✅ Deu certo — ver detalhes abaixo.';
+              mostrarResultado(JSON.stringify(dados, null, 2), false);
+            } else {
+              statusEl.textContent = '❌ Falhou — ver detalhes abaixo.';
+              mostrarResultado(JSON.stringify(dados, null, 2), true);
+            }
+          } catch (e) {
+            statusEl.textContent = '❌ Erro de conexão com o servidor local.';
+            mostrarResultado(String(e), true);
+          }
+
+          // Não retornamos uma Promise que resolve com sucesso de pagamento de
+          // verdade: isto é só um teste de tokenização + preapproval, não um
+          // checkout completo. Retornar aqui evita o Brick tentar processar
+          // um "pagamento" que não existe neste fluxo de teste.
+          return Promise.resolve();
+        }
+      }
+    });
+  } catch (e) {
+    statusEl.textContent = 'Erro ao montar o Brick: ' + e.message;
+  }
+})();
+</script>
+</body>
+</html>

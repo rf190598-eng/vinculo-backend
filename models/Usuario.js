@@ -246,6 +246,15 @@ cor_cabelo: {
     type: DataTypes.STRING,
     allowNull: true,
     unique: true
+  },
+  // Segurança / liveness (correção do achado CRÍTICO 2 da auditoria):
+  // sessionId da AWS Rekognition que este usuário criou e ainda não consultou
+  // o resultado. Preenchido em criarSessaoLiveness, checado e zerado em
+  // buscarResultadoLiveness — sem isso, qualquer usuário autenticado podia
+  // consultar o resultado de um sessionId de outra pessoa.
+  liveness_session_pendente: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 }, {
   tableName: 'usuarios',

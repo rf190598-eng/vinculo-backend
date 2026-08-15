@@ -151,7 +151,7 @@ const listarPerfis = async (req, res) => {
 
     let candidatos = await Usuario.findAll({
       where,
-      attributes: { exclude: ['senha', 'foto_verificacao'] }
+      attributes: { exclude: ['senha', 'foto_verificacao', 'foto_referencia_liveness'] }
     });
 
     candidatos = candidatos.filter(c => {
@@ -266,7 +266,7 @@ const listarCurtidasRecebidas = async (req, res) => {
 
     const perfis = await Usuario.findAll({
       where: { id: { [Op.in]: idsPendentes } },
-      attributes: { exclude: ['senha', 'foto_verificacao'] }
+      attributes: { exclude: ['senha', 'foto_verificacao', 'foto_referencia_liveness'] }
     });
 
     res.json({ total: perfis.length, perfis, premium: true });

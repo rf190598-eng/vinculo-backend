@@ -143,11 +143,23 @@ app.get('/vinculo-liveness-bundle.mjs', (req, res) => {
   res.sendFile(path.join(__dirname, 'vinculo-liveness-bundle.mjs'));
 });
 
+// ===== Bloqueio de /uploads/privado (correção do achado CRÍTICO 1 da auditoria) =====
+// uploads/privado/liveness/ guarda as selfies de referência do Face Liveness
+// (livenessController.js). Precisa estar DENTRO de uploads/ pra sobreviver a
+// deploys (é onde o Volume persistente do Railway está montado), mas NUNCA pode
+// ser servida como arquivo estático público como o resto de uploads/ — por isso
+// este bloqueio vem ANTES do express.static logo abaixo e intercepta qualquer
+// pedido a esse subcaminho com 404, não importa se o arquivo existe ou não.
+// O único jeito de acessar essas fotos é pelas rotas autenticadas em
+// routes/livenessRoutes.js (obterFotoLivenessPropria / obterFotoLivenessAdmin).
+app.use('/uploads/privado', (req, res) => {
+  res.status(404).end();
+});
+
 // ===== ATENÇÃO: /uploads público =====
-// Fotos de perfil podem ficar aqui (são públicas por natureza do produto).
-// Fotos de verificação de identidade/documento NÃO devem ser servidas por aqui.
-// Elas devem ter uma rota própria e autenticada em algum dos routers acima
-// (ex: perfilRoutes) que verifica permissão antes de entregar o arquivo.
+// Fotos de perfil e mídia de stories ficam aqui (são públicas por natureza do
+// produto). Nada de sensível (verificação de identidade, documentos) pode ser
+// salvo direto nesta pasta — tem que ir para uploads/privado/, bloqueada acima.
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/', (req, res) => {

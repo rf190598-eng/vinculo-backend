@@ -65,8 +65,12 @@ function registrarAssociacoes() {
   // ===== PagamentoAssinaturaProcessado (cartão recorrente, Fatia 2+) =====
   // Histórico de cobranças de assinatura já processadas para este usuário —
   // ver comentário no model sobre o uso como chave de idempotência.
+  // onDelete: 'CASCADE' aqui é só documentação (produção roda sync sem alter,
+  // então isto nunca gera DDL) — a constraint real no banco foi corrigida à mão
+  // via SQL (ver auditoria de segurança, achado IMPORTANTE sobre a FK que
+  // bloqueava excluirConta pra quem já pagou por cartão recorrente).
   PagamentoAssinaturaProcessado.belongsTo(Usuario, { foreignKey: 'usuario_id', as: 'usuario' });
-  Usuario.hasMany(PagamentoAssinaturaProcessado, { foreignKey: 'usuario_id', as: 'pagamentosAssinatura' });
+  Usuario.hasMany(PagamentoAssinaturaProcessado, { foreignKey: 'usuario_id', as: 'pagamentosAssinatura', onDelete: 'CASCADE' });
 }
 
 module.exports = { registrarAssociacoes };

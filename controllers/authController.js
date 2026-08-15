@@ -101,7 +101,7 @@ const cadastrar = async (req, res) => {
     }
 
     const token = jwt.sign({ id: usuario.id, email: usuario.email }, process.env.JWT_SECRET, { expiresIn: '30d' });
-    const usuarioCompleto = await Usuario.findByPk(usuario.id, { attributes: { exclude: ['senha', 'foto_verificacao'] } });
+    const usuarioCompleto = await Usuario.findByPk(usuario.id, { attributes: { exclude: ['senha', 'foto_verificacao', 'foto_referencia_liveness'] } });
     res.status(201).json({ mensagem: 'Cadastro realizado!', token, usuario: usuarioCompleto });
   } catch (erro) {
     console.error('Erro ao cadastrar:', erro);
@@ -121,7 +121,7 @@ const login = async (req, res) => {
     const senhaCorreta = await bcrypt.compare(senha, usuario.senha);
     if (!senhaCorreta) return res.status(401).json({ erro: 'Email ou senha incorretos' });
     const token = jwt.sign({ id: usuario.id, email: usuario.email }, process.env.JWT_SECRET, { expiresIn: '30d' });
-    const usuarioCompleto = await Usuario.findByPk(usuario.id, { attributes: { exclude: ['senha', 'foto_verificacao'] } });
+    const usuarioCompleto = await Usuario.findByPk(usuario.id, { attributes: { exclude: ['senha', 'foto_verificacao', 'foto_referencia_liveness'] } });
     res.json({ mensagem: 'Login realizado!', token, usuario: usuarioCompleto });
   } catch (erro) {
     console.error('Erro ao fazer login:', erro);
@@ -131,7 +131,7 @@ const login = async (req, res) => {
 
 const perfil = async (req, res) => {
   try {
-    const usuario = await Usuario.findByPk(req.usuarioId, { attributes: { exclude: ['senha', 'foto_verificacao'] } });
+    const usuario = await Usuario.findByPk(req.usuarioId, { attributes: { exclude: ['senha', 'foto_verificacao', 'foto_referencia_liveness'] } });
     res.json(usuario);
   } catch (erro) {
     console.error('Erro ao buscar perfil:', erro);
