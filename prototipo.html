@@ -50,6 +50,8 @@ input,textarea,select{font-size:16px!important;font-family:inherit;}
 
 /* INPUTS — placeholder visível */
 .inp{width:100%;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:12px;padding:14px 16px;font-size:15px;color:#fdf6f2;margin-bottom:11px;outline:none;transition:.2s;}
+.inp.campo-invalido{border-color:#ff8fa3 !important;}
+.tag-obrigatorio{display:inline-block;font-family:'Inter',sans-serif;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#f0a0b8;background:rgba(224,96,122,.15);border:1px solid rgba(224,96,122,.4);border-radius:20px;padding:2px 8px;margin-left:6px;vertical-align:middle;}
 .inp:focus{border-color:#f0a0b8;background:rgba(255,255,255,.13);}
 .inp::placeholder{color:#a07080;}
 select.inp{background-color:#2b0f17;color:#fdf6f2;-webkit-appearance:menulist;appearance:menulist;}
@@ -393,27 +395,30 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div class="auth-logo-wrap">&#128150;</div>
     <div class="auth-title serif" style="color:#fdf6f2;text-shadow:0 2px 20px rgba(212,131,154,.4)">Vínculo</div>
     <div class="auth-sub">Conexões reais, com segurança<br>em primeiro lugar</div>
-    <input class="inp" id="cadNome" placeholder="Nome"/>
+    <input class="inp" id="cadNome" placeholder="Nome" onblur="validarCampoCadastroNome()" oninput="marcarCampoValido('cadNome','cadNomeErro')"/>
+    <div id="cadNomeErro" style="display:none;color:#ff8fa3;font-size:11.5px;margin:-8px 0 8px;text-align:left;width:100%;max-width:320px"></div>
     <div style="display:flex;gap:8px;width:100%;max-width:320px;margin-bottom:12px">
       <select class="inp" id="cadDia" style="margin:0;flex:1"><option value="">Dia</option></select>
       <select class="inp" id="cadMes" style="margin:0;flex:1.4"><option value="">Mês</option></select>
       <select class="inp" id="cadAno" style="margin:0;flex:1.2"><option value="">Ano</option></select>
     </div>
-    <input class="inp" id="cadEmail" placeholder="E-mail"/>
+    <input class="inp" id="cadEmail" placeholder="E-mail" onblur="validarCampoCadastroEmail()" oninput="marcarCampoValido('cadEmail','cadEmailErro')"/>
+    <div id="cadEmailErro" style="display:none;color:#ff8fa3;font-size:11.5px;margin:-8px 0 8px;text-align:left;width:100%;max-width:320px"></div>
     <select class="inp" id="cadGenero">
       <option value="">Seu gênero</option>
       <option value="masculino">Homem</option>
       <option value="feminino">Mulher</option>
       <option value="nao-binario">Não-binário</option>
     </select>
-   
+
     <select class="inp" id="cadPrefGenero">
       <option value="">Mostrar meu perfil para</option>
       <option value="masculino">Homens</option>
       <option value="feminino">Mulheres</option>
       <option value="todos">Todos</option>
     </select>
-    <input class="inp" id="cadSenha" type="password" placeholder="Senha"/>
+    <input class="inp" id="cadSenha" type="password" placeholder="Senha" onblur="validarCampoCadastroSenha()" oninput="marcarCampoValido('cadSenha','cadSenhaErro')"/>
+    <div id="cadSenhaErro" style="display:none;color:#ff8fa3;font-size:11.5px;margin:-8px 0 8px;text-align:left;width:100%;max-width:320px"></div>
     <div id="cadErro" style="color:#ff8fa3;font-size:12.5px;margin:-6px 0 8px;min-height:14px"></div>
     <button class="btn btn-primary" id="btnCriarConta" onclick="cadastrarUsuario()">Criar conta</button>
     <!-- Aviso mostrado só no 2º passo do cadastro via Google -->
@@ -475,7 +480,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div style="display:flex;flex-direction:column;align-items:center;padding:10px 28px 36px;text-align:center;background:#1a0810;min-height:calc(100vh - 60px);justify-content:center;">
     <div style="font-size:52px;margin-bottom:12px">&#127881;</div>
     <div class="serif" style="font-size:32px;font-weight:700;margin-bottom:8px;color:#fdf6f2">Conta criada!</div>
-    <div style="color:#d0a8b8;font-size:13.5px;margin-bottom:28px;line-height:1.6;max-width:280px">Falta só um passo rápido: confirmar sua identidade. É o que garante que todo mundo no Vínculo é uma pessoa real e verificada.</div>
+    <div style="color:#d0a8b8;font-size:13.5px;margin-bottom:28px;line-height:1.6;max-width:280px">Faltam dois passos rápidos: confirmar sua identidade e adicionar sua primeira foto. É o que garante que todo mundo no Vínculo é uma pessoa real e verificada.</div>
     <!-- Achado MÉDIA da auditoria de UX: liveness chegava sem nenhum
          contexto de segurança antes — o tour que explicaria isso só
          aparece bem depois, já dentro do app. -->
@@ -2032,15 +2037,22 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 <div class="screen" id="screen-edit-profile" style="background:#1a0810;min-height:100vh;">
   <div class="topbar">
     <div class="icon-btn" onclick="goTo('myprofile')">&#8592;</div>
-    <div class="logo serif">Editar perfil</div>
+    <div class="logo serif" id="editProfileTitulo">Editar perfil</div>
     <div style="width:38px"></div>
   </div>
   <div style="padding:0 18px 24px">
+    <!-- Achado MÉDIA da auditoria de UX: tela mostrava todos os campos
+         (opcionais) junto com os obrigatórios, sem indicar o que
+         realmente falta pra sair do onboarding. -->
+    <div id="onboardingPerfilBanner" style="display:none;background:rgba(201,160,107,.12);border:1.5px solid rgba(201,160,107,.4);border-radius:14px;padding:14px 16px;margin-bottom:16px;text-align:left">
+      <div style="font-size:13px;font-weight:700;color:#d4b87a;margin-bottom:4px">Falta pouco!</div>
+      <div style="font-size:12px;color:#e0c8a8;line-height:1.6">Obrigatório agora: uma foto de perfil e uma breve bio. O resto (signo, altura, prompts, interesses...) você completa quando quiser.</div>
+    </div>
     <div class="my-profile-photo" id="fotoEditPerfil" style="height:180px;border-radius:16px;margin-bottom:16px;cursor:pointer" onclick="document.getElementById('galeriaGrid').scrollIntoView({behavior:'smooth',block:'center'})">&#128100;
       <div class="edit-overlay">&#9998;</div>
     </div>
 
-    <div class="edit-section-title">Fotos do perfil (<span id="galeriaContagem">0</span>/7)</div>
+    <div class="edit-section-title">Fotos do perfil (<span id="galeriaContagem">0</span>/7) <span id="tagObrigatorioFoto" class="tag-obrigatorio" style="display:none">Obrigatório</span></div>
     <div style="font-size:12px;color:#d0a8b8;margin-bottom:10px;line-height:1.5">A primeira foto é a que aparece no seu card do Descobrir. As outras aparecem quando alguém abre seu perfil completo. Adicione pelo menos 7 pra ter mais chance de match.</div>
     <div id="galeriaGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px"></div>
     <input type="file" id="inputGaleriaFoto" accept="image/*" style="display:none" onchange="galeriaFotoSelecionada(event)"/>
@@ -2048,7 +2060,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div class="edit-section-title">Nome</div>
    <input class="inp" id="editNome" value=""/>
 
-    <div class="edit-section-title">Sobre mim</div>
+    <div class="edit-section-title">Sobre mim <span id="tagObrigatorioBio" class="tag-obrigatorio" style="display:none">Obrigatório</span></div>
    <textarea class="inp" id="editBio" rows="4" style="resize:none" placeholder="Conte um pouco sobre voce..."></textarea>
     <div class="edit-section-title">Gênero</div>
     <select class="inp" id="editGenero">
@@ -2846,6 +2858,7 @@ function goTo(name){
   if(name==='mutual'){ carregarMutualSemConversa(); }
   if(name==='admin'){ carregarPainelAdmin(); }
   if(name==='edit-profile'){ preencherEdicaoPerfilComDadosSalvos(); }
+  if(name==='edit-profile'){ atualizarFramingOnboardingPerfil(); }
   if(name==='notifications'){ carregarNotificacoesReais(); }
   if(name==='assinatura'){
     fetch(`${API_URL}/api/swipe/curtidas-recebidas`, { headers:{'Authorization':`Bearer ${tokenAtual}`} })
@@ -2890,6 +2903,22 @@ const telasSemTourObrigatorio = ['landing','auth','login','welcome','liveness','
 
 function perfilIncompleto(){
   return !usuarioAtual.bio || !usuarioAtual.foto_url;
+}
+
+// Achado MÉDIA da auditoria de UX: diferencia visualmente "obrigatório pra
+// sair do onboarding" (foto + bio, mesma regra de perfilIncompleto()) de
+// "opcional, preenche quando quiser" (todo o resto).
+function atualizarFramingOnboardingPerfil(){
+  if(!usuarioAtual) return;
+  const emOnboarding = !usuarioAtual.verificado || perfilIncompleto();
+  const titulo = document.getElementById('editProfileTitulo');
+  const banner = document.getElementById('onboardingPerfilBanner');
+  const tagFoto = document.getElementById('tagObrigatorioFoto');
+  const tagBio = document.getElementById('tagObrigatorioBio');
+  if(titulo) titulo.textContent = emOnboarding ? 'Complete seu perfil' : 'Editar perfil';
+  if(banner) banner.style.display = emOnboarding ? 'block' : 'none';
+  if(tagFoto) tagFoto.style.display = (emOnboarding && !usuarioAtual.foto_url) ? 'inline-block' : 'none';
+  if(tagBio) tagBio.style.display = (emOnboarding && !usuarioAtual.bio) ? 'inline-block' : 'none';
 }
 
 // Helper exposto pra outros scripts (ex: o módulo do liveness) poderem atualizar
@@ -3321,6 +3350,39 @@ function calcularIdade(dataISO){
   return idade;
 }
 
+// Achado MÉDIA da auditoria de UX: valida ao sair do campo, em vez de só no
+// envio do formulário inteiro — a pessoa descobre o problema no campo
+// errado na hora, não depois de preencher tudo.
+function marcarCampoInvalido(inputId, erroId, mensagem){
+  const input = document.getElementById(inputId);
+  const erroEl = document.getElementById(erroId);
+  if(input) input.classList.add('campo-invalido');
+  if(erroEl){ erroEl.textContent = mensagem; erroEl.style.display = 'block'; }
+}
+function marcarCampoValido(inputId, erroId){
+  const input = document.getElementById(inputId);
+  const erroEl = document.getElementById(erroId);
+  if(input) input.classList.remove('campo-invalido');
+  if(erroEl){ erroEl.textContent = ''; erroEl.style.display = 'none'; }
+}
+function validarCampoCadastroNome(){
+  const nome = document.getElementById('cadNome').value.trim();
+  if(!nome) marcarCampoInvalido('cadNome','cadNomeErro','Digite seu nome.');
+  else marcarCampoValido('cadNome','cadNomeErro');
+}
+function validarCampoCadastroEmail(){
+  const email = document.getElementById('cadEmail').value.trim();
+  if(!email){ marcarCampoValido('cadEmail','cadEmailErro'); return; }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) marcarCampoInvalido('cadEmail','cadEmailErro','Digite um e-mail válido.');
+  else marcarCampoValido('cadEmail','cadEmailErro');
+}
+function validarCampoCadastroSenha(){
+  const senha = document.getElementById('cadSenha').value;
+  if(!senha){ marcarCampoValido('cadSenha','cadSenhaErro'); return; }
+  if(senha.length < 6) marcarCampoInvalido('cadSenha','cadSenhaErro','A senha precisa ter pelo menos 6 caracteres.');
+  else marcarCampoValido('cadSenha','cadSenhaErro');
+}
+
 async function cadastrarUsuario(){
   const nome = document.getElementById('cadNome').value.trim();
   const dia = document.getElementById('cadDia').value;
@@ -3333,8 +3395,30 @@ async function cadastrarUsuario(){
   const erroEl = document.getElementById('cadErro');
   erroEl.textContent = '';
 
-if (!nome || !dia || !mes || !ano || !email || !genero || !senha) {
-    erroEl.textContent = 'Preenche todos os campos pra continuar.';
+if (!nome) {
+    marcarCampoInvalido('cadNome','cadNomeErro','Digite seu nome.');
+    erroEl.textContent = 'Falta preencher seu nome.';
+    document.getElementById('cadNome').focus();
+    return;
+  }
+  if (!dia || !mes || !ano) {
+    erroEl.textContent = 'Falta preencher sua data de nascimento completa.';
+    return;
+  }
+  if (!email) {
+    marcarCampoInvalido('cadEmail','cadEmailErro','Digite seu e-mail.');
+    erroEl.textContent = 'Falta preencher seu e-mail.';
+    document.getElementById('cadEmail').focus();
+    return;
+  }
+  if (!genero) {
+    erroEl.textContent = 'Falta escolher seu gênero.';
+    return;
+  }
+  if (!senha) {
+    marcarCampoInvalido('cadSenha','cadSenhaErro','Crie uma senha.');
+    erroEl.textContent = 'Falta criar uma senha.';
+    document.getElementById('cadSenha').focus();
     return;
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
