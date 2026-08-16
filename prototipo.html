@@ -749,10 +749,10 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div class="card-area" id="cardArea" style="background:transparent;">
     <div class="swipe-card" id="emptyState" style="display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:28px 24px;background:linear-gradient(180deg,#2a0f1e,#1a0810)">
       <div style="font-size:64px;margin-bottom:16px">&#127757;</div>
-      <div class="serif" style="font-size:26px;font-weight:700;margin-bottom:8px;color:#fdf6f2">Por hoje é isso!</div>
-      <div style="color:#d0a8b8;font-size:13.5px;line-height:1.7;margin-bottom:20px">Você viu todos os perfis disponíveis na sua região. Novos perfis aparecem todos os dias — volte amanhã!</div>
+      <div class="serif" id="emptyStateTitulo" style="font-size:26px;font-weight:700;margin-bottom:8px;color:#fdf6f2">Por hoje é isso!</div>
+      <div id="emptyStateTexto" style="color:#d0a8b8;font-size:13.5px;line-height:1.7;margin-bottom:20px">Você viu todos os perfis disponíveis na sua região. Novos perfis aparecem todos os dias — volte amanhã!</div>
       <!-- Dicas -->
-      <div style="width:100%;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:16px;padding:14px;margin-bottom:16px;text-align:left">
+      <div id="emptyStateDicas" style="width:100%;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:16px;padding:14px;margin-bottom:16px;text-align:left">
         <div style="font-size:11px;font-weight:800;color:#d4b87a;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">&#128161; Dicas para ver mais perfis</div>
         <div style="display:flex;flex-direction:column;gap:8px">
           <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#fdf6f2">
@@ -763,8 +763,13 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
           </div>
         </div>
       </div>
-      <button class="btn btn-primary" onclick="abrirModalFiltros()" style="margin-bottom:10px">&#128205; Ampliar raio de busca</button>
-      <button style="background:none;border:none;color:#907080;font-size:13px;cursor:pointer;padding:6px;font-family:inherit" onclick="resetDiscoverDeck()">Ver perfis novamente do início</button>
+      <div id="emptyStateAcoesNormais">
+        <button class="btn btn-primary" onclick="abrirModalFiltros()" style="margin-bottom:10px">&#128205; Ampliar raio de busca</button>
+        <button style="background:none;border:none;color:#907080;font-size:13px;cursor:pointer;padding:6px;font-family:inherit" onclick="resetDiscoverDeck()">Ver perfis novamente do início</button>
+      </div>
+      <div id="emptyStateErro" style="display:none">
+        <button class="btn btn-primary" onclick="carregarPerfis()">Tentar de novo</button>
+      </div>
     </div>
     <div class="swipe-card card-back" id="card2">
       <div class="card-photo">&#128104;
@@ -912,7 +917,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <h3 class="serif">Bloquear perfil?</h3>
     <p style="color:#d8b0c4;font-size:13px;line-height:1.6">Essa pessoa nao vai mais te ver, e voce nao vai mais ver ela em nenhum lugar do Vinculo. Nenhuma notificacao e enviada pra ela.</p>
     <div id="blockErro" style="color:#ff8fa3;font-size:12.5px;margin-top:2px;min-height:14px"></div>
-    <button class="btn btn-danger" style="margin-top:6px" onclick="blockProfile()">Sim, bloquear</button>
+    <button class="btn btn-danger" id="blockBtnConfirmar" style="margin-top:6px" onclick="blockProfile()">Sim, bloquear</button>
     <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('block-confirm')">Cancelar</button>
   </div>
 </div>
@@ -1054,7 +1059,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   </div>
   <div class="chat-input-bar">
     <input class="chat-inp" id="chatInput" placeholder="Mensagem..." onkeypress="if(event.key==='Enter')enviarMensagemChat()"/>
-    <button class="send-btn" onclick="enviarMensagemChat()">&#9658;</button>
+    <button class="send-btn" id="chatSendBtn" onclick="enviarMensagemChat()">&#9658;</button>
   </div>
 </div>
 <!-- OPCOES DA CONVERSA (denunciar/bloquear direto do chat) -->
@@ -2273,7 +2278,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div class="report-reason" data-motivo="conteudo_impróprio" onclick="selectReportReason(this)">&#128683; Conteudo inapropriado</div>
       <textarea class="inp" id="reportDetalhes" rows="2" placeholder="Detalhes adicionais (opcional)" style="resize:none;margin-top:10px"></textarea>
       <div id="reportErro" style="color:#ff8fa3;font-size:12.5px;margin-top:6px;min-height:14px"></div>
-      <button class="btn btn-danger" style="margin-top:14px" onclick="submitReport()">Enviar denuncia</button>
+      <button class="btn btn-danger" id="reportBtnEnviar" style="margin-top:14px" onclick="submitReport()">Enviar denuncia</button>
       <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal('report')">Cancelar</button>
     </div>
     <div id="reportSentView" style="display:none;text-align:center;padding:10px 0">
@@ -3452,7 +3457,13 @@ async function doSwipe(dir){
     });
     const dados = await resp.json();
     deuMatch = !!dados.match;
-  } catch(e){ /* segue mesmo com erro de rede, pra não travar quem está testando */ }
+  } catch(e){
+    // Achado MÉDIA da auditoria de UX: antes falhava 100% em silêncio — a
+    // pessoa via a animação do swipe e a fila avançar, mas a curtida podia
+    // nunca ter chegado ao servidor. Mantém a decisão original de não travar
+    // a fila (bom pra quem está com conexão ruim), mas agora avisa.
+    showToastVinculo('Sem conexão — essa curtida pode não ter sido salva.');
+  }
 
   lastSwipeDir=dir;
   totalSwipes++;
@@ -3512,7 +3523,7 @@ async function carregarCurtidasRecebidas(){
   const bannerEl = document.getElementById('likesBannerPremium');
   grid.innerHTML = '';
   try{
-    const resp = await fetch(`${API_URL}/api/swipe/curtidas-recebidas`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
+    const resp = await fetchComTimeout(`${API_URL}/api/swipe/curtidas-recebidas`, { headers:{'Authorization':`Bearer ${tokenAtual}`} }, 10000);
     const dados = await resp.json();
     const perfis = dados.perfis || [];
     const totalReal = dados.total || 0;
@@ -3524,7 +3535,7 @@ async function carregarCurtidasRecebidas(){
     const souPremium = dados.premium === true;
 
     if(totalReal === 0){
-      vazio.style.display = 'block';
+      renderizarEstadoLista(vazio, { temErro:false, mensagemVazia: 'Ninguém curtiu você ainda. Continue no Descobrir!' });
       bannerEl.style.display = 'none';
       return;
     }
@@ -3553,7 +3564,9 @@ async function carregarCurtidasRecebidas(){
       grid.appendChild(card);
     });
   } catch(e){
-    vazio.style.display = 'block';
+    // Achado MÉDIA da auditoria de UX: erro de rede não é mais confundido com
+    // "ninguém curtiu" — especialmente sensível aqui, num app de relacionamento.
+    renderizarEstadoLista(vazio, { temErro:true, aoTentarNovo: carregarCurtidasRecebidas });
   }
 }
 
@@ -3717,7 +3730,12 @@ async function carregarStatusDuplaTela(){
       semDuplaEl.style.display = 'block';
       ativaEl.style.display = 'none';
     }
-  } catch(e){}
+  } catch(e){
+    // Achado MÉDIA da auditoria de UX: essa tela populava conteúdo visível
+    // (status da Dupla, convites) — falhar em silêncio podia deixar tudo em
+    // branco sem explicação.
+    showToastVinculo('Não foi possível carregar sua Dupla. Tenta de novo.');
+  }
 }
 
 async function enviarConviteDupla(){
@@ -3940,9 +3958,9 @@ async function carregarChats(){
   const banner = document.getElementById('mutualBanner');
   lista.innerHTML = '';
   try{
-    const resp = await fetch(`${API_URL}/api/swipe/matches`, {
+    const resp = await fetchComTimeout(`${API_URL}/api/swipe/matches`, {
       headers: { 'Authorization': `Bearer ${tokenAtual}` }
-    });
+    }, 10000);
     const dados = await resp.json();
     const matches = dados.matches || [];
 
@@ -3954,7 +3972,10 @@ async function carregarChats(){
     }
 
     if(matches.length === 0){
-      vazio.style.display='block';
+      renderizarEstadoLista(vazio, {
+        temErro:false,
+        mensagemVazia: '<div style="font-size:40px;margin-bottom:12px">&#128172;</div><div style="font-size:13.5px;line-height:1.6">Você ainda não tem nenhum Vínculo. Continue dando swipe!</div>'
+      });
       return;
     }
     vazio.style.display='none';
@@ -3974,7 +3995,9 @@ async function carregarChats(){
       lista.appendChild(item);
     });
   } catch(e){
-    vazio.style.display='block';
+    // Achado MÉDIA da auditoria de UX: erro de rede não é mais confundido com
+    // "sem Vínculos ainda" — mensagens diferentes, com tentar de novo no erro.
+    renderizarEstadoLista(vazio, { temErro:true, aoTentarNovo: carregarChats });
   }
 }
 
@@ -4019,9 +4042,13 @@ async function carregarMensagens(){
 
 async function enviarMensagemChat(){
   const input = document.getElementById('chatInput');
+  const btn = document.getElementById('chatSendBtn');
   const conteudo = input.value.trim();
   if(!conteudo || !matchAtual) return;
+  if(btn && btn.disabled) return;
   input.value='';
+  // Achado BAIXA da auditoria de UX: sem indicador de progresso ao enviar.
+  if(btn){ btn.disabled = true; btn.style.opacity = '.5'; }
   try{
     const resp = await fetch(`${API_URL}/api/chat/enviar`, {
       method:'POST',
@@ -4039,6 +4066,7 @@ async function enviarMensagemChat(){
     input.value = conteudo;
     showToastVinculo('Erro ao enviar mensagem. Tenta de novo.');
   }
+  finally{ if(btn){ btn.disabled = false; btn.style.opacity = ''; } }
 }
 
 const MAX_FOTOS_GALERIA = 7;
@@ -4070,18 +4098,31 @@ async function carregarGaleria(){
 
     if(fotos.length < MAX_FOTOS_GALERIA){
       const addBtn = document.createElement('div');
+      addBtn.id = 'btnAddFotoGaleria';
       addBtn.style.cssText = 'aspect-ratio:1;border-radius:12px;border:2px dashed rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:24px;color:#d0a8b8;cursor:pointer';
       addBtn.textContent = '+';
       addBtn.onclick = () => document.getElementById('inputGaleriaFoto').click();
       grid.appendChild(addBtn);
     }
-  } catch(e){}
+  } catch(e){
+    // Achado MÉDIA da auditoria de UX: o grid de fotos é conteúdo visível
+    // principal da tela de perfil — falhar em silêncio podia deixá-lo em
+    // branco ou desatualizado sem explicação.
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#ff8fa3;font-size:12.5px;padding:16px 0">Não foi possível carregar suas fotos. <span style="text-decoration:underline;cursor:pointer" onclick="carregarGaleria()">Tentar de novo</span></div>';
+  }
 }
 
 async function galeriaFotoSelecionada(event){
   const arquivo = event.target.files[0];
   if(!arquivo) return;
   event.target.value = '';
+
+  // Achado MÉDIA da auditoria de UX: sem isso, o "+" ficava clicável e sem
+  // nenhum retorno visual durante o envio — em conexão móvel ruim, dava a
+  // impressão de app travado.
+  const addBtn = document.getElementById('btnAddFotoGaleria');
+  if(addBtn){ addBtn.textContent = '…'; addBtn.style.pointerEvents = 'none'; addBtn.style.opacity = '.5'; }
+  const restaurarBotaoAdd = () => { if(addBtn){ addBtn.textContent = '+'; addBtn.style.pointerEvents = ''; addBtn.style.opacity = ''; } };
 
   // Se ainda não existe foto_url, essa é a PRIMEIRA foto do usuário — precisa ir
   // pela rota principal (/api/perfil/foto), que compara com a referência do
@@ -4122,6 +4163,7 @@ async function galeriaFotoSelecionada(event){
       showToastVinculo('Foto adicionada!');
       carregarGaleria();
     } catch(e){ showToastVinculo('Erro de conexão.'); }
+    finally{ restaurarBotaoAdd(); }
     return;
   }
 
@@ -4143,6 +4185,7 @@ async function galeriaFotoSelecionada(event){
     showToastVinculo('Foto adicionada!');
     carregarGaleria();
   } catch(e){ showToastVinculo('Erro de conexão.'); }
+  finally{ restaurarBotaoAdd(); }
 }
 
 async function removerFotoGaleriaReal(fotoId){
@@ -4373,14 +4416,16 @@ function preencherCard(elId, perfil){
 }
 
 async function carregarPerfis(){
+  let houveErro = false;
   try{
-    const resp = await fetch(`${API_URL}/api/swipe/perfis`, {
+    const resp = await fetchComTimeout(`${API_URL}/api/swipe/perfis`, {
       headers: { 'Authorization': `Bearer ${tokenAtual}` }
-    });
+    }, 10000);
     const dados = await resp.json();
     filaPerfis = dados.perfis || [];
   } catch(e){
     filaPerfis = [];
+    houveErro = true;
   }
   document.getElementById('emptyState').style.display='none';
   document.getElementById('card1').style.display='block';
@@ -4390,7 +4435,7 @@ async function carregarPerfis(){
   preencherCard('card1', filaPerfis.shift());
   preencherCard('card2', filaPerfis.shift());
   if(!document.getElementById('card1').dataset.perfilId){
-    showEmptyState();
+    showEmptyState(houveErro);
   }
 }
 
@@ -4486,12 +4531,34 @@ document.addEventListener('DOMContentLoaded', ()=>{ setTimeout(initSwipeTouch, 5
 // Também inicializar quando navegar para discover
 const _origGoTo = typeof goTo === 'function' ? goTo : null;
 
-function showEmptyState(){
+function showEmptyState(comErro){
   document.getElementById('card1').style.display='none';
   document.getElementById('card2').style.display='none';
   document.getElementById('emptyState').style.display='flex';
   document.querySelector('.swipe-btns').style.opacity='.3';
   document.querySelector('.swipe-btns').style.pointerEvents='none';
+
+  // Achado MÉDIA da auditoria de UX: "sem mais perfis" e "erro de rede"
+  // usavam a mesma tela — a pessoa podia achar que viu todo mundo quando, na
+  // verdade, a lista nem carregou.
+  const titulo = document.getElementById('emptyStateTitulo');
+  const texto = document.getElementById('emptyStateTexto');
+  const dicas = document.getElementById('emptyStateDicas');
+  const acoesNormais = document.getElementById('emptyStateAcoesNormais');
+  const erroBox = document.getElementById('emptyStateErro');
+  if(comErro){
+    if(titulo) titulo.textContent = 'Não foi possível carregar';
+    if(texto) texto.textContent = 'Verifique sua conexão e tenta de novo.';
+    if(dicas) dicas.style.display = 'none';
+    if(acoesNormais) acoesNormais.style.display = 'none';
+    if(erroBox) erroBox.style.display = 'block';
+  } else {
+    if(titulo) titulo.textContent = 'Por hoje é isso!';
+    if(texto) texto.textContent = 'Você viu todos os perfis disponíveis na sua região. Novos perfis aparecem todos os dias — volte amanhã!';
+    if(dicas) dicas.style.display = '';
+    if(acoesNormais) acoesNormais.style.display = '';
+    if(erroBox) erroBox.style.display = 'none';
+  }
 }
 
 function resetDiscoverDeck(){
@@ -4614,7 +4681,9 @@ function selectReportReason(el){
 
 async function submitReport(){
   const erroEl = document.getElementById('reportErro');
+  const btn = document.getElementById('reportBtnEnviar');
   erroEl.textContent = '';
+  if(btn && btn.disabled) return; // evita denúncia duplicada por clique ansioso
 
   if (!perfilDenunciadoId) {
     erroEl.textContent = 'Nao foi possivel identificar essa pessoa. Tenta abrir o perfil dela primeiro.';
@@ -4626,6 +4695,10 @@ async function submitReport(){
   }
 
   const descricao = document.getElementById('reportDetalhes').value.trim();
+  // Achado MÉDIA da auditoria de UX: numa ação sensível como denúncia, clique
+  // duplo por ansiedade podia gerar denúncias repetidas, e a falta de feedback
+  // podia fazer a pessoa achar que não funcionou.
+  if(btn){ btn.disabled = true; btn.textContent = 'Enviando...'; }
   try{
     const resp = await fetch(`${API_URL}/api/denuncia`, {
       method:'POST',
@@ -4638,17 +4711,23 @@ async function submitReport(){
     document.getElementById('reportSentView').style.display='block';
     motivoReportSelecionado = null;
   } catch(e){ erroEl.textContent = 'Erro de conexão. Tenta de novo.'; }
+  finally{ if(btn){ btn.disabled = false; btn.textContent = 'Enviar denuncia'; } }
 }
 
 async function blockProfile(){
   const erroEl = document.getElementById('blockErro');
+  const btn = document.getElementById('blockBtnConfirmar');
   erroEl.textContent = '';
+  if(btn && btn.disabled) return;
 
   if (!perfilDenunciadoId) {
     erroEl.textContent = 'Abra o perfil da pessoa antes de bloquear.';
     return;
   }
 
+  // Achado BAIXA da auditoria de UX: sem indicador de progresso durante o
+  // bloqueio.
+  if(btn){ btn.disabled = true; btn.textContent = 'Bloqueando...'; }
   try{
     const resp = await fetch(`${API_URL}/api/bloqueio`, {
       method:'POST',
@@ -4673,6 +4752,7 @@ async function blockProfile(){
       goTo('discover');
     }
   } catch(e){ erroEl.textContent = 'Erro de conexão. Tenta de novo.'; }
+  finally{ if(btn){ btn.disabled = false; btn.textContent = 'Sim, bloquear'; } }
 }
 
 function abrirConfirmacaoBloqueio(){
@@ -7527,7 +7607,15 @@ async function carregarMeuPerfil(){
     document.getElementById('meuPerfilStatMatches').textContent = (dadosMatches.matches || []).length;
     const elVis = document.getElementById('meuPerfilStatVisualizacoes');
     if(elVis) elVis.textContent = dadosVisualizacoes.visualizacoes ?? 0;
-  } catch(e){}
+  } catch(e){
+    // Achado MÉDIA da auditoria de UX: sem isso, os cards ficavam mostrando
+    // "0" (valor inicial do HTML) em vez de deixar claro que é falha de
+    // carregamento, não que o número real é zero.
+    ['meuPerfilStatCurtidas','meuPerfilStatMatches','meuPerfilStatVisualizacoes'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.textContent = '—';
+    });
+  }
 }
 
 async function carregarPainelAdmin(){
@@ -7558,10 +7646,10 @@ async function registrarVisualizacaoPerfil(usuarioVistoId){
 }
 
 async function carregarNotificacoesReais(){
+  const lista = document.getElementById('notifFeedLista');
   try{
-    const resp = await fetch(`${API_URL}/api/estatisticas/notificacoes`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
+    const resp = await fetchComTimeout(`${API_URL}/api/estatisticas/notificacoes`, { headers:{'Authorization':`Bearer ${tokenAtual}`} }, 10000);
     const d = await resp.json();
-    const lista = document.getElementById('notifFeedLista');
     if(!lista) return;
     const notifs = d.notificacoes || [];
     if(notifs.length === 0){
@@ -7578,7 +7666,24 @@ async function carregarNotificacoesReais(){
         </div>
       </div>`).join('');
     fetch(`${API_URL}/api/estatisticas/notificacoes/marcar-lidas`, { method:'PUT', headers:{'Authorization':`Bearer ${tokenAtual}`} }).catch(()=>{});
-  } catch(e){}
+  } catch(e){
+    // Achado ALTA da auditoria de UX: antes ficava travado em "Carregando..."
+    // pra sempre aqui — sem timeout, sem erro, sem saída. Agora avisa e deixa
+    // tentar de novo.
+    if(lista){
+      lista.innerHTML = '';
+      const msg = document.createElement('div');
+      msg.style.cssText = 'text-align:center;color:#ff8fa3;font-size:13px;padding:30px 20px 10px';
+      msg.textContent = 'Não foi possível carregar suas notificações. Verifique sua conexão.';
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-ghost';
+      btn.style.cssText = 'max-width:200px;margin:0 auto 20px;display:block';
+      btn.textContent = 'Tentar de novo';
+      btn.onclick = carregarNotificacoesReais;
+      lista.appendChild(msg);
+      lista.appendChild(btn);
+    }
+  }
 }
 
 async function atualizarBadgeNotificacoes(){
@@ -7616,17 +7721,20 @@ function escolherNotaAvaliacao(nota){
 async function enviarAvaliacaoEncontro(){
   if(!sessaoParaAvaliar) { closeModal('rating-real'); return; }
   const comentario = document.getElementById('avaliacaoComentario').value.trim();
+  // Achado MÉDIA da auditoria de UX: antes dizia "obrigado pelo feedback"
+  // mesmo quando a avaliação não tinha sido salva de verdade.
+  let falhou = false;
   try{
     await fetch(`${API_URL}/api/seguranca/avaliacoes`, {
       method:'POST',
       headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
       body: JSON.stringify({ sessao_seguranca_id: sessaoParaAvaliar.id, nota: notaAvaliacaoEscolhida || null, comentario })
     });
-  } catch(e){}
+  } catch(e){ falhou = true; }
   closeModal('rating-real');
   sessaoParaAvaliar = null;
   notaAvaliacaoEscolhida = 0;
-  showToastVinculo('Obrigado pelo feedback! 💜');
+  showToastVinculo(falhou ? 'Não foi possível enviar sua avaliação agora.' : 'Obrigado pelo feedback! 💜');
 }
 
 let sessaoSegurancaAtiva = null;
@@ -7777,16 +7885,24 @@ async function salvarCheckinSeguranca(){
 
 async function confirmarRetornoSeguroReal(){
   if(!sessaoSegurancaAtiva){ showToastVinculo('Nenhum check-in ativo no momento.'); return; }
+  // Achado MÉDIA da auditoria de UX: ação de segurança — se a confirmação não
+  // chegar no servidor, o alerta automático de check-in vencido ainda pode
+  // disparar mais tarde. Continua limpando o timer local (a pessoa já disse
+  // que está segura, não faz sentido deixá-la com um cronômetro rodando),
+  // mas agora avisa que pode ser preciso confirmar de novo.
+  let falhou = false;
   try{
     await fetch(`${API_URL}/api/seguranca/sessao/confirmar`, {
       method:'POST', headers:{'Authorization':`Bearer ${tokenAtual}`}
     });
-  }catch(e){}
+  }catch(e){ falhou = true; }
   sessaoSegurancaAtiva = null;
   pararTimersSeguranca();
   const el = document.getElementById('timerDisplay');
   if(el) el.textContent='00:00:00';
-  showToastVinculo('Que bom que você chegou bem! 💜');
+  showToastVinculo(falhou
+    ? 'Não foi possível confirmar no servidor — se o alerta automático disparar por engano, é por isso. Tenta confirmar de novo com internet estável.'
+    : 'Que bom que você chegou bem! 💜');
   setTimeout(()=>verificarAvaliacaoPendente(), 1500);
 }
 
@@ -8239,6 +8355,46 @@ function activateFilter(el){
 // do número atualizado — antes havia um "7" fixo em três lugares diferentes,
 // e corrigir só o HTML não resolvia: o clique num plano trazia o "7" de volta.
 let totalCurtidasRecebidas = 0;
+
+// Achado ALTA da auditoria de UX: fetch() nunca falha sozinho quando a rede
+// trava (sem resposta, sem erro) — só falha se a conexão for recusada. Sem
+// timeout, uma chamada que trava deixa a tela presa em "Carregando..." pra
+// sempre (foi exatamente o que aconteceu com Notificações).
+async function fetchComTimeout(url, opts, timeoutMs){
+  timeoutMs = timeoutMs || 10000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try{
+    return await fetch(url, { ...(opts||{}), signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+// Achado MÉDIA da auditoria de UX (padrão repetido em várias telas): erro de
+// rede era confundido com "lista genuinamente vazia" — mesma mensagem nos
+// dois casos. Esta função centraliza a diferença: no erro, mostra aviso +
+// botão de tentar de novo; na lista vazia de verdade, mostra a mensagem
+// específica que cada tela já tinha. Qualquer tela nova pode reusar.
+function renderizarEstadoLista(vazioEl, opts){
+  if(!vazioEl) return;
+  vazioEl.style.display = 'block';
+  if(opts.temErro){
+    vazioEl.innerHTML = '';
+    const msg = document.createElement('div');
+    msg.style.cssText = 'font-size:13.5px;line-height:1.6;color:#ff8fa3;margin-bottom:12px';
+    msg.textContent = 'Não foi possível carregar agora. Verifique sua conexão.';
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-ghost';
+    btn.style.cssText = 'max-width:200px;margin:0 auto';
+    btn.textContent = 'Tentar de novo';
+    btn.onclick = opts.aoTentarNovo;
+    vazioEl.appendChild(msg);
+    vazioEl.appendChild(btn);
+  } else {
+    vazioEl.innerHTML = opts.mensagemVazia;
+  }
+}
 
 // Achado MÉDIA da auditoria de UX: mapa único de textos de preço, usado tanto
 // por selectPlan() quanto por aplicarContagemCurtidasNaTela() — antes cada
