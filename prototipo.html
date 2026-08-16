@@ -1252,38 +1252,6 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   </div>
 </div>
 
-<div class="screen" id="screen-premium" style="background:#1a0810;min-height:100vh;">
-  <div class="topbar" style="background:transparent;position:absolute;top:0;left:0;right:0;z-index:2">
-    <div class="icon-btn" onclick="goTo('myprofile')">&#8592;</div>
-    <div style="width:38px"></div>
-    <div style="width:38px"></div>
-  </div>
-  <div style="background:linear-gradient(160deg,#5c1a2e,#2b0f17);padding:30px 24px 24px;text-align:center">
-    <div style="font-size:40px;margin-bottom:10px">&#128081;</div>
-    <div style="font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:700;margin-bottom:6px">Vinculo Premium</div>
-    <div style="color:#e0c0d0;font-size:13.5px">Viva conexoes sem limites</div>
-  </div>
-  <div style="padding:0 18px">
-    <div style="background:rgba(255,255,255,.04);border-radius:16px;padding:16px;margin:16px 0;border:1px solid rgba(255,255,255,.07)">
-      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)">
-        <span style="font-size:20px">&#128064;</span>
-        <div><div style="font-size:13px;font-weight:700">Ver quem curtiu voce</div><div style="font-size:12px;color:#d0b0c8">Veja todos os perfis que ja deram like em voce</div></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)">
-        <span style="font-size:20px">&#127937;</span>
-        <div><div style="font-size:13px;font-weight:700">Filtros avancados</div><div style="font-size:12px;color:#d0b0c8">Filtre por altura, peso e cor do cabelo</div></div>
-      </div>
-    </div>
-    <div style="background:linear-gradient(135deg,rgba(212,131,154,.12),rgba(201,160,107,.08));border:1px solid rgba(201,160,107,.3);border-radius:14px;padding:16px;text-align:center;margin-bottom:12px">
-      <div style="font-size:11px;color:#d8b0c4;margin-bottom:4px">MAIS POPULAR</div>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:#c9a06b">R$ 24,90/mes</div>
-      <div style="font-size:11px;color:#d8b0c4;margin-top:2px">Pagamento unico, sem renovacao automatica</div>
-    </div>
-    <button class="btn btn-primary" onclick="goTo('assinatura')">Assinar Premium</button>
-    <div style="text-align:center;color:#a08090;font-size:12px;margin-top:12px;padding-bottom:10px">Pagamento via Pix</div>
-  </div>
-</div>
-
 <!-- QUEM ME CURTIU -->
 <div class="screen" id="screen-likes" style="background:#1a0810;min-height:100vh;">
   <div class="topbar">
@@ -1680,35 +1648,31 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div style="color:#d4b87a;font-size:22px">&#8250;</div>
     </div>
 
-    <!-- Manifesto -->
-    <div style="background:linear-gradient(135deg,#3a1a2e,#1a0810);border:1.5px solid rgba(201,160,107,.35);border-radius:20px;padding:24px 18px;margin-bottom:20px;position:relative;overflow:hidden">
-      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(201,160,107,.12),transparent 70%);pointer-events:none"></div>
-      <div style="font-size:10px;font-weight:800;color:#d4b87a;text-transform:uppercase;letter-spacing:.14em;text-align:center;margin-bottom:10px;position:relative">Conectando pessoas, relacionamentos e oportunidades</div>
-      <div style="font-size:13.5px;color:#d0a8b8;line-height:1.75;position:relative">
-        <p style="margin:0 0 12px">O Vínculo nasceu com um compromisso: colocar a segurança em primeiro lugar. Verificação de identidade real, botão de pânico, check-in com alerta automático, contatos de confiança — cada recurso do app existe para que você possa se conectar com outras pessoas com tranquilidade. Essa é, e sempre vai ser, nossa prioridade número um.</p>
-        <p style="margin:0">Mas eu decidi que o Vínculo podia ir além de conectar pessoas com segurança. Ele também podia conectar pessoas a oportunidades reais de mudar de vida — inclusive financeiramente. É por isso que existe o <b style="color:#d4b87a">Parceiros Vínculo.</b></p>
-      </div>
-    </div>
-
     <!-- Resumo do parceiro (dados reais) -->
     <div style="font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Seus números</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px">
       <div style="background:rgba(255,255,255,.06);border-radius:14px;padding:14px 12px;text-align:center">
-        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#fdf6f2" id="statParceiroIndicados">0</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#fdf6f2" id="statParceiroIndicados">...</div>
         <div style="font-size:11px;color:#d0a8b8">indicados</div>
       </div>
       <div style="background:rgba(255,255,255,.06);border-radius:14px;padding:14px 12px;text-align:center">
-        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#fdf6f2" id="statParceiroAtivos">0</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#fdf6f2" id="statParceiroAtivos">...</div>
         <div style="font-size:11px;color:#d0a8b8">ativos (pagando)</div>
       </div>
       <div style="background:rgba(201,160,107,.1);border:1.5px solid rgba(201,160,107,.3);border-radius:14px;padding:14px 12px;text-align:center">
-        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#d4b87a" id="statParceiroGanhoTotal">R$ 0,00</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#d4b87a" id="statParceiroGanhoTotal">...</div>
         <div style="font-size:11px;color:#d0a8b8">ganho acumulado</div>
       </div>
       <div style="background:rgba(201,160,107,.1);border:1.5px solid rgba(201,160,107,.3);border-radius:14px;padding:14px 12px;text-align:center">
-        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#d4b87a" id="statParceiroGanhoMes">R$ 0,00</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#d4b87a" id="statParceiroGanhoMes">...</div>
         <div style="font-size:11px;color:#d0a8b8">estimativa deste mês</div>
       </div>
+    </div>
+
+    <!-- Achado MÉDIA da auditoria de UX: resumo objetivo do ganho, visível
+         de cara — antes só existia dentro de um parágrafo de texto corrido. -->
+    <div style="background:rgba(201,160,107,.12);border:1px solid rgba(201,160,107,.35);border-radius:12px;padding:12px 14px;margin-bottom:16px;text-align:center;font-size:12.5px;color:#f0dcc0">
+      Você ganha <b style="color:#d4b87a">de R$ 3,30 a R$ 7,00 por indicação ativa, todo mês</b> — sem limite.
     </div>
 
     <!-- Link do parceiro -->
@@ -1724,6 +1688,19 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <button onclick="compartilharLinkIndicacao()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(37,211,102,.12);border:1.5px solid rgba(37,211,102,.35);border-radius:12px;padding:15px;color:#fdf6f2;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;margin-bottom:24px">
       <span style="font-size:20px">&#128172;</span> Compartilhar link
     </button>
+
+    <!-- Manifesto (achado BAIXA da auditoria de UX: movido pra depois da
+         ação principal — antes ficava entre o topo da tela e o link,
+         "espremendo" a ação de compartilhar entre dois blocos grandes de
+         texto, o manifesto e a biografia do fundador logo abaixo) -->
+    <div style="background:linear-gradient(135deg,#3a1a2e,#1a0810);border:1.5px solid rgba(201,160,107,.35);border-radius:20px;padding:24px 18px;margin-bottom:20px;position:relative;overflow:hidden">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(201,160,107,.12),transparent 70%);pointer-events:none"></div>
+      <div style="font-size:10px;font-weight:800;color:#d4b87a;text-transform:uppercase;letter-spacing:.14em;text-align:center;margin-bottom:10px;position:relative">Conectando pessoas, relacionamentos e oportunidades</div>
+      <div style="font-size:13.5px;color:#d0a8b8;line-height:1.75;position:relative">
+        <p style="margin:0 0 12px">O Vínculo nasceu com um compromisso: colocar a segurança em primeiro lugar. Verificação de identidade real, botão de pânico, check-in com alerta automático, contatos de confiança — cada recurso do app existe para que você possa se conectar com outras pessoas com tranquilidade. Essa é, e sempre vai ser, nossa prioridade número um.</p>
+        <p style="margin:0">Mas eu decidi que o Vínculo podia ir além de conectar pessoas com segurança. Ele também podia conectar pessoas a oportunidades reais de mudar de vida — inclusive financeiramente. É por isso que existe o <b style="color:#d4b87a">Parceiros Vínculo.</b></p>
+      </div>
+    </div>
 
     <!-- História do fundador -->
     <div style="font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">A história por trás do Vínculo</div>
@@ -2753,7 +2730,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
           <div style="font-size:11px;color:#6dcc6d;font-weight:600">Aprovação imediata</div>
         </div>
       </div>
-      <button class="btn btn-primary" style="font-size:15px;padding:16px" onclick="finalizarAssinatura()">Confirmar e pagar com Pix</button>
+      <button class="btn btn-primary" style="font-size:15px;padding:16px" onclick="iniciarPagamentoAssinatura('pix')">Confirmar e pagar com Pix</button>
     </div>
 
     <div id="blocoMetodoCartao" style="display:none">
@@ -2764,6 +2741,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
           <div style="font-size:11px;color:#e0a0b0;font-weight:600">Confirmação em alguns minutos</div>
         </div>
       </div>
+      <div style="font-size:12px;color:#d8b0c4;margin-bottom:10px;text-align:center">Preencha o cartão abaixo e toque em "Pagar"</div>
       <div id="cardPaymentBrick_assinatura" style="min-height:200px"></div>
       <div id="cartaoAssinaturaErro" style="color:#ff8fa3;font-size:12.5px;margin:8px 0;min-height:14px"></div>
     </div>
@@ -8262,6 +8240,13 @@ function activateFilter(el){
 // e corrigir só o HTML não resolvia: o clique num plano trazia o "7" de volta.
 let totalCurtidasRecebidas = 0;
 
+// Achado MÉDIA da auditoria de UX: mapa único de textos de preço, usado tanto
+// por selectPlan() quanto por aplicarContagemCurtidasNaTela() — antes cada
+// função tinha sua própria cópia (uma incompleta, hardcoded no preço
+// semanal), o que permitia o texto do botão dessincronizar do plano
+// realmente selecionado.
+const PRECOS_ASSINATURA_TEXTO = { semanal:'R$ 9,90/semana', mensal:'R$ 24,90/mês', anual:'R$ 199,90/ano' };
+
 function textoCTAAssinatura(sufixoPreco){
   if(totalCurtidasRecebidas === 1) return `\u{1F512} Ver quem curtiu você — ${sufixoPreco}`;
   if(totalCurtidasRecebidas > 1)  return `\u{1F512} Ver as ${totalCurtidasRecebidas} curtidas — ${sufixoPreco}`;
@@ -8294,8 +8279,13 @@ function aplicarContagemCurtidasNaTela(total){
   const subtitulo = document.getElementById('assinaturaSubtituloCurtidas');
   if(subtitulo) subtitulo.style.display = temCurtidas ? 'block' : 'none';
 
+  // Achado MÉDIA da auditoria de UX: usa o preço do plano ATUALMENTE
+  // selecionado, em vez de sempre escrever o preço semanal fixo — antes,
+  // se essa chamada assíncrona (contagem de curtidas) chegasse depois de o
+  // usuário já ter escolhido outro plano, o texto do botão "voltava" pro
+  // preço semanal por baixo do usuário, mesmo sem ele ter trocado de plano.
   const cta = document.getElementById('assinaturaCTA');
-  if(cta) cta.innerHTML = textoCTAAssinatura('a partir de R$ 9,90');
+  if(cta) cta.innerHTML = textoCTAAssinatura(PRECOS_ASSINATURA_TEXTO[planoSelecionado] || PRECOS_ASSINATURA_TEXTO.mensal);
 }
 
 function selectPlan(plan){
@@ -8305,8 +8295,7 @@ function selectPlan(plan){
   if(el){el.classList.add('selected');el.style.borderColor='#c9a06b';}
   const cta=document.getElementById('assinaturaCTA');
   if(cta){
-    const precos={ semanal:'R$ 9,90/semana', mensal:'R$ 24,90/mês', anual:'R$ 199,90/ano' };
-    cta.innerHTML = textoCTAAssinatura(precos[plan] || precos.mensal);
+    cta.innerHTML = textoCTAAssinatura(PRECOS_ASSINATURA_TEXTO[plan] || PRECOS_ASSINATURA_TEXTO.mensal);
   }
   // Atualizar modal de confirmação. "Acesso por N dias" em vez de "Renovação
   // automática": o pagamento é Pix avulso, nada renova sozinho.
@@ -8344,16 +8333,39 @@ let brickCartaoAssinatura = null;
 // Chamado pelo CTA de assinatura: garante que o modal sempre abre na aba Pix
 // (mesmo que a última visita tenha ficado na aba Cartão).
 function abrirModalConfirmacaoAssinatura(){
-  selecionarMetodoPagamento('pix');
+  // Achado BAIXA da auditoria de UX: abre na última forma de pagamento usada,
+  // em vez de sempre voltar pra Pix.
+  selecionarMetodoPagamento(localStorage.getItem('vinculo_metodo_pagamento_pref') || 'pix');
   openModal('confirma-assinatura');
 }
 
+// Achado ALTA da auditoria de UX: telefone agora é pedido ANTES de renderizar
+// o formulário de cartão ou gerar o Pix — nunca depois. Perder um cartão já
+// digitado (token de uso único) por causa de um campo sem relação com o
+// pagamento era a pior fricção do checkout. Se o telefone já é conhecido
+// (perfil ou já digitado nesta sessão), pula direto pro pagamento.
+function iniciarPagamentoAssinatura(metodo){
+  if((usuarioAtual && usuarioAtual.telefone) || telefoneParaAssinatura){
+    if(metodo === 'cartao') renderizarBrickCartaoAssinatura();
+    else finalizarAssinatura();
+    return;
+  }
+  proximoMetodoAposTelefone = metodo;
+  closeModal('confirma-assinatura');
+  document.getElementById('telefoneAssinatura').value = '';
+  document.getElementById('telefoneAssinaturaErro').textContent = '';
+  openModal('telefone-assinatura');
+}
+
 function selecionarMetodoPagamento(metodo){
+  // Achado BAIXA da auditoria de UX: lembra a última forma de pagamento
+  // escolhida, pra não reabrir sempre em Pix pra quem sempre paga de cartão.
+  localStorage.setItem('vinculo_metodo_pagamento_pref', metodo);
   document.getElementById('btnMetodoPix').classList.toggle('ativo', metodo==='pix');
   document.getElementById('btnMetodoCartao').classList.toggle('ativo', metodo==='cartao');
   document.getElementById('blocoMetodoPix').style.display = metodo==='pix' ? 'block' : 'none';
   document.getElementById('blocoMetodoCartao').style.display = metodo==='cartao' ? 'block' : 'none';
-  if(metodo==='cartao') renderizarBrickCartaoAssinatura();
+  if(metodo==='cartao') iniciarPagamentoAssinatura('cartao');
 }
 
 async function renderizarBrickCartaoAssinatura(){
