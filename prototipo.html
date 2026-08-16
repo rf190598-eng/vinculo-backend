@@ -29,6 +29,7 @@ input,textarea,select{font-size:16px!important;font-family:inherit;}
 .bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:linear-gradient(to top,#0a0306,#120508);border-top:1.5px solid rgba(255,255,255,.15);display:flex;justify-content:space-around;padding:10px 0 18px;z-index:200;box-shadow:0 -4px 20px rgba(0,0,0,.5);}
 .navbtn{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:#9a6070;font-size:9px;font-weight:700;cursor:pointer;flex:1;letter-spacing:.3px;}
 .navbtn.active{color:#f0a0b8;}
+.navbtn[data-s="safety"] .ic{color:#e0607a;}
 .navbtn .ic{font-size:21px;}
 
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px 8px;background:#1a0810;}
@@ -475,6 +476,13 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="font-size:52px;margin-bottom:12px">&#127881;</div>
     <div class="serif" style="font-size:32px;font-weight:700;margin-bottom:8px;color:#fdf6f2">Conta criada!</div>
     <div style="color:#d0a8b8;font-size:13.5px;margin-bottom:28px;line-height:1.6;max-width:280px">Falta só um passo rápido: confirmar sua identidade. É o que garante que todo mundo no Vínculo é uma pessoa real e verificada.</div>
+    <!-- Achado MÉDIA da auditoria de UX: liveness chegava sem nenhum
+         contexto de segurança antes — o tour que explicaria isso só
+         aparece bem depois, já dentro do app. -->
+    <div style="background:rgba(201,160,107,.1);border:1px solid rgba(201,160,107,.3);border-radius:14px;padding:14px 16px;margin-bottom:14px;max-width:300px;text-align:left">
+      <div style="font-size:12px;color:#d4b87a;font-weight:700;margin-bottom:6px">&#128274; Por que pedimos isso</div>
+      <div style="font-size:12px;color:#e0c8a8;line-height:1.6">Confirmar sua identidade é o que destrava os recursos de segurança do Vínculo: botão de pânico, check-in com alerta automático e contatos de confiança — tudo pra você se conectar com tranquilidade.</div>
+    </div>
     <div class="verify-chip">&#128737; Quase lá — verificação de identidade</div>
     <button class="btn btn-primary" style="margin-top:20px" onclick="goTo('liveness')">Começar verificação</button>
   </div>
@@ -685,6 +693,18 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <button onclick="document.getElementById('completeProfileBanner').style.display='none'" style="background:none;border:none;color:#c0a0b0;font-size:16px;cursor:pointer;padding:0 2px">&#10005;</button>
     </div>
   </div>
+  <!-- Achado MÉDIA da auditoria de UX: não havia nenhum incentivo proativo
+       pra cadastrar contato de confiança, ao contrário do que já existe pra
+       completar o perfil — mesmo esse sendo o diferencial de segurança do
+       produto. Só aparece pra quem realmente não tem contato cadastrado. -->
+  <div id="trustContactBanner" style="display:none;padding:0 18px 10px">
+    <div style="display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(224,96,122,.18),rgba(212,131,154,.14));border:1.5px solid rgba(224,96,122,.5);border-radius:14px;padding:11px 13px">
+      <span style="font-size:18px">&#128737;</span>
+      <div style="flex:1;font-size:12px;color:#fdf6f2;line-height:1.4"><b style="color:#f0a0b8">Cadastre um contato de confiança</b><br><span style="color:#e0c8b0">É ele quem é avisado se você precisar de ajuda</span></div>
+      <button onclick="abrirModalContatoSeguranca()" style="background:rgba(224,96,122,.2);border:1px solid #e0607a;color:#f0a0b8;border-radius:10px;padding:7px 11px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">Cadastrar</button>
+      <button onclick="this.closest('#trustContactBanner').dataset.dispensado='1';this.closest('#trustContactBanner').style.display='none'" style="background:none;border:none;color:#c0a0b0;font-size:16px;cursor:pointer;padding:0 2px">&#10005;</button>
+    </div>
+  </div>
   <!-- TUTORIAL PRIMEIRO SWIPE -->
   <div id="swipeTutorial" style="position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px">
     <div style="text-align:center;max-width:320px">
@@ -838,6 +858,11 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div onclick="showToastVinculo('Link de compartilhamento copiado! 🎉')" style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.15);border-radius:20px;padding:8px 16px;cursor:pointer;margin-bottom:18px">
       <span style="font-size:16px">&#128279;</span>
       <span style="font-size:12.5px;color:#e0d0e8;font-weight:600">Compartilhar esse momento</span>
+    </div>
+    <!-- Achado BAIXA da auditoria de UX: reforço da mensagem de segurança num
+         ponto de alta atenção, sem quebrar o clima de celebração. -->
+    <div style="font-size:11px;color:#a07890;margin-bottom:16px;display:flex;align-items:center;gap:6px">
+      <span>&#128737;</span> Vão se encontrar? Use o check-in e o botão de pânico se precisar.
     </div>
 
     <!-- Quebra-gelos -->
@@ -2808,7 +2833,7 @@ function goTo(name){
   window.scrollTo(0,0);
   requestAnimationFrame(()=>window.scrollTo(0,0));
   setTimeout(()=>window.scrollTo(0,0), 50);
-  if(name==='discover'){ setTimeout(initSwipeTouch, 150); carregarPerfis(); carregarPerguntaDoDia(); carregarStoriesBar(); atualizarBadgeNotificacoes(); }
+  if(name==='discover'){ setTimeout(initSwipeTouch, 150); carregarPerfis(); carregarPerguntaDoDia(); carregarStoriesBar(); atualizarBadgeNotificacoes(); verificarBannerContatoConfianca(); }
   if(name==='chats'){ carregarChats(); }
   if(name==='safety'){ carregarContatos(); carregarStatusSeguranca(); }
   if(name==='indica'){ carregarEstatisticasIndicacao(); }
@@ -7997,6 +8022,17 @@ async function temContatoDeConfiancaCadastrado(){
   }catch(e){
     return false; // sem confirmação = trata como "sem contato", lado mais seguro
   }
+}
+
+// Achado MÉDIA da auditoria de UX: mostra o banner só pra quem ainda não
+// tem contato de confiança cadastrado (reusa a mesma checagem do botão de
+// pânico e do check-in), e não volta a aparecer na mesma sessão se a pessoa
+// já dispensou.
+async function verificarBannerContatoConfianca(){
+  const banner = document.getElementById('trustContactBanner');
+  if(!banner || banner.dataset.dispensado === '1') return;
+  const temContato = await temContatoDeConfiancaCadastrado();
+  banner.style.display = temContato ? 'none' : 'block';
 }
 
 function mostrarAvisoSemContatoSeguranca(origem){
