@@ -1469,6 +1469,19 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:#fdf6f2;margin-bottom:8px">Explore em dupla</div>
         <div style="font-size:13px;color:#e0c8d8;line-height:1.6;margin-bottom:4px">Convide um amigo(a) verificado pra formar uma dupla. Os dois precisam curtir pra valer — muito mais seguro!</div>
       </div>
+      <!-- Achado ALTA da auditoria de UX: antes o convite pedia um código que
+           só existia numa tela chamada "Indicar amigo" (que não existe mais)
+           e que, mesmo com o nome certo, mostraria o código ERRADO — o do
+           Programa de Parceiros, um sistema totalmente separado do que o
+           Modo Dupla usa. Agora o código certo (usuarios.codigo_indicacao,
+           já gerado no cadastro) aparece direto aqui, copiável. -->
+      <div style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.15);border-radius:14px;padding:14px 16px;margin-bottom:14px">
+        <div style="font-size:12px;color:#d0a8b8;margin-bottom:6px">Seu código para dupla</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="flex:1;font-size:15px;color:#fdf6f2;font-weight:700;letter-spacing:.5px" id="duplaCodigoTexto">—</div>
+          <button onclick="copiarCodigoDupla()" style="background:linear-gradient(135deg,#d4839a,#c9a06b);border:none;border-radius:8px;padding:8px 14px;color:#1a0508;font-weight:800;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap">Copiar</button>
+        </div>
+      </div>
       <button class="btn btn-primary" style="font-size:15px;padding:16px" onclick="openModal('dupla-convite')">&#128107; Convidar amigo pra dupla</button>
     </div>
 
@@ -2698,7 +2711,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div class="modal-handle"></div>
     <div class="big-ic">&#128107;</div>
     <h3 class="serif">Convidar para dupla</h3>
-    <p>Peça pro seu amigo(a) abrir o perfil dele em "Indicar amigo" e te mandar o código de indicação. Cola aqui:</p>
+    <p>Peça pro seu amigo(a) abrir a tela de Dupla dele(a) e te mandar o código que aparece em "Seu código para dupla". Cola aqui:</p>
     <input class="inp" id="codigoConviteDupla" placeholder="Código do amigo (ex: joao1234)"/>
     <div id="duplaConviteErro" style="color:#ff8fa3;font-size:12.5px;margin:-6px 0 8px;min-height:14px"></div>
     <button class="btn btn-primary" onclick="enviarConviteDupla()">Enviar convite</button>
@@ -3693,6 +3706,9 @@ async function carregarStatusDuplaTela(){
   const convitesWrap = document.getElementById('duplaConvitesWrap');
   const listaConvites = document.getElementById('duplaListaConvites');
 
+  const codigoEl = document.getElementById('duplaCodigoTexto');
+  if(codigoEl) codigoEl.textContent = (usuarioAtual && usuarioAtual.codigo_indicacao) || '—';
+
   try{
     const [respStatus, respConvites] = await Promise.all([
       fetch(`${API_URL}/api/dupla/status`, { headers:{'Authorization':`Bearer ${tokenAtual}`} }),
@@ -3735,6 +3751,16 @@ async function carregarStatusDuplaTela(){
     // (status da Dupla, convites) — falhar em silêncio podia deixar tudo em
     // branco sem explicação.
     showToastVinculo('Não foi possível carregar sua Dupla. Tenta de novo.');
+  }
+}
+
+function copiarCodigoDupla(){
+  const codigo = (usuarioAtual && usuarioAtual.codigo_indicacao) || '';
+  if(!codigo){ showToastVinculo('Não foi possível carregar seu código agora.'); return; }
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(codigo).then(()=>showToastVinculo('Código copiado!'));
+  } else {
+    prompt('Copie seu código:', codigo);
   }
 }
 
