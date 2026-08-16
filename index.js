@@ -39,6 +39,7 @@ const Parceiro = require('./models/Parceiro');
 const Indicacao = require('./models/Indicacao');
 const Comissao = require('./models/Comissao');
 const BonusMeta = require('./models/BonusMeta');
+const Fundador = require('./models/Fundador');
 const { registrarAssociacoes } = require('./models/associacoes');
 const authRoutes = require('./routes/auth');
 const swipeRoutes = require('./routes/swipe');
@@ -59,6 +60,10 @@ const {
   rotasAdminComissoes,
   rotasAdminMetas
 } = require('./routes/parceiros');
+const {
+  router: fundadorRoutes,
+  rotasAdmin: fundadorRotasAdmin
+} = require('./routes/fundadores');
 const {
   fecharComissoesDoMes,
   primeiroDiaDoMes,
@@ -145,6 +150,26 @@ app.get('/prototipo', (req, res) => {
 app.get('/admin', (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+// Link pessoal de indicação da Comunidade de Fundadores: mesmo padrão do
+// /r/:codigo acima, mas leva pra página pública de cadastro dos Fundadores,
+// não pro app.
+app.get('/fundadores/:codigo', (req, res) => {
+  const codigo = String(req.params.codigo || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 40);
+  res.redirect(302, '/fundadores?ref=' + encodeURIComponent(codigo));
+});
+
+app.get('/fundadores', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.sendFile(path.join(__dirname, 'fundadores.html'));
+});
+
+// Painel admin da Comunidade de Fundadores — mesmo modelo de segurança do
+// /admin: só serve o HTML, todo controle de acesso é nas rotas /api/admin/*.
+app.get('/admin/fundadores', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.sendFile(path.join(__dirname, 'admin-fundadores.html'));
 });
 app.get('/vinculo-liveness-bundle.mjs', (req, res) => {
   res.set('Content-Type', 'application/javascript');
@@ -270,6 +295,8 @@ app.use('/api/denuncia', denunciaRoutes);
 app.use('/api/bloqueio', bloqueioRoutes);
 app.use('/api/usuario', usuarioRoutes);
 app.use('/api/parceiros', parceiroRoutes);
+app.use('/api/fundadores', fundadorRoutes);
+app.use('/api/admin/fundadores', fundadorRotasAdmin);
 app.use('/api/admin/parceiros', parceiroRotasAdmin);
 app.use('/api/admin/comissoes', rotasAdminComissoes);
 app.use('/api/admin/metas', rotasAdminMetas);
