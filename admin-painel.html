@@ -60,6 +60,15 @@
   .generos .bloco .rot{font-size:12px;color:var(--suave);margin-top:4px}
 
   .aviso-nota{font-size:11.5px;color:var(--suave);margin-top:10px;line-height:1.5}
+
+  .busca-linha{display:flex;gap:8px;margin-bottom:14px}
+  .busca-linha input{flex:1}
+  .paginacao{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:14px;font-size:12.5px;color:var(--suave)}
+  .paginacao button{padding:6px 12px}
+  .tag-pagante_ativo{background:#dcf3e2;color:var(--ok)}
+  .tag-vitalicio_legado{background:#f0e0f8;color:#7a3aa8}
+  .tag-vencido{background:#fbe0e0;color:var(--erro)}
+  .tag-gratuito{background:#eee;color:#666}
 </style>
 </head>
 <body>
@@ -99,7 +108,21 @@
     <!-- ===== 1. RESUMO GERAL ===== -->
     <div class="resumo" id="resumoGeral"></div>
 
-    <!-- ===== 2. FUNDADORES ===== -->
+    <!-- ===== 2. TODOS OS USUÁRIOS ===== -->
+    <div class="card">
+      <div class="card-head">
+        <h2>Todos os usuários</h2>
+        <span id="usuariosTotalTexto" class="aviso-nota" style="margin:0"></span>
+      </div>
+      <div class="busca-linha">
+        <input type="text" id="usuariosBusca" placeholder="Buscar por nome ou e-mail..." onkeypress="if(event.key==='Enter')buscarUsuarios()"/>
+        <button class="btn-secundario" onclick="buscarUsuarios()">Buscar</button>
+      </div>
+      <div id="tabelaUsuarios"><div class="vazio">Carregando...</div></div>
+      <div class="paginacao" id="usuariosPaginacao"></div>
+    </div>
+
+    <!-- ===== 3. FUNDADORES ===== -->
     <div class="card">
       <div class="card-head">
         <h2>Fundadores</h2>
@@ -112,7 +135,7 @@
       </div>
     </div>
 
-    <!-- ===== 3. PARCEIROS E COMISSÕES ===== -->
+    <!-- ===== 4. PARCEIROS E COMISSÕES ===== -->
     <div class="card">
       <div class="card-head">
         <h2>Parceiros e comissões</h2>
@@ -124,13 +147,13 @@
       <div class="aviso-nota">Esta seção é só leitura. Aprovar parceiros e marcar comissões como pagas continua sendo feito no painel de Parceiros.</div>
     </div>
 
-    <!-- ===== 4. USUÁRIOS PAGANTES ===== -->
+    <!-- ===== 5. USUÁRIOS PAGANTES ===== -->
     <div class="card">
       <h2>Usuários pagantes</h2>
       <div id="tabelaAssinantes"><div class="vazio">Carregando...</div></div>
     </div>
 
-    <!-- ===== 5. FINANCEIRO ===== -->
+    <!-- ===== 6. FINANCEIRO ===== -->
     <div class="card">
       <h2>Financeiro</h2>
       <div id="tabelaReceitaPorMes"><div class="vazio">Carregando...</div></div>
@@ -244,6 +267,7 @@ async function carregarTudo(){
     montarParceiros(parceiros, comissoes);
     montarAssinantes(painel.assinantes);
     montarFinanceiro(painel.financeiro);
+    carregarUsuarios(1);
   }catch(e){
     mostrarMsg('painelMsg', e.message || 'Erro ao carregar dados', 'erro');
   }
@@ -251,6 +275,72 @@ async function carregarTudo(){
 
 const ROTULOS_GENERO = { masculino: 'Homens', feminino: 'Mulheres', 'nao-binario': 'Não-binário' };
 const ROTULOS_METODO = { pix: 'Pix', cartao: 'Cartão', desconhecido: 'Desconhecido' };
+const ROTULOS_STATUS_PAGAMENTO = {
+  pagante_ativo: 'Pagante ativo',
+  vitalicio_legado: 'Vitalício (legado)',
+  vencido: 'Vencido',
+  gratuito: 'Gratuito'
+};
+
+// ===== 2. TODOS OS USUÁRIOS (busca + paginação própria, carrega separado
+// do resto do painel pra não travar as outras seções numa base grande) =====
+let usuariosPaginaAtual = 1;
+
+async function carregarUsuarios(pagina){
+  usuariosPaginaAtual = pagina;
+  const busca = document.getElementById('usuariosBusca').value.trim();
+  const el = document.getElementById('tabelaUsuarios');
+  el.innerHTML = '<div class="vazio">Carregando...</div>';
+  try{
+    const params = new URLSearchParams({ pagina, por_pagina: 25 });
+    if(busca) params.set('busca', busca);
+    const dados = await api('/api/admin/painel/usuarios?' + params.toString());
+    montarUsuarios(dados);
+  }catch(e){
+    el.innerHTML = '<div class="vazio">Erro ao carregar usuários.</div>';
+  }
+}
+
+function buscarUsuarios(){
+  carregarUsuarios(1);
+}
+
+function montarUsuarios(dados){
+  document.getElementById('usuariosTotalTexto').textContent = `${dados.total} usuário(s) no total`;
+
+  const el = document.getElementById('tabelaUsuarios');
+  if(!dados.usuarios.length){
+    el.innerHTML = '<div class="vazio">Nenhum usuário encontrado.</div>';
+  }else{
+    el.innerHTML = `
+      <table>
+        <thead><tr><th>Nome</th><th>E-mail</th><th>Status de pagamento</th><th>Verificado</th><th>Cadastro</th></tr></thead>
+        <tbody>
+          ${dados.usuarios.map(u => `
+            <tr>
+              <td>${esc(u.nome)}</td>
+              <td>${esc(u.email)}</td>
+              <td><span class="tag tag-${esc(u.status_pagamento)}">${esc(ROTULOS_STATUS_PAGAMENTO[u.status_pagamento] || u.status_pagamento)}</span></td>
+              <td>${u.verificado ? 'Sim' : 'Não'}</td>
+              <td>${dataBR(u.data_cadastro)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  const paginacao = document.getElementById('usuariosPaginacao');
+  if(dados.total_paginas <= 1){
+    paginacao.innerHTML = '';
+  }else{
+    paginacao.innerHTML = `
+      <button class="btn-secundario" ${dados.pagina <= 1 ? 'disabled' : ''} onclick="carregarUsuarios(${dados.pagina - 1})">← Anterior</button>
+      <span>Página ${dados.pagina} de ${dados.total_paginas}</span>
+      <button class="btn-secundario" ${dados.pagina >= dados.total_paginas ? 'disabled' : ''} onclick="carregarUsuarios(${dados.pagina + 1})">Próxima →</button>
+    `;
+  }
+}
 
 function montarResumoGeral(estatisticas, fundadores, parceiros, painel){
   const parceirosAtivos = parceiros.parceiros.filter(p => p.status === 'ativo');

@@ -115,4 +115,73 @@ const obterPainel = async (req, res) => {
   }
 };
 
-module.exports = { obterPainel };
+// Status de pagamento pra exibição — não é um campo salvo, é derivado na
+// hora a partir de plano_atual/premium/premium_ate:
+// - pagante_ativo: tem plano confirmado e ainda dentro da validade.
+// - vitalicio_legado: conta premium da fase gratuita antiga (premium=true,
+//   premium_ate nunca setado) — nunca pagou, mas ainda tem acesso completo.
+//   Rotulado à parte pra não ser confundido com "gratuito" de verdade.
+// - vencido: já teve premium_ate no passado (assinou uma vez) e não está
+//   mais dentro da validade — plano_atual pode já estar null aqui, porque
+//   verificarAssinaturasVencidas o limpa quando encerra o plano.
+// - gratuito: nunca teve premium_ate setado e não é o caso legado acima.
+function statusPagamento(usuario, agora) {
+  if (usuario.plano_atual && usuario.premium_ate && usuario.premium_ate > agora) return 'pagante_ativo';
+  if (usuario.premium && !usuario.premium_ate) return 'vitalicio_legado';
+  if (usuario.premium_ate && usuario.premium_ate <= agora) return 'vencido';
+  return 'gratuito';
+}
+
+const PAGINA_TAMANHO_PADRAO = 25;
+const PAGINA_TAMANHO_MAXIMO = 100;
+
+// Lista detalhada de usuários pro Painel Central — Lote 1. Busca por
+// nome/e-mail (case-insensitive) e paginação simples, pra não precisar
+// carregar a base inteira de uma vez conforme ela cresce.
+const listarUsuarios = async (req, res) => {
+  try {
+    const busca = String(req.query.busca || '').trim().slice(0, 100);
+    const pagina = Math.max(1, parseInt(req.query.pagina, 10) || 1);
+    const porPagina = Math.min(
+      PAGINA_TAMANHO_MAXIMO,
+      Math.max(1, parseInt(req.query.por_pagina, 10) || PAGINA_TAMANHO_PADRAO)
+    );
+
+    const where = busca
+      ? {
+          [Op.or]: [
+            { nome: { [Op.iLike]: `%${busca}%` } },
+            { email: { [Op.iLike]: `%${busca}%` } }
+          ]
+        }
+      : {};
+
+    const { count, rows } = await Usuario.findAndCountAll({
+      where,
+      attributes: ['nome', 'email', 'verificado', 'premium', 'plano_atual', 'premium_ate', 'createdAt'],
+      order: [['createdAt', 'DESC']],
+      limit: porPagina,
+      offset: (pagina - 1) * porPagina
+    });
+
+    const agora = new Date();
+    res.json({
+      usuarios: rows.map(u => ({
+        nome: u.nome,
+        email: u.email,
+        verificado: u.verificado,
+        status_pagamento: statusPagamento(u, agora),
+        data_cadastro: u.createdAt
+      })),
+      total: count,
+      pagina,
+      por_pagina: porPagina,
+      total_paginas: Math.max(1, Math.ceil(count / porPagina))
+    });
+  } catch (erro) {
+    console.error('Erro ao listar usuários no painel administrativo:', erro);
+    res.status(500).json({ erro: 'Erro ao listar usuários' });
+  }
+};
+
+module.exports = { obterPainel, listarUsuarios };
