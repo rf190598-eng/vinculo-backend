@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Vínculo — Painel Central</title>
+<style>
+  :root{
+    --bg:#f5f5f7; --card:#fff; --borda:#dcdce2; --texto:#1c1c1e;
+    --suave:#6b6b73; --acento:#b03a56; --ok:#137a3d;
+    --aviso:#8a6d1f; --erro:#b02a2a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:var(--bg);color:var(--texto);font-size:14px}
+  header{background:#1a0810;color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  header h1{margin:0;font-size:17px;font-weight:600}
+  header .quem{font-size:12.5px;opacity:.8}
+  header a{color:#e0c0d0;font-size:12.5px;text-decoration:none}
+  header a:hover{text-decoration:underline}
+  header nav{display:flex;gap:14px;align-items:center}
+  main{max-width:1200px;margin:0 auto;padding:20px}
+  .card{background:var(--card);border:1px solid var(--borda);border-radius:10px;padding:18px;margin-bottom:18px}
+  .card h2{margin:0 0 4px;font-size:15px;font-weight:600}
+  .card .ver-mais{font-size:12px;color:var(--acento);text-decoration:none;font-weight:600}
+  .card .ver-mais:hover{text-decoration:underline}
+  .card-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:6px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--borda);vertical-align:middle}
+  th{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--suave);font-weight:600}
+  tbody tr:hover{background:#fafafa}
+  .tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11.5px;font-weight:600}
+  .tag-pix{background:#dbe9fb;color:#1a5ea8}
+  .tag-cartao{background:#f0e0f8;color:#7a3aa8}
+  .tag-desconhecido{background:#eee;color:#666}
+  .vazio{padding:22px;text-align:center;color:var(--suave);font-size:13px}
+  .msg{padding:10px 12px;border-radius:7px;font-size:13px;margin-bottom:12px;display:none}
+  .msg-erro{background:#fbe0e0;color:#8f2020;display:block}
+  .msg-ok{background:#dff3e6;color:#0f5f2f;display:block}
+  #telaLogin{max-width:360px;margin:70px auto}
+  #painel{display:none}
+  label{display:block;font-size:12.5px;color:var(--suave);margin-bottom:4px}
+  input{width:100%;padding:9px 10px;border:1px solid var(--borda);border-radius:7px;font-size:14px;font-family:inherit;background:#fff}
+  button{padding:9px 14px;border:none;border-radius:7px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit}
+  .btn-primario{background:var(--acento);color:#fff}
+  .btn-secundario{background:#e8e8ec;color:var(--texto)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .linha-form{margin-bottom:12px}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+
+  /* Resumo geral */
+  .resumo{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
+  .tile{background:#1a0810;color:#fff;border-radius:10px;padding:16px 18px}
+  .tile .valor{font-size:24px;font-weight:700}
+  .tile .rot{font-size:11.5px;opacity:.8;margin-top:2px}
+  .tile .sub{font-size:11px;opacity:.75;margin-top:8px;line-height:1.5}
+
+  .generos{display:flex;gap:14px;flex-wrap:wrap}
+  .generos .bloco{flex:1;min-width:140px;background:#fafafa;border:1px solid var(--borda);border-radius:8px;padding:14px;text-align:center}
+  .generos .bloco .valor{font-size:22px;font-weight:700;color:var(--acento)}
+  .generos .bloco .rot{font-size:12px;color:var(--suave);margin-top:4px}
+
+  .aviso-nota{font-size:11.5px;color:var(--suave);margin-top:10px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="telaLogin">
+  <div class="card">
+    <h2>Painel Central — acesso restrito</h2>
+    <div class="msg" id="loginMsg"></div>
+    <div class="linha-form">
+      <label for="email">E-mail</label>
+      <input type="email" id="email" autocomplete="username"/>
+    </div>
+    <div class="linha-form">
+      <label for="senha">Senha</label>
+      <input type="password" id="senha" autocomplete="current-password"/>
+    </div>
+    <button class="btn-primario" style="width:100%" onclick="fazerLogin()" id="btnLogin">Entrar</button>
+  </div>
+</div>
+
+<!-- ===================== PAINEL ===================== -->
+<div id="painel">
+  <header>
+    <h1>Vínculo · Painel Central</h1>
+    <nav>
+      <a href="/admin">Parceiros ↗</a>
+      <a href="/admin/fundadores">Fundadores ↗</a>
+      <span class="quem" id="quemSou"></span>
+      <button class="btn-secundario btn-mini" onclick="sair()">Sair</button>
+    </nav>
+  </header>
+
+  <main>
+    <div class="msg" id="painelMsg"></div>
+
+    <!-- ===== 1. RESUMO GERAL ===== -->
+    <div class="resumo" id="resumoGeral"></div>
+
+    <!-- ===== 2. FUNDADORES ===== -->
+    <div class="card">
+      <div class="card-head">
+        <h2>Fundadores</h2>
+        <a class="ver-mais" href="/admin/fundadores">Ver todos os cadastros →</a>
+      </div>
+      <div class="generos" id="fundadoresGeneros"></div>
+      <div style="margin-top:16px">
+        <div style="font-size:12.5px;font-weight:700;color:var(--suave);margin-bottom:8px">Quem mais indicou</div>
+        <div id="fundadoresIndicadores"><div class="vazio">Carregando...</div></div>
+      </div>
+    </div>
+
+    <!-- ===== 3. PARCEIROS E COMISSÕES ===== -->
+    <div class="card">
+      <div class="card-head">
+        <h2>Parceiros e comissões</h2>
+        <a class="ver-mais" href="/admin">Gerenciar parceiros →</a>
+      </div>
+      <div class="resumo" id="parceirosResumo" style="margin-bottom:16px"></div>
+      <div style="font-size:12.5px;font-weight:700;color:var(--suave);margin-bottom:8px">Solicitações pendentes de aprovação</div>
+      <div id="parceirosPendentes"><div class="vazio">Carregando...</div></div>
+      <div class="aviso-nota">Esta seção é só leitura. Aprovar parceiros e marcar comissões como pagas continua sendo feito no painel de Parceiros.</div>
+    </div>
+
+    <!-- ===== 4. USUÁRIOS PAGANTES ===== -->
+    <div class="card">
+      <h2>Usuários pagantes</h2>
+      <div id="tabelaAssinantes"><div class="vazio">Carregando...</div></div>
+    </div>
+
+    <!-- ===== 5. FINANCEIRO ===== -->
+    <div class="card">
+      <h2>Financeiro</h2>
+      <div id="tabelaReceitaPorMes"><div class="vazio">Carregando...</div></div>
+      <div class="aviso-nota">Valores brutos (sem taxa do Mercado Pago descontada). Só reflete pagamentos processados a partir da criação deste painel — pagamentos anteriores não aparecem retroativamente.</div>
+    </div>
+  </main>
+</div>
+
+<script>
+const API_URL = window.location.origin;
+let token = localStorage.getItem('vinculo_admin_token') || null;
+
+function esc(t){
+  const d = document.createElement('div');
+  d.textContent = t == null ? '' : String(t);
+  return d.innerHTML;
+}
+function reais(v){
+  return 'R$ ' + Number(v || 0).toFixed(2).replace('.', ',');
+}
+function dataBR(d){
+  if(!d) return '—';
+  const dt = new Date(d);
+  return isNaN(dt) ? '—' : dt.toLocaleDateString('pt-BR');
+}
+function mesBR(m){
+  if(!m) return '—';
+  const [ano, mes] = String(m).split('-');
+  return mes + '/' + ano;
+}
+function mostrarMsg(id, texto, tipo){
+  const el = document.getElementById(id);
+  el.className = 'msg ' + (tipo === 'ok' ? 'msg-ok' : 'msg-erro');
+  el.textContent = texto;
+  if(tipo === 'ok') setTimeout(()=>{ el.className = 'msg'; }, 4000);
+}
+
+async function api(caminho){
+  const resp = await fetch(API_URL + caminho, { headers: { 'Authorization': 'Bearer ' + token } });
+  const dados = await resp.json().catch(()=>({}));
+  if(resp.status === 401 || resp.status === 403){
+    sair(dados.erro || 'Acesso negado. Faça login com uma conta administradora.');
+    throw new Error(dados.erro || 'Acesso negado');
+  }
+  if(!resp.ok) throw new Error(dados.erro || 'Erro na requisição');
+  return dados;
+}
+
+// ===================== LOGIN =====================
+async function fazerLogin(){
+  const email = document.getElementById('email').value.trim();
+  const senha = document.getElementById('senha').value;
+  const btn = document.getElementById('btnLogin');
+  if(!email || !senha){ mostrarMsg('loginMsg', 'Preencha e-mail e senha.', 'erro'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Entrando...';
+  try{
+    const resp = await fetch(API_URL + '/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, senha })
+    });
+    const dados = await resp.json();
+    if(!resp.ok) throw new Error(dados.erro || 'Falha no login');
+
+    if(!dados.usuario || !dados.usuario.is_admin){
+      mostrarMsg('loginMsg', 'Acesso negado: esta conta não é administradora.', 'erro');
+      return;
+    }
+
+    token = dados.token;
+    localStorage.setItem('vinculo_admin_token', token);
+    document.getElementById('quemSou').textContent = dados.usuario.nome || dados.usuario.email;
+    mostrarPainel();
+  }catch(e){
+    mostrarMsg('loginMsg', e.message || 'Falha no login', 'erro');
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+  }
+}
+
+function sair(msg){
+  token = null;
+  localStorage.removeItem('vinculo_admin_token');
+  document.getElementById('painel').style.display = 'none';
+  document.getElementById('telaLogin').style.display = 'block';
+  if(msg) mostrarMsg('loginMsg', msg, 'erro');
+}
+
+function mostrarPainel(){
+  document.getElementById('telaLogin').style.display = 'none';
+  document.getElementById('painel').style.display = 'block';
+  carregarTudo();
+}
+
+// ===================== PAINEL =====================
+async function carregarTudo(){
+  try{
+    const [estatisticas, fundadores, parceiros, comissoes, painel] = await Promise.all([
+      api('/api/estatisticas/admin'),
+      api('/api/admin/fundadores'),
+      api('/api/admin/parceiros'),
+      api('/api/admin/comissoes'),
+      api('/api/admin/painel')
+    ]);
+
+    montarResumoGeral(estatisticas, fundadores, parceiros, painel);
+    montarFundadores(fundadores);
+    montarParceiros(parceiros, comissoes);
+    montarAssinantes(painel.assinantes);
+    montarFinanceiro(painel.financeiro);
+  }catch(e){
+    mostrarMsg('painelMsg', e.message || 'Erro ao carregar dados', 'erro');
+  }
+}
+
+const ROTULOS_GENERO = { masculino: 'Homens', feminino: 'Mulheres', 'nao-binario': 'Não-binário' };
+const ROTULOS_METODO = { pix: 'Pix', cartao: 'Cartão', desconhecido: 'Desconhecido' };
+
+function montarResumoGeral(estatisticas, fundadores, parceiros, painel){
+  const parceirosAtivos = parceiros.parceiros.filter(p => p.status === 'ativo');
+  const individual = parceirosAtivos.filter(p => p.tipo === 'individual').length;
+  const institucional = parceirosAtivos.filter(p => p.tipo === 'institucional').length;
+
+  const tiles = [
+    { valor: estatisticas.total_usuarios, rot: 'Usuários cadastrados' },
+    {
+      valor: painel.assinantes.total_ativos, rot: 'Assinantes ativos',
+      sub: `Pix ${painel.assinantes.por_metodo.pix} · Cartão ${painel.assinantes.por_metodo.cartao}`
+    },
+    {
+      valor: fundadores.total, rot: 'Fundadores',
+      sub: `Mulheres ${fundadores.por_genero.feminino} · Homens ${fundadores.por_genero.masculino} · Não-bin. ${fundadores.por_genero['nao-binario']}`
+    },
+    {
+      valor: parceirosAtivos.length, rot: 'Parceiros ativos',
+      sub: `Individual ${individual} · Institucional ${institucional}`
+    },
+    { valor: reais(painel.financeiro.receita_mes_atual), rot: 'Receita do mês' },
+    { valor: reais(painel.financeiro.comissao_pendente_mes_atual), rot: 'Comissão pendente (mês)' }
+  ];
+
+  document.getElementById('resumoGeral').innerHTML = tiles.map(t => `
+    <div class="tile">
+      <div class="valor">${esc(t.valor)}</div>
+      <div class="rot">${esc(t.rot)}</div>
+      ${t.sub ? `<div class="sub">${esc(t.sub)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function montarFundadores(fundadores){
+  document.getElementById('fundadoresGeneros').innerHTML = Object.keys(ROTULOS_GENERO).map(chave => `
+    <div class="bloco">
+      <div class="valor">${esc(fundadores.por_genero[chave] || 0)}</div>
+      <div class="rot">${esc(ROTULOS_GENERO[chave])}</div>
+    </div>
+  `).join('');
+
+  const el = document.getElementById('fundadoresIndicadores');
+  if(!fundadores.top_indicadores.length){
+    el.innerHTML = '<div class="vazio">Ninguém indicou mais ninguém ainda.</div>';
+  }else{
+    el.innerHTML = `
+      <table>
+        <thead><tr><th>Nome</th><th>Código</th><th>Indicações</th></tr></thead>
+        <tbody>
+          ${fundadores.top_indicadores.slice(0, 5).map(i => `
+            <tr><td>${esc(i.nome)}</td><td class="mono">${esc(i.codigo_proprio)}</td><td>${esc(i.total_indicados)}</td></tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+}
+
+function montarParceiros(parceiros, comissoes){
+  const pendentesAprovacao = parceiros.parceiros.filter(p => p.status === 'pendente_aprovacao');
+
+  document.getElementById('parceirosResumo').innerHTML = `
+    <div class="tile"><div class="valor">${esc(pendentesAprovacao.length)}</div><div class="rot">Solicitações pendentes</div></div>
+    <div class="tile"><div class="valor">${esc(comissoes.lista ? comissoes.lista.length : 0)}</div><div class="rot">Comissões no período recente</div></div>
+    <div class="tile"><div class="valor">${reais(comissoes.total_pendente)}</div><div class="rot">Comissão pendente (geral)</div></div>
+  `;
+
+  const el = document.getElementById('parceirosPendentes');
+  if(!pendentesAprovacao.length){
+    el.innerHTML = '<div class="vazio">Nenhuma solicitação pendente.</div>';
+  }else{
+    el.innerHTML = `
+      <table>
+        <thead><tr><th>Nome</th><th>Tipo</th><th>Instituição</th></tr></thead>
+        <tbody>
+          ${pendentesAprovacao.map(p => `
+            <tr><td>${esc(p.nome)}</td><td>${esc(p.tipo)}</td><td>${esc(p.nome_instituicao || '—')}</td></tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+}
+
+function montarAssinantes(assinantes){
+  const el = document.getElementById('tabelaAssinantes');
+  if(!assinantes.lista.length){
+    el.innerHTML = '<div class="vazio">Nenhum assinante ativo agora.</div>';
+    return;
+  }
+  el.innerHTML = `
+    <table>
+      <thead><tr><th>Nome</th><th>E-mail</th><th>Plano</th><th>Método</th><th>Início do ciclo</th><th>Próxima cobrança</th></tr></thead>
+      <tbody>
+        ${assinantes.lista.map(a => `
+          <tr>
+            <td>${esc(a.nome)}</td>
+            <td>${esc(a.email)}</td>
+            <td>${esc(a.plano)}</td>
+            <td><span class="tag tag-${esc(a.metodo)}">${esc(ROTULOS_METODO[a.metodo] || a.metodo)}</span></td>
+            <td>${dataBR(a.data_inicio_ciclo_atual)}</td>
+            <td>${dataBR(a.proxima_cobranca)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function montarFinanceiro(financeiro){
+  const el = document.getElementById('tabelaReceitaPorMes');
+  const linhasMes = financeiro.receita_por_mes.length
+    ? financeiro.receita_por_mes.map(r => `<tr><td>${esc(mesBR(r.mes))}</td><td>${reais(r.total)}</td></tr>`).join('')
+    : '<tr><td colspan="2" class="vazio">Sem pagamentos registrados ainda.</td></tr>';
+
+  el.innerHTML = `
+    <div class="resumo" style="margin-bottom:16px">
+      <div class="tile"><div class="valor">${reais(financeiro.receita_mes_atual)}</div><div class="rot">Receita do mês</div></div>
+      <div class="tile"><div class="valor">${reais(financeiro.comissao_paga_historico)}</div><div class="rot">Comissão paga (histórico)</div></div>
+      <div class="tile"><div class="valor">${reais(financeiro.margem_liquida_mes_atual)}</div><div class="rot">Margem líquida aproximada (mês)</div></div>
+    </div>
+    <div style="font-size:12.5px;font-weight:700;color:var(--suave);margin-bottom:8px">Receita por mês</div>
+    <table>
+      <thead><tr><th>Mês</th><th>Receita</th></tr></thead>
+      <tbody>${linhasMes}</tbody>
+    </table>
+  `;
+}
+
+if(token){
+  mostrarPainel();
+}
+</script>
+</body>
+</html>

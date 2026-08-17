@@ -1,7 +1,9 @@
 const { MercadoPagoConfig, Preference, Payment, WebhookSignatureValidator } = require('mercadopago');
 const { Op } = require('sequelize');
+const { sequelize } = require('../database');
 const Usuario = require('../models/Usuario');
 const PagamentoAssinaturaProcessado = require('../models/PagamentoAssinaturaProcessado');
+const PagamentoProcessado = require('../models/PagamentoProcessado');
 const { sincronizarIndicacaoDoUsuario } = require('./parceiroController');
 const {
   enviarMensagemTemplate,
@@ -470,13 +472,27 @@ const webhook = async (req, res) => {
           try {
             // INSERT direto: se mercadopago_payment_id já existir, a
             // constraint única barra a segunda tentativa — dedup atômico,
-            // sem checar-depois-inserir (ver Fatia 2).
-            await PagamentoAssinaturaProcessado.create({
-              mercadopago_payment_id: String(pagamento.id),
-              usuario_id,
-              mercadopago_subscription_id: idAssinatura || 'desconhecida',
-              numero_ciclo: pagamento.point_of_interaction?.transaction_data?.subscription_sequence?.number ?? null,
-              valor: pagamento.transaction_amount
+            // sem checar-depois-inserir (ver Fatia 2). As duas linhas de
+            // auditoria (ciclo de assinatura + ledger financeiro unificado)
+            // nascem na mesma transação — uma não pode existir sem a outra,
+            // senão o dedup da próxima tentativa do webhook ficaria
+            // inconsistente entre as duas tabelas.
+            await sequelize.transaction(async (t) => {
+              await PagamentoAssinaturaProcessado.create({
+                mercadopago_payment_id: String(pagamento.id),
+                usuario_id,
+                mercadopago_subscription_id: idAssinatura || 'desconhecida',
+                numero_ciclo: pagamento.point_of_interaction?.transaction_data?.subscription_sequence?.number ?? null,
+                valor: pagamento.transaction_amount
+              }, { transaction: t });
+
+              await PagamentoProcessado.create({
+                usuario_id,
+                metodo: 'cartao',
+                plano,
+                valor: pagamento.transaction_amount,
+                mercadopago_payment_id: String(pagamento.id)
+              }, { transaction: t });
             });
 
             const premium_ate = await ativarPlanoDoUsuario(usuario_id, plano);
@@ -497,12 +513,34 @@ const webhook = async (req, res) => {
         // encerra normalmente se a renovação nunca vier a confirmar.
 
       } else if (tipoOperacao === 'regular_payment') {
-        // Pix avulso — caminho de sempre, inalterado.
+        // Pix avulso.
         if (pagamento.status === 'approved') {
           const { usuario_id, plano } = pagamento.metadata;
-          const premium_ate = await ativarPlanoDoUsuario(usuario_id, plano);
-          if (premium_ate) {
-            console.log(`Usuario ${usuario_id} ativou Premium ${plano} ate ${premium_ate}`);
+          try {
+            // INSERT direto pro dedup atômico — mesmo padrão do ramo
+            // recurring_payment acima. Também fecha uma lacuna que já
+            // existia aqui: sem essa checagem, um reenvio do mesmo webhook
+            // do Mercado Pago (retry por timeout, por exemplo) reativava o
+            // plano do zero — resetando premium_ate e re-sincronizando a
+            // indicação a cada reenvio do MESMO pagamento já processado.
+            await PagamentoProcessado.create({
+              usuario_id,
+              metodo: 'pix',
+              plano,
+              valor: pagamento.transaction_amount,
+              mercadopago_payment_id: String(pagamento.id)
+            });
+
+            const premium_ate = await ativarPlanoDoUsuario(usuario_id, plano);
+            if (premium_ate) {
+              console.log(`Usuario ${usuario_id} ativou Premium ${plano} (Pix) ate ${premium_ate}`);
+            }
+          } catch (erroDedup) {
+            if (erroDedup.name === 'SequelizeUniqueConstraintError') {
+              console.log(`[webhook] pagamento ${pagamento.id} (Pix) já tinha sido processado — ignorando duplicata.`);
+            } else {
+              throw erroDedup;
+            }
           }
         }
 

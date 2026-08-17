@@ -40,6 +40,7 @@ const Indicacao = require('./models/Indicacao');
 const Comissao = require('./models/Comissao');
 const BonusMeta = require('./models/BonusMeta');
 const Fundador = require('./models/Fundador');
+const PagamentoProcessado = require('./models/PagamentoProcessado');
 const { registrarAssociacoes } = require('./models/associacoes');
 const authRoutes = require('./routes/auth');
 const swipeRoutes = require('./routes/swipe');
@@ -64,6 +65,7 @@ const {
   router: fundadorRoutes,
   rotasAdmin: fundadorRotasAdmin
 } = require('./routes/fundadores');
+const painelAdminRoutes = require('./routes/painelAdmin');
 const {
   fecharComissoesDoMes,
   primeiroDiaDoMes,
@@ -170,6 +172,13 @@ app.get('/fundadores', (req, res) => {
 app.get('/admin/fundadores', (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.sendFile(path.join(__dirname, 'admin-fundadores.html'));
+});
+
+// Painel Central: visão única de tudo (fundadores, parceiros, assinantes,
+// financeiro). Mesmo modelo de segurança dos outros /admin/*.
+app.get('/admin/painel', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.sendFile(path.join(__dirname, 'admin-painel.html'));
 });
 app.get('/vinculo-liveness-bundle.mjs', (req, res) => {
   res.set('Content-Type', 'application/javascript');
@@ -297,6 +306,7 @@ app.use('/api/usuario', usuarioRoutes);
 app.use('/api/parceiros', parceiroRoutes);
 app.use('/api/fundadores', fundadorRoutes);
 app.use('/api/admin/fundadores', fundadorRotasAdmin);
+app.use('/api/admin/painel', painelAdminRoutes);
 app.use('/api/admin/parceiros', parceiroRotasAdmin);
 app.use('/api/admin/comissoes', rotasAdminComissoes);
 app.use('/api/admin/metas', rotasAdminMetas);
