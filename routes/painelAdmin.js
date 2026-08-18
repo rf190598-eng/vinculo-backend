@@ -6,6 +6,7 @@ const {
   obterRankingComissoes,
   obterSegmentacaoPagantes
 } = require('../controllers/painelAdminController');
+const { listarLogsAuditoria } = require('../controllers/auditoriaController');
 const { autenticar } = require('../controllers/authMiddleware');
 const { verificarAdmin } = require('../controllers/verificarAdmin');
 
@@ -14,5 +15,6 @@ router.get('/', obterPainel);
 router.get('/usuarios', listarUsuarios);
 router.get('/ranking-comissoes', obterRankingComissoes);
 router.get('/segmentacao-pagantes', obterSegmentacaoPagantes);
+router.get('/logs-auditoria', listarLogsAuditoria);
 
 module.exports = router;

@@ -8,6 +8,12 @@ const verificarAdmin = async (req, res, next) => {
       return res.status(403).json({ erro: 'Acesso restrito a administradores' });
     }
 
+    // Disponibiliza a identidade do admin logado pras rotas administrativas
+    // seguintes — usado pelo log de auditoria (registrarLogAuditoria) pra
+    // saber quem fez a ação, sem cada controller precisar buscar o Usuario
+    // de novo.
+    req.usuarioAdmin = usuario;
+
     next();
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao verificar permissão: ' + erro.message });

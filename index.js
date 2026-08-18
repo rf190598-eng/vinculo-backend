@@ -41,6 +41,7 @@ const Comissao = require('./models/Comissao');
 const BonusMeta = require('./models/BonusMeta');
 const Fundador = require('./models/Fundador');
 const PagamentoProcessado = require('./models/PagamentoProcessado');
+const LogAuditoria = require('./models/LogAuditoria');
 const { registrarAssociacoes } = require('./models/associacoes');
 const authRoutes = require('./routes/auth');
 const swipeRoutes = require('./routes/swipe');
