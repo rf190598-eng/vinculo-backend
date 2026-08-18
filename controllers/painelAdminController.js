@@ -247,4 +247,61 @@ const obterRankingComissoes = async (req, res) => {
   }
 };
 
-module.exports = { obterPainel, listarUsuarios, obterRankingComissoes };
+const LISTA_POSSIVEIS_PAGANTES_LIMITE = 200;
+
+// Possíveis pagantes vs pagantes pro Painel Central — Lote 3.
+//
+// "Possíveis pagantes" = verificado + ativo (usando o app normalmente) e SEM
+// plano_atual — inclui quem nunca assinou e quem já assinou e venceu
+// (candidato a reconquista). EXCLUI de propósito quem é premium vitalício
+// legado (premium=true, premium_ate nunca setado): essas contas já têm
+// acesso completo de graça, contatar oferecendo assinatura não faz sentido
+// pra elas.
+//
+// "Pagantes" = mesmo critério de assinante ativo usado no resto do painel
+// (buscarAssinantesAtivos): plano confirmado e dentro da validade agora.
+const obterSegmentacaoPagantes = async (req, res) => {
+  try {
+    const agora = new Date();
+
+    const ondePossiveisPagantes = {
+      verificado: true,
+      ativo: true,
+      plano_atual: null,
+      premium: false
+    };
+
+    const [possiveisPagantesResultado, totalPagantes] = await Promise.all([
+      Usuario.findAndCountAll({
+        where: ondePossiveisPagantes,
+        attributes: ['nome', 'email'],
+        order: [['createdAt', 'DESC']],
+        limit: LISTA_POSSIVEIS_PAGANTES_LIMITE
+      }),
+      Usuario.count({
+        where: {
+          plano_atual: { [Op.ne]: null },
+          premium_ate: { [Op.ne]: null, [Op.gt]: agora }
+        }
+      })
+    ]);
+
+    res.json({
+      possiveis_pagantes: {
+        total: possiveisPagantesResultado.count,
+        lista: possiveisPagantesResultado.rows.map(u => ({ nome: u.nome, email: u.email })),
+        // Se a lista foi cortada no limite, o total ainda reflete o valor
+        // certo — só a lista exibida que fica menor que o total.
+        lista_truncada: possiveisPagantesResultado.count > LISTA_POSSIVEIS_PAGANTES_LIMITE
+      },
+      pagantes: {
+        total: totalPagantes
+      }
+    });
+  } catch (erro) {
+    console.error('Erro ao montar segmentação de pagantes no painel administrativo:', erro);
+    res.status(500).json({ erro: 'Erro ao montar segmentação de pagantes' });
+  }
+};
+
+module.exports = { obterPainel, listarUsuarios, obterRankingComissoes, obterSegmentacaoPagantes };

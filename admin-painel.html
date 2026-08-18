@@ -154,13 +154,22 @@
       <div class="aviso-nota">Valor total = soma de toda comissão gerada (paga + pendente), não só o que já foi efetivamente pago.</div>
     </div>
 
-    <!-- ===== 6. USUÁRIOS PAGANTES ===== -->
+    <!-- ===== 6. POSSÍVEIS PAGANTES VS PAGANTES ===== -->
+    <div class="card">
+      <h2>Possíveis pagantes vs pagantes</h2>
+      <div class="resumo" id="segmentacaoResumo" style="margin-bottom:16px"></div>
+      <div style="font-size:12.5px;font-weight:700;color:var(--suave);margin-bottom:8px">Possíveis pagantes (verificados e ativos, sem plano)</div>
+      <div id="tabelaPossiveisPagantes"><div class="vazio">Carregando...</div></div>
+      <div class="aviso-nota" id="segmentacaoAviso"></div>
+    </div>
+
+    <!-- ===== 7. USUÁRIOS PAGANTES ===== -->
     <div class="card">
       <h2>Usuários pagantes</h2>
       <div id="tabelaAssinantes"><div class="vazio">Carregando...</div></div>
     </div>
 
-    <!-- ===== 7. FINANCEIRO ===== -->
+    <!-- ===== 8. FINANCEIRO ===== -->
     <div class="card">
       <h2>Financeiro</h2>
       <div id="tabelaReceitaPorMes"><div class="vazio">Carregando...</div></div>
@@ -261,19 +270,21 @@ function mostrarPainel(){
 // ===================== PAINEL =====================
 async function carregarTudo(){
   try{
-    const [estatisticas, fundadores, parceiros, comissoes, painel, rankingComissoes] = await Promise.all([
+    const [estatisticas, fundadores, parceiros, comissoes, painel, rankingComissoes, segmentacao] = await Promise.all([
       api('/api/estatisticas/admin'),
       api('/api/admin/fundadores'),
       api('/api/admin/parceiros'),
       api('/api/admin/comissoes'),
       api('/api/admin/painel'),
-      api('/api/admin/painel/ranking-comissoes')
+      api('/api/admin/painel/ranking-comissoes'),
+      api('/api/admin/painel/segmentacao-pagantes')
     ]);
 
     montarResumoGeral(estatisticas, fundadores, parceiros, painel);
     montarFundadores(fundadores);
     montarParceiros(parceiros, comissoes);
     montarRankingComissoes(rankingComissoes.ranking);
+    montarSegmentacao(segmentacao);
     montarAssinantes(painel.assinantes);
     montarFinanceiro(painel.financeiro);
     carregarUsuarios(1);
@@ -458,6 +469,37 @@ function montarRankingComissoes(ranking){
       </tbody>
     </table>
   `;
+}
+
+function montarSegmentacao(segmentacao){
+  const total = segmentacao.possiveis_pagantes.total + segmentacao.pagantes.total;
+  const pctPossiveis = total ? Math.round((segmentacao.possiveis_pagantes.total / total) * 100) : 0;
+  const pctPagantes = total ? Math.round((segmentacao.pagantes.total / total) * 100) : 0;
+
+  document.getElementById('segmentacaoResumo').innerHTML = `
+    <div class="tile"><div class="valor">${esc(segmentacao.possiveis_pagantes.total)}</div><div class="rot">Possíveis pagantes</div><div class="sub">${pctPossiveis}% dos verificados+ativos+pagantes</div></div>
+    <div class="tile"><div class="valor">${esc(segmentacao.pagantes.total)}</div><div class="rot">Pagantes</div><div class="sub">${pctPagantes}% dos verificados+ativos+pagantes</div></div>
+  `;
+
+  const el = document.getElementById('tabelaPossiveisPagantes');
+  if(!segmentacao.possiveis_pagantes.lista.length){
+    el.innerHTML = '<div class="vazio">Ninguém nesse grupo agora.</div>';
+  }else{
+    el.innerHTML = `
+      <table>
+        <thead><tr><th>Nome</th><th>E-mail</th></tr></thead>
+        <tbody>
+          ${segmentacao.possiveis_pagantes.lista.map(u => `
+            <tr><td>${esc(u.nome)}</td><td>${esc(u.email)}</td></tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  document.getElementById('segmentacaoAviso').textContent = segmentacao.possiveis_pagantes.lista_truncada
+    ? `Mostrando os ${segmentacao.possiveis_pagantes.lista.length} cadastros mais recentes desse grupo — o total é ${segmentacao.possiveis_pagantes.total}.`
+    : 'Verificados e ativos, sem plano confirmado — inclui quem nunca assinou e quem já assinou e venceu. Não inclui contas premium vitalícias da fase gratuita antiga.';
 }
 
 function montarAssinantes(assinantes){
