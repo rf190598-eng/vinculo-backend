@@ -228,6 +228,23 @@ cor_cabelo: {
     type: DataTypes.TEXT,
     allowNull: true
   },
+  // Revogação de sessão/token (Lote 4 do plano de acesso total). Reaproveita
+  // a ideia do TokenRevogado (rejeitar o JWT mesmo com assinatura/validade
+  // ok), mas não dá pra usar a MESMA tabela: TokenRevogado bloqueia por jti
+  // individual, e o servidor só descobre o jti de um token quando o dono
+  // faz logout com ele — nunca guarda os jtis emitidos em cada login. Um
+  // admin não tem como saber, de fora, qual(is) jti(s) estão ativos agora
+  // nos dispositivos do usuário (podem ser vários, um por aparelho).
+  // Solução: um corte por data. Ao revogar, este campo vira a data/hora
+  // atual; authMiddleware passa a rejeitar qualquer token cujo "iat"
+  // (quando foi emitido) seja anterior a este corte — cobre TODOS os
+  // tokens ativos daquele usuário de uma vez, em qualquer dispositivo, sem
+  // precisar saber os jtis. Vantagem sobre tentar imitar TokenRevogado por
+  // jti: pega sessões que o servidor nunca "viu" (nenhum logout prévio).
+  sessoes_revogadas_em: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
   reset_token: {
     type: DataTypes.STRING,
     allowNull: true

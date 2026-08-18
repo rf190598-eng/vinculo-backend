@@ -488,7 +488,7 @@ async function abrirFichaUsuario(id){
   document.getElementById('fichaOverlay').style.display = 'block';
   try{
     const u = await api('/api/admin/painel/usuarios/' + id);
-    montarFichaUsuario(u, false, false);
+    montarFichaUsuario(u, false, false, false);
   }catch(e){
     document.getElementById('fichaConteudo').innerHTML = `<div class="vazio">Erro ao carregar ficha do usuário.</div>`;
   }
@@ -499,13 +499,17 @@ function fecharFichaUsuario(){
   fichaUsuarioAtual = null;
 }
 
-// Edição de perfil e suspensão são mutuamente exclusivas na tela — ligar uma
-// desliga a outra, evita confundir dois formulários abertos ao mesmo tempo.
+// Edição de perfil, suspensão e revogação de sessão são mutuamente
+// exclusivas na tela — ligar uma desliga as outras, evita confundir mais de
+// um formulário aberto ao mesmo tempo.
 function alternarEdicaoFicha(ligar){
-  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, ligar, false);
+  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, ligar, false, false);
 }
 function alternarFormSuspensao(ligar){
-  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, ligar);
+  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, ligar, false);
+}
+function alternarConfirmRevogarSessoes(ligar){
+  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, ligar);
 }
 
 async function confirmarSuspensao(id){
@@ -563,6 +567,27 @@ async function confirmarRemocaoSuspensao(id){
   }
 }
 
+async function confirmarRevogarSessoes(id){
+  const btn = document.getElementById('fichaRevogarSessoesBtn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Revogando...'; }
+  try{
+    const resp = await fetch(API_URL + '/api/admin/painel/usuarios/' + id + '/revogar-sessoes', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const dados = await resp.json().catch(()=>({}));
+    if(resp.status === 401 || resp.status === 403){ sair(dados.erro || 'Acesso negado.'); return; }
+    if(!resp.ok) throw new Error(dados.erro || 'Erro ao revogar sessões');
+
+    await abrirFichaUsuario(id);
+    mostrarMsg('painelMsg', 'Sessões revogadas — o usuário vai precisar entrar de novo.', 'ok');
+  }catch(e){
+    mostrarMsg('painelMsg', e.message || 'Erro ao revogar sessões', 'erro');
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = 'Confirmar revogação'; }
+  }
+}
+
 function copiarIdUsuario(id){
   navigator.clipboard.writeText(id).then(()=>{
     const btn = document.getElementById('fichaCopiarIdBtn');
@@ -594,7 +619,7 @@ async function salvarEdicaoFicha(id){
   }
 }
 
-function montarFichaUsuario(u, modoEdicao, mostrarFormSuspensao){
+function montarFichaUsuario(u, modoEdicao, mostrarFormSuspensao, mostrarConfirmRevogarSessoes){
   fichaUsuarioAtual = u;
 
   const ultimoPagamento = u.ultimo_pagamento
@@ -652,6 +677,24 @@ function montarFichaUsuario(u, modoEdicao, mostrarFormSuspensao){
       <div style="margin-top:10px">${botaoSuspensao}</div>
     `;
   }
+
+  // ===== Sessão / revogar tokens (Lote 4) =====
+  const secaoSessao = mostrarConfirmRevogarSessoes
+    ? `
+      <div class="ficha-suspensao-form">
+        <div class="ficha-vazio-nota">Isso vai encerrar o acesso do usuário em todos os dispositivos onde ele estiver logado agora — ele vai precisar entrar de novo.</div>
+        <div class="acoes">
+          <button class="btn-secundario" onclick="alternarConfirmRevogarSessoes(false)">Cancelar</button>
+          <button class="btn-primario" id="fichaRevogarSessoesBtn" onclick="confirmarRevogarSessoes('${u.id}')">Confirmar revogação</button>
+        </div>
+      </div>
+    `
+    : `
+      <div class="ficha-grid">
+        ${campoFicha('Última revogação', u.sessoes_revogadas_em ? dataBR(u.sessoes_revogadas_em) : 'Nunca')}
+      </div>
+      <div style="margin-top:10px"><button class="btn-secundario" onclick="alternarConfirmRevogarSessoes(true)">Revogar sessões ativas</button></div>
+    `;
 
   const botoesAcao = modoEdicao
     ? `
@@ -736,6 +779,11 @@ function montarFichaUsuario(u, modoEdicao, mostrarFormSuspensao){
     <div class="ficha-secao">
       <h3>Suspensão</h3>
       ${secaoSuspensao}
+    </div>
+
+    <div class="ficha-secao">
+      <h3>Sessão</h3>
+      ${secaoSessao}
     </div>
 
     <div class="ficha-secao">

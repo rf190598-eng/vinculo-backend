@@ -217,7 +217,7 @@ const CAMPOS_FICHA_USUARIO = [
   'pref_peso_min', 'pref_peso_max', 'pref_cor_cabelo',
   'verificado', 'liveness_aprovado', 'liveness_confianca', 'premium', 'premium_ate',
   'plano_atual', 'ativo', 'is_admin', 'tour_seguranca_visto',
-  'suspenso_ate', 'suspenso_permanente', 'suspenso_motivo',
+  'suspenso_ate', 'suspenso_permanente', 'suspenso_motivo', 'sessoes_revogadas_em',
   'codigo_indicacao', 'indicado_por', 'bonus_indicacao_creditado',
   'indicado_por_parceiro_id', 'mercadopago_subscription_id',
   'createdAt', 'updatedAt'
@@ -476,6 +476,35 @@ const removerSuspensaoUsuario = async (req, res) => {
   }
 };
 
+// POST /api/admin/painel/usuarios/:id/revogar-sessoes — Lote 4 do plano de
+// acesso total. Não usa a tabela TokenRevogado (é por jti individual, e o
+// servidor não sabe quais jtis estão ativos nos dispositivos do usuário —
+// ver comentário em models/Usuario.js). Em vez disso, marca
+// sessoes_revogadas_em = agora; authMiddleware rejeita qualquer token
+// emitido antes desse instante, em qualquer dispositivo. Sem corpo
+// obrigatório — é uma ação simples, sem motivo (diferente da suspensão).
+const revogarSessoesUsuario = async (req, res) => {
+  try {
+    const usuario = await Usuario.findByPk(req.params.id);
+    if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
+
+    usuario.sessoes_revogadas_em = new Date();
+    await usuario.save();
+
+    await registrarLogAuditoria({
+      admin: req.usuarioAdmin,
+      acao: 'revogar_sessoes_usuario',
+      usuarioAlvo: usuario,
+      detalhes: { revogado_em: usuario.sessoes_revogadas_em.toISOString() }
+    });
+
+    res.json({ ok: true, sessoes_revogadas_em: usuario.sessoes_revogadas_em });
+  } catch (erro) {
+    console.error('Erro ao revogar sessões de usuário no painel administrativo:', erro);
+    res.status(500).json({ erro: 'Erro ao revogar sessões do usuário' });
+  }
+};
+
 // Ranking de comissão pro Painel Central — Lote 2 (do plano original de
 // conteúdo do painel, anterior ao plano de acesso total). "Quanto já ganharam" é
 // tratado como comissão GERADA (paga + pendente), não só a já paga — é uma
@@ -603,6 +632,7 @@ module.exports = {
   editarUsuario,
   suspenderUsuario,
   removerSuspensaoUsuario,
+  revogarSessoesUsuario,
   obterRankingComissoes,
   obterSegmentacaoPagantes
 };

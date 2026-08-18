@@ -28,11 +28,10 @@ const autenticar = async (req, res, next) => {
     // Suspensão administrativa (Lote 3): checada em TODA requisição
     // autenticada, não só no login — assim uma suspensão aplicada agora já
     // barra imediatamente quem já estava logado, sem precisar esperar o
-    // token expirar (revogar a sessão especificamente é uma ação separada,
-    // ainda não construída). Busca só as 3 colunas necessárias, mesmo
-    // padrão de custo mínimo já usado em verificarAdmin.
+    // token expirar. Busca só as colunas necessárias, mesmo padrão de custo
+    // mínimo já usado em verificarAdmin.
     const usuario = await Usuario.findByPk(decoded.id, {
-      attributes: ['id', 'suspenso_ate', 'suspenso_permanente']
+      attributes: ['id', 'suspenso_ate', 'suspenso_permanente', 'sessoes_revogadas_em']
     });
     if (!usuario) {
       return res.status(401).json({ erro: 'Token inválido ou expirado' });
@@ -44,6 +43,16 @@ const autenticar = async (req, res, next) => {
       return res.status(403).json({
         erro: `Esta conta está suspensa até ${new Date(usuario.suspenso_ate).toLocaleDateString('pt-BR')}.`
       });
+    }
+
+    // Revogação de sessão/token (Lote 4): corte por data de emissão do
+    // token (claim "iat", em segundos), não por jti — ver comentário
+    // detalhado em models/Usuario.js sobre por que não dá pra reaproveitar
+    // TokenRevogado por jti aqui. Cobre todo token emitido ANTES do
+    // momento em que o admin revogou, em qualquer dispositivo.
+    if (usuario.sessoes_revogadas_em && decoded.iat &&
+      decoded.iat * 1000 < new Date(usuario.sessoes_revogadas_em).getTime()) {
+      return res.status(401).json({ erro: 'Sessão encerrada por um administrador. Faça login novamente.' });
     }
 
     req.usuarioId = decoded.id;
