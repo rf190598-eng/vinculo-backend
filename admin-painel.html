@@ -482,6 +482,12 @@ function coletarEdicaoFicha(){
 }
 
 let fichaUsuarioAtual = null;
+// Estado do reset de senha (Lote 5) fica fora dos parâmetros de
+// montarFichaUsuario, de propósito: precisa sobreviver a um re-render sem
+// perder a senha revelada, inclusive depois de recarregar a ficha (que não
+// devolve a senha de novo — ela só existe na resposta do momento do reset).
+let mostrarConfirmResetarSenha = false;
+let senhaTemporariaRevelada = null;
 
 async function abrirFichaUsuario(id){
   document.getElementById('fichaConteudo').innerHTML = '<div class="vazio">Carregando...</div>';
@@ -497,19 +503,32 @@ async function abrirFichaUsuario(id){
 function fecharFichaUsuario(){
   document.getElementById('fichaOverlay').style.display = 'none';
   fichaUsuarioAtual = null;
+  mostrarConfirmResetarSenha = false;
+  senhaTemporariaRevelada = null;
 }
 
-// Edição de perfil, suspensão e revogação de sessão são mutuamente
-// exclusivas na tela — ligar uma desliga as outras, evita confundir mais de
-// um formulário aberto ao mesmo tempo.
+// Edição de perfil, suspensão, revogação de sessão e reset de senha são
+// mutuamente exclusivos na tela — ligar um desliga os outros, evita
+// confundir mais de um formulário aberto ao mesmo tempo.
 function alternarEdicaoFicha(ligar){
+  mostrarConfirmResetarSenha = false;
+  senhaTemporariaRevelada = null;
   if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, ligar, false, false);
 }
 function alternarFormSuspensao(ligar){
+  mostrarConfirmResetarSenha = false;
+  senhaTemporariaRevelada = null;
   if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, ligar, false);
 }
 function alternarConfirmRevogarSessoes(ligar){
+  mostrarConfirmResetarSenha = false;
+  senhaTemporariaRevelada = null;
   if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, ligar);
+}
+function alternarConfirmResetarSenha(ligar){
+  senhaTemporariaRevelada = null;
+  mostrarConfirmResetarSenha = ligar;
+  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
 }
 
 async function confirmarSuspensao(id){
@@ -586,6 +605,43 @@ async function confirmarRevogarSessoes(id){
   }finally{
     if(btn){ btn.disabled = false; btn.textContent = 'Confirmar revogação'; }
   }
+}
+
+async function confirmarResetarSenha(id){
+  const btn = document.getElementById('fichaResetarSenhaBtn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Gerando...'; }
+  try{
+    const resp = await fetch(API_URL + '/api/admin/painel/usuarios/' + id + '/resetar-senha', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const dados = await resp.json().catch(()=>({}));
+    if(resp.status === 401 || resp.status === 403){ sair(dados.erro || 'Acesso negado.'); return; }
+    if(!resp.ok) throw new Error(dados.erro || 'Erro ao resetar senha');
+
+    mostrarConfirmResetarSenha = false;
+    senhaTemporariaRevelada = dados.senha_temporaria;
+    await abrirFichaUsuario(id);
+    carregarUsuarios(usuariosPaginaAtual);
+    mostrarMsg('painelMsg', 'Senha redefinida — copie a senha temporária antes de fechar a ficha.', 'ok');
+  }catch(e){
+    mostrarMsg('painelMsg', e.message || 'Erro ao resetar senha', 'erro');
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = 'Confirmar reset de senha'; }
+  }
+}
+
+function copiarSenhaTemporaria(){
+  if(!senhaTemporariaRevelada) return;
+  navigator.clipboard.writeText(senhaTemporariaRevelada).then(()=>{
+    const btn = document.getElementById('fichaCopiarSenhaBtn');
+    if(btn){ const original = btn.textContent; btn.textContent = 'Copiado!'; setTimeout(()=>{ btn.textContent = original; }, 1500); }
+  });
+}
+
+function fecharSenhaTemporaria(){
+  senhaTemporariaRevelada = null;
+  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
 }
 
 function copiarIdUsuario(id){
@@ -696,6 +752,33 @@ function montarFichaUsuario(u, modoEdicao, mostrarFormSuspensao, mostrarConfirmR
       <div style="margin-top:10px"><button class="btn-secundario" onclick="alternarConfirmRevogarSessoes(true)">Revogar sessões ativas</button></div>
     `;
 
+  // ===== Senha (Lote 5) =====
+  let secaoSenha;
+  if(senhaTemporariaRevelada){
+    secaoSenha = `
+      <div class="ficha-suspensao-form">
+        <div class="ficha-vazio-nota" style="margin-bottom:8px"><strong>Copie agora — essa senha não vai aparecer de novo.</strong> Repasse pro usuário por outro canal (WhatsApp, telefone).</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="mono" style="background:#fff;border:1px solid var(--borda);padding:6px 10px;border-radius:6px;font-size:15px">${esc(senhaTemporariaRevelada)}</span>
+          <button id="fichaCopiarSenhaBtn" class="btn-secundario" onclick="copiarSenhaTemporaria()">Copiar</button>
+        </div>
+        <div class="acoes"><button class="btn-secundario" onclick="fecharSenhaTemporaria()">Fechar</button></div>
+      </div>
+    `;
+  }else if(mostrarConfirmResetarSenha){
+    secaoSenha = `
+      <div class="ficha-suspensao-form">
+        <div class="ficha-vazio-nota">Isso gera uma senha temporária nova e encerra as sessões ativas do usuário. Você vai precisar repassar a senha pra ele por outro canal (WhatsApp, telefone) — pensado pra quando a pessoa perdeu acesso ao próprio e-mail, já que não depende dele.</div>
+        <div class="acoes">
+          <button class="btn-secundario" onclick="alternarConfirmResetarSenha(false)">Cancelar</button>
+          <button class="btn-primario" id="fichaResetarSenhaBtn" onclick="confirmarResetarSenha('${u.id}')">Confirmar reset de senha</button>
+        </div>
+      </div>
+    `;
+  }else{
+    secaoSenha = `<button class="btn-secundario" onclick="alternarConfirmResetarSenha(true)">Resetar senha</button>`;
+  }
+
   const botoesAcao = modoEdicao
     ? `
       <button class="btn-secundario" onclick="alternarEdicaoFicha(false)">Cancelar</button>
@@ -784,6 +867,11 @@ function montarFichaUsuario(u, modoEdicao, mostrarFormSuspensao, mostrarConfirmR
     <div class="ficha-secao">
       <h3>Sessão</h3>
       ${secaoSessao}
+    </div>
+
+    <div class="ficha-secao">
+      <h3>Senha</h3>
+      ${secaoSenha}
     </div>
 
     <div class="ficha-secao">

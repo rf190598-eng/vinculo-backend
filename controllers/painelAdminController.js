@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
 const { sequelize } = require('../database');
 const Usuario = require('../models/Usuario');
@@ -505,6 +507,66 @@ const revogarSessoesUsuario = async (req, res) => {
   }
 };
 
+// Sem 0/O nem 1/l/I — evita confusão quando o admin lê a senha em voz alta
+// ou repassa por mensagem de texto pro usuário.
+const ALFABETO_SENHA_TEMPORARIA = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+function gerarSenhaTemporaria(tamanho = 12) {
+  const bytes = crypto.randomBytes(tamanho);
+  let senha = '';
+  for (let i = 0; i < tamanho; i++) {
+    senha += ALFABETO_SENHA_TEMPORARIA[bytes[i] % ALFABETO_SENHA_TEMPORARIA.length];
+  }
+  return senha;
+}
+
+// POST /api/admin/painel/usuarios/:id/resetar-senha — Lote 5 do plano de
+// acesso total.
+//
+// Decisão: gera uma senha temporária aleatória e devolve em texto puro só
+// na RESPOSTA desta chamada, uma vez — não fica salva em lugar nenhum além
+// do hash na própria conta do usuário, e NUNCA entra no log de auditoria
+// (o log registra que um reset aconteceu, nunca a senha em si, nem em
+// texto nem hash). Cabe ao admin repassar essa senha pro usuário por outro
+// canal (WhatsApp, telefone).
+//
+// Não reaproveitei o fluxo de recuperação por e-mail que já existe
+// (recuperacaoSenhaController.solicitarRecuperacao) de propósito: o cenário
+// que você descreveu é justamente alguém que perdeu acesso ao próprio
+// e-mail — mandar um link de redefinição pro mesmo e-mail que a pessoa não
+// consegue mais acessar não resolve nada. A senha temporária funciona
+// mesmo nesse caso, porque não depende do e-mail em momento nenhum.
+//
+// Também revoga as sessões ativas (mesmo mecanismo do Lote 4): depois de
+// um reset de senha faz sentido derrubar qualquer sessão antiga também,
+// nem que seja por segurança (ex: se o motivo do reset foi suspeita de
+// conta comprometida).
+const resetarSenhaUsuario = async (req, res) => {
+  try {
+    const usuario = await Usuario.findByPk(req.params.id);
+    if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
+
+    const senhaTemporaria = gerarSenhaTemporaria();
+    usuario.senha = await bcrypt.hash(senhaTemporaria, 10);
+    usuario.reset_token = null;
+    usuario.reset_token_expira = null;
+    usuario.sessoes_revogadas_em = new Date();
+    await usuario.save();
+
+    await registrarLogAuditoria({
+      admin: req.usuarioAdmin,
+      acao: 'resetar_senha_usuario',
+      usuarioAlvo: usuario
+      // Sem "detalhes" de propósito — nunca gravar a senha, nem temporária,
+      // num registro de auditoria.
+    });
+
+    res.json({ ok: true, senha_temporaria: senhaTemporaria });
+  } catch (erro) {
+    console.error('Erro ao resetar senha de usuário no painel administrativo:', erro);
+    res.status(500).json({ erro: 'Erro ao resetar senha do usuário' });
+  }
+};
+
 // Ranking de comissão pro Painel Central — Lote 2 (do plano original de
 // conteúdo do painel, anterior ao plano de acesso total). "Quanto já ganharam" é
 // tratado como comissão GERADA (paga + pendente), não só a já paga — é uma
@@ -633,6 +695,7 @@ module.exports = {
   suspenderUsuario,
   removerSuspensaoUsuario,
   revogarSessoesUsuario,
+  resetarSenhaUsuario,
   obterRankingComissoes,
   obterSegmentacaoPagantes
 };
