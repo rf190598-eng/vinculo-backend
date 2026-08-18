@@ -5,6 +5,7 @@ const PagamentoProcessado = require('../models/PagamentoProcessado');
 const Comissao = require('../models/Comissao');
 const Parceiro = require('../models/Parceiro');
 const { primeiroDiaDoMes } = require('./parceiroController');
+const { registrarLogAuditoria } = require('./auditoriaController');
 
 function somaDecimal(valor) {
   return Number(valor || 0);
@@ -159,7 +160,7 @@ const listarUsuarios = async (req, res) => {
 
     const { count, rows } = await Usuario.findAndCountAll({
       where,
-      attributes: ['nome', 'email', 'verificado', 'premium', 'plano_atual', 'premium_ate', 'createdAt'],
+      attributes: ['id', 'nome', 'email', 'verificado', 'premium', 'plano_atual', 'premium_ate', 'createdAt'],
       order: [['createdAt', 'DESC']],
       limit: porPagina,
       offset: (pagina - 1) * porPagina
@@ -168,6 +169,7 @@ const listarUsuarios = async (req, res) => {
     const agora = new Date();
     res.json({
       usuarios: rows.map(u => ({
+        id: u.id,
         nome: u.nome,
         email: u.email,
         verificado: u.verificado,
@@ -182,6 +184,74 @@ const listarUsuarios = async (req, res) => {
   } catch (erro) {
     console.error('Erro ao listar usuários no painel administrativo:', erro);
     res.status(500).json({ erro: 'Erro ao listar usuários' });
+  }
+};
+
+// Campos do Usuario que NÃO voltam na ficha, mesmo pro admin: senha e
+// tokens de reset (credenciais), e as três referências ligadas ao
+// reconhecimento facial (foto_verificacao, foto_referencia_liveness,
+// liveness_session_pendente) — verificação facial é dado sensível à parte,
+// com rota própria já protegida (obterFotoLivenessAdmin) e vai ganhar
+// exibição no painel só no Lote 8, com o log de auditoria já registrando
+// cada acesso.
+const CAMPOS_FICHA_USUARIO = [
+  'id', 'nome', 'email', 'telefone', 'data_nascimento', 'genero', 'objetivo',
+  'estilo_vida', 'interesses', 'signo', 'bio', 'foto_url', 'instagram_handle',
+  'altura', 'peso', 'cor_cabelo', 'cidade', 'latitude', 'longitude', 'prompts',
+  'pref_genero', 'pref_idade_min', 'pref_idade_max', 'pref_distancia_km',
+  'pref_apenas_verificados', 'pref_objetivo', 'pref_altura_min', 'pref_altura_max',
+  'pref_peso_min', 'pref_peso_max', 'pref_cor_cabelo',
+  'verificado', 'liveness_aprovado', 'liveness_confianca', 'premium', 'premium_ate',
+  'plano_atual', 'ativo', 'is_admin', 'tour_seguranca_visto',
+  'codigo_indicacao', 'indicado_por', 'bonus_indicacao_creditado',
+  'indicado_por_parceiro_id', 'mercadopago_subscription_id',
+  'createdAt', 'updatedAt'
+];
+
+// Ficha completa de um único usuário pro Painel Central — Lote 1. Só
+// leitura por enquanto (as ações administrativas em cima dela vêm nos
+// próximos lotes). O id explícito na resposta é o que falta hoje pra
+// conseguir mirar num usuário específico nas próximas ações.
+const obterUsuarioDetalhe = async (req, res) => {
+  try {
+    const usuario = await Usuario.findByPk(req.params.id, { attributes: CAMPOS_FICHA_USUARIO });
+    if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
+
+    // Método e data do pagamento mais recente, mesmo dado que já aparece na
+    // lista de assinantes ativos do painel — dá contexto de pagamento sem
+    // precisar abrir outra tela.
+    const ultimoPagamento = await PagamentoProcessado.findOne({
+      where: { usuario_id: usuario.id },
+      order: [['processado_em', 'DESC']],
+      attributes: ['metodo', 'plano', 'valor', 'processado_em']
+    });
+
+    res.json({
+      ...usuario.get({ plain: true }),
+      status_pagamento: statusPagamento(usuario, new Date()),
+      ultimo_pagamento: ultimoPagamento
+        ? {
+            metodo: ultimoPagamento.metodo,
+            plano: ultimoPagamento.plano,
+            valor: somaDecimal(ultimoPagamento.valor),
+            processado_em: ultimoPagamento.processado_em
+          }
+        : null
+    });
+
+    // Log de auditoria: por decisão explícita, toda abertura de ficha
+    // completa de usuário fica registrada, mesmo os campos aqui sendo menos
+    // sensíveis que mensagens/localização/foto de verificação — mantém
+    // consistência total do rastro de acesso. Depois de responder (não
+    // atrasa a ficha na tela do admin).
+    registrarLogAuditoria({
+      admin: req.usuarioAdmin,
+      acao: 'ver_ficha_usuario',
+      usuarioAlvo: usuario
+    });
+  } catch (erro) {
+    console.error('Erro ao montar ficha de usuário no painel administrativo:', erro);
+    res.status(500).json({ erro: 'Erro ao montar ficha do usuário' });
   }
 };
 
@@ -304,4 +374,10 @@ const obterSegmentacaoPagantes = async (req, res) => {
   }
 };
 
-module.exports = { obterPainel, listarUsuarios, obterRankingComissoes, obterSegmentacaoPagantes };
+module.exports = {
+  obterPainel,
+  listarUsuarios,
+  obterUsuarioDetalhe,
+  obterRankingComissoes,
+  obterSegmentacaoPagantes
+};

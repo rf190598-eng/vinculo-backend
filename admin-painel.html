@@ -69,6 +69,24 @@
   .tag-vitalicio_legado{background:#f0e0f8;color:#7a3aa8}
   .tag-vencido{background:#fbe0e0;color:var(--erro)}
   .tag-gratuito{background:#eee;color:#666}
+
+  tbody tr.linha-clicavel{cursor:pointer}
+
+  /* Ficha do usuário (modal) */
+  #fichaOverlay{display:none;position:fixed;inset:0;background:rgba(20,10,15,.55);z-index:100;padding:24px;overflow-y:auto}
+  #fichaModal{background:#fff;max-width:720px;margin:0 auto;border-radius:12px;padding:22px 24px 26px}
+  .ficha-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px}
+  .ficha-head h2{margin:0;font-size:17px}
+  .ficha-id{display:flex;align-items:center;gap:6px;margin:6px 0 18px;font-size:12px;color:var(--suave)}
+  .ficha-id .mono{background:#f5f5f7;padding:3px 8px;border-radius:6px}
+  .ficha-id button{padding:3px 9px;font-size:11.5px}
+  .ficha-fechar{background:none;border:none;font-size:20px;line-height:1;color:var(--suave);cursor:pointer;padding:2px 6px}
+  .ficha-secao{margin-bottom:16px}
+  .ficha-secao h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--suave)}
+  .ficha-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px 16px}
+  .ficha-campo .rot{font-size:11.5px;color:var(--suave)}
+  .ficha-campo .val{font-size:13.5px;word-break:break-word}
+  .ficha-vazio-nota{font-size:11.5px;color:var(--suave)}
 </style>
 </head>
 <body>
@@ -176,6 +194,13 @@
       <div class="aviso-nota">Valores brutos (sem taxa do Mercado Pago descontada). Só reflete pagamentos processados a partir da criação deste painel — pagamentos anteriores não aparecem retroativamente.</div>
     </div>
   </main>
+</div>
+
+<!-- ===================== FICHA DO USUÁRIO (modal, só leitura) ===================== -->
+<div id="fichaOverlay" onclick="if(event.target===this)fecharFichaUsuario()">
+  <div id="fichaModal">
+    <div id="fichaConteudo"><div class="vazio">Carregando...</div></div>
+  </div>
 </div>
 
 <script>
@@ -337,7 +362,7 @@ function montarUsuarios(dados){
         <thead><tr><th>Nome</th><th>E-mail</th><th>Status de pagamento</th><th>Verificado</th><th>Cadastro</th></tr></thead>
         <tbody>
           ${dados.usuarios.map(u => `
-            <tr>
+            <tr class="linha-clicavel" onclick="abrirFichaUsuario('${u.id}')">
               <td>${esc(u.nome)}</td>
               <td>${esc(u.email)}</td>
               <td><span class="tag tag-${esc(u.status_pagamento)}">${esc(ROTULOS_STATUS_PAGAMENTO[u.status_pagamento] || u.status_pagamento)}</span></td>
@@ -360,6 +385,117 @@ function montarUsuarios(dados){
       <button class="btn-secundario" ${dados.pagina >= dados.total_paginas ? 'disabled' : ''} onclick="carregarUsuarios(${dados.pagina + 1})">Próxima →</button>
     `;
   }
+}
+
+// ===== FICHA DO USUÁRIO (modal, só leitura — Lote 1 da expansão de acesso
+// total). Ações (editar, suspender, excluir, etc.) entram aqui nos
+// próximos lotes, usando esta ficha como base pra mirar no usuário certo. =====
+function campoFicha(rotulo, valor){
+  return `<div class="ficha-campo"><div class="rot">${esc(rotulo)}</div><div class="val">${valor}</div></div>`;
+}
+function simNao(v){ return v ? 'Sim' : 'Não'; }
+function listaOuTraco(v){ return Array.isArray(v) && v.length ? esc(v.join(', ')) : '—'; }
+function escOuTraco(v){ return v ? esc(v) : '—'; }
+
+async function abrirFichaUsuario(id){
+  document.getElementById('fichaConteudo').innerHTML = '<div class="vazio">Carregando...</div>';
+  document.getElementById('fichaOverlay').style.display = 'block';
+  try{
+    const u = await api('/api/admin/painel/usuarios/' + id);
+    montarFichaUsuario(u);
+  }catch(e){
+    document.getElementById('fichaConteudo').innerHTML = `<div class="vazio">Erro ao carregar ficha do usuário.</div>`;
+  }
+}
+
+function fecharFichaUsuario(){
+  document.getElementById('fichaOverlay').style.display = 'none';
+}
+
+function copiarIdUsuario(id){
+  navigator.clipboard.writeText(id).then(()=>{
+    const btn = document.getElementById('fichaCopiarIdBtn');
+    if(btn){ const original = btn.textContent; btn.textContent = 'Copiado!'; setTimeout(()=>{ btn.textContent = original; }, 1500); }
+  });
+}
+
+function montarFichaUsuario(u){
+  const ultimoPagamento = u.ultimo_pagamento
+    ? `${ROTULOS_METODO[u.ultimo_pagamento.metodo] || u.ultimo_pagamento.metodo} · ${esc(u.ultimo_pagamento.plano)} · ${reais(u.ultimo_pagamento.valor)} em ${dataBR(u.ultimo_pagamento.processado_em)}`
+    : '—';
+
+  document.getElementById('fichaConteudo').innerHTML = `
+    <div class="ficha-head">
+      <h2>${esc(u.nome)}</h2>
+      <button class="ficha-fechar" onclick="fecharFichaUsuario()">&times;</button>
+    </div>
+    <div class="ficha-id">
+      <span>ID:</span>
+      <span class="mono">${esc(u.id)}</span>
+      <button id="fichaCopiarIdBtn" class="btn-secundario" onclick="copiarIdUsuario('${u.id}')">Copiar</button>
+    </div>
+
+    <div class="ficha-secao">
+      <h3>Status</h3>
+      <div class="ficha-grid">
+        ${campoFicha('Status de pagamento', `<span class="tag tag-${esc(u.status_pagamento)}">${esc(ROTULOS_STATUS_PAGAMENTO[u.status_pagamento] || u.status_pagamento)}</span>`)}
+        ${campoFicha('Plano atual', escOuTraco(u.plano_atual))}
+        ${campoFicha('Premium até', dataBR(u.premium_ate))}
+        ${campoFicha('Último pagamento', ultimoPagamento)}
+        ${campoFicha('Verificado', simNao(u.verificado))}
+        ${campoFicha('Liveness aprovado', simNao(u.liveness_aprovado))}
+        ${campoFicha('Conta ativa', simNao(u.ativo))}
+        ${campoFicha('Admin', simNao(u.is_admin))}
+        ${campoFicha('Cadastro', dataBR(u.createdAt))}
+        ${campoFicha('Última atualização', dataBR(u.updatedAt))}
+      </div>
+    </div>
+
+    <div class="ficha-secao">
+      <h3>Perfil</h3>
+      <div class="ficha-grid">
+        ${campoFicha('E-mail', esc(u.email))}
+        ${campoFicha('Telefone', escOuTraco(u.telefone))}
+        ${campoFicha('Data de nascimento', dataBR(u.data_nascimento))}
+        ${campoFicha('Gênero', escOuTraco(u.genero))}
+        ${campoFicha('Objetivo', escOuTraco(u.objetivo))}
+        ${campoFicha('Signo', escOuTraco(u.signo))}
+        ${campoFicha('Altura', u.altura ? u.altura + ' cm' : '—')}
+        ${campoFicha('Peso', u.peso ? u.peso + ' kg' : '—')}
+        ${campoFicha('Cor de cabelo', escOuTraco(u.cor_cabelo))}
+        ${campoFicha('Cidade', escOuTraco(u.cidade))}
+        ${campoFicha('Instagram', escOuTraco(u.instagram_handle))}
+        ${campoFicha('Interesses', listaOuTraco(u.interesses))}
+        ${campoFicha('Estilo de vida', listaOuTraco(u.estilo_vida))}
+      </div>
+      ${u.bio ? `<div style="margin-top:10px" class="ficha-campo"><div class="rot">Bio</div><div class="val" style="white-space:pre-wrap">${esc(u.bio)}</div></div>` : ''}
+      ${u.foto_url ? `<div style="margin-top:10px"><a class="ver-mais" href="${esc(u.foto_url)}" target="_blank" rel="noopener">Ver foto de perfil ↗</a></div>` : ''}
+    </div>
+
+    <div class="ficha-secao">
+      <h3>Preferências de busca</h3>
+      <div class="ficha-grid">
+        ${campoFicha('Gênero preferido', escOuTraco(u.pref_genero))}
+        ${campoFicha('Faixa etária', `${u.pref_idade_min ?? '—'} a ${u.pref_idade_max ?? '—'}`)}
+        ${campoFicha('Distância', u.pref_distancia_km ? u.pref_distancia_km + ' km' : '—')}
+        ${campoFicha('Apenas verificados', simNao(u.pref_apenas_verificados))}
+        ${campoFicha('Objetivo preferido', escOuTraco(u.pref_objetivo))}
+      </div>
+    </div>
+
+    <div class="ficha-secao">
+      <h3>Indicação e parceiro</h3>
+      <div class="ficha-grid">
+        ${campoFicha('Código de indicação', escOuTraco(u.codigo_indicacao))}
+        ${campoFicha('Indicado por (código)', escOuTraco(u.indicado_por))}
+        ${campoFicha('Bônus de indicação creditado', simNao(u.bonus_indicacao_creditado))}
+        ${campoFicha('Veio de parceiro (ID)', escOuTraco(u.indicado_por_parceiro_id))}
+        ${campoFicha('Assinatura recorrente (Mercado Pago)', escOuTraco(u.mercadopago_subscription_id))}
+      </div>
+    </div>
+
+    <div class="aviso-nota">Ficha só leitura por enquanto. Foto de verificação facial, mensagens e localização não aparecem aqui — entram em lotes futuros, com acesso e log de auditoria próprios.</div>
+  `;
 }
 
 function montarResumoGeral(estatisticas, fundadores, parceiros, painel){

@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   obterPainel,
   listarUsuarios,
+  obterUsuarioDetalhe,
   obterRankingComissoes,
   obterSegmentacaoPagantes
 } = require('../controllers/painelAdminController');
@@ -13,6 +14,7 @@ const { verificarAdmin } = require('../controllers/verificarAdmin');
 router.use(autenticar, verificarAdmin);
 router.get('/', obterPainel);
 router.get('/usuarios', listarUsuarios);
+router.get('/usuarios/:id', obterUsuarioDetalhe);
 router.get('/ranking-comissoes', obterRankingComissoes);
 router.get('/segmentacao-pagantes', obterSegmentacaoPagantes);
 router.get('/logs-auditoria', listarLogsAuditoria);
