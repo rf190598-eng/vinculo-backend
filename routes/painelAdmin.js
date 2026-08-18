@@ -5,6 +5,8 @@ const {
   listarUsuarios,
   obterUsuarioDetalhe,
   editarUsuario,
+  suspenderUsuario,
+  removerSuspensaoUsuario,
   obterRankingComissoes,
   obterSegmentacaoPagantes
 } = require('../controllers/painelAdminController');
@@ -17,6 +19,8 @@ router.get('/', obterPainel);
 router.get('/usuarios', listarUsuarios);
 router.get('/usuarios/:id', obterUsuarioDetalhe);
 router.patch('/usuarios/:id', editarUsuario);
+router.post('/usuarios/:id/suspender', suspenderUsuario);
+router.post('/usuarios/:id/remover-suspensao', removerSuspensaoUsuario);
 router.get('/ranking-comissoes', obterRankingComissoes);
 router.get('/segmentacao-pagantes', obterSegmentacaoPagantes);
 router.get('/logs-auditoria', listarLogsAuditoria);

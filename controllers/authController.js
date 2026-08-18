@@ -122,6 +122,20 @@ const login = async (req, res) => {
     if (!usuario) return res.status(401).json({ erro: 'Email ou senha incorretos' });
     const senhaCorreta = await bcrypt.compare(senha, usuario.senha);
     if (!senhaCorreta) return res.status(401).json({ erro: 'Email ou senha incorretos' });
+
+    // Suspensão administrativa (Lote 3): barra o login com uma mensagem
+    // clara, sem revelar motivo interno. A mesma checagem também roda em
+    // toda requisição autenticada (authMiddleware) — aqui é só pra dar um
+    // erro específico já na tela de login, em vez do genérico de token.
+    if (usuario.suspenso_permanente) {
+      return res.status(403).json({ erro: 'Esta conta foi banida.' });
+    }
+    if (usuario.suspenso_ate && new Date(usuario.suspenso_ate) > new Date()) {
+      return res.status(403).json({
+        erro: `Esta conta está suspensa até ${new Date(usuario.suspenso_ate).toLocaleDateString('pt-BR')}.`
+      });
+    }
+
     const token = jwt.sign({ id: usuario.id, email: usuario.email, jti: crypto.randomUUID() }, process.env.JWT_SECRET, { expiresIn: '30d' });
     const usuarioCompleto = await Usuario.findByPk(usuario.id, { attributes: { exclude: ['senha', 'foto_verificacao', 'foto_referencia_liveness'] } });
     res.json({ mensagem: 'Login realizado!', token, usuario: usuarioCompleto });

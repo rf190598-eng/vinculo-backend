@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const TokenRevogado = require('../models/TokenRevogado');
+const Usuario = require('../models/Usuario');
 
 const autenticar = async (req, res, next) => {
   try {
@@ -22,6 +23,27 @@ const autenticar = async (req, res, next) => {
       if (revogado) {
         return res.status(401).json({ erro: 'Sessão encerrada. Faça login novamente.' });
       }
+    }
+
+    // Suspensão administrativa (Lote 3): checada em TODA requisição
+    // autenticada, não só no login — assim uma suspensão aplicada agora já
+    // barra imediatamente quem já estava logado, sem precisar esperar o
+    // token expirar (revogar a sessão especificamente é uma ação separada,
+    // ainda não construída). Busca só as 3 colunas necessárias, mesmo
+    // padrão de custo mínimo já usado em verificarAdmin.
+    const usuario = await Usuario.findByPk(decoded.id, {
+      attributes: ['id', 'suspenso_ate', 'suspenso_permanente']
+    });
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido ou expirado' });
+    }
+    if (usuario.suspenso_permanente) {
+      return res.status(403).json({ erro: 'Esta conta foi banida.' });
+    }
+    if (usuario.suspenso_ate && new Date(usuario.suspenso_ate) > new Date()) {
+      return res.status(403).json({
+        erro: `Esta conta está suspensa até ${new Date(usuario.suspenso_ate).toLocaleDateString('pt-BR')}.`
+      });
     }
 
     req.usuarioId = decoded.id;

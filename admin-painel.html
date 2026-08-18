@@ -69,6 +69,13 @@
   .tag-vitalicio_legado{background:#f0e0f8;color:#7a3aa8}
   .tag-vencido{background:#fbe0e0;color:var(--erro)}
   .tag-gratuito{background:#eee;color:#666}
+  .tag-temporaria{background:#fbe8d0;color:#8a5a1f}
+  .tag-permanente{background:#f7d3d3;color:var(--erro)}
+
+  .ficha-suspensao-form{background:#fafafa;border:1px solid var(--borda);border-radius:8px;padding:14px;margin-top:10px}
+  .ficha-suspensao-form textarea{width:100%;padding:9px 10px;border:1px solid var(--borda);border-radius:7px;font-size:14px;font-family:inherit}
+  .ficha-suspensao-form .linha-form label{margin-top:0}
+  .ficha-suspensao-form .acoes{display:flex;gap:8px;margin-top:12px}
 
   tbody tr.linha-clicavel{cursor:pointer}
 
@@ -326,6 +333,10 @@ const ROTULOS_STATUS_PAGAMENTO = {
   vencido: 'Vencido',
   gratuito: 'Gratuito'
 };
+const ROTULOS_SUSPENSAO = {
+  temporaria: 'Suspenso',
+  permanente: 'Banido'
+};
 
 // ===== 2. TODOS OS USUÁRIOS (busca + paginação própria, carrega separado
 // do resto do painel pra não travar as outras seções numa base grande) =====
@@ -359,7 +370,7 @@ function montarUsuarios(dados){
   }else{
     el.innerHTML = `
       <table>
-        <thead><tr><th>Nome</th><th>E-mail</th><th>Status de pagamento</th><th>Verificado</th><th>Cadastro</th></tr></thead>
+        <thead><tr><th>Nome</th><th>E-mail</th><th>Status de pagamento</th><th>Verificado</th><th>Suspensão</th><th>Cadastro</th></tr></thead>
         <tbody>
           ${dados.usuarios.map(u => `
             <tr class="linha-clicavel" onclick="abrirFichaUsuario('${u.id}')">
@@ -367,6 +378,7 @@ function montarUsuarios(dados){
               <td>${esc(u.email)}</td>
               <td><span class="tag tag-${esc(u.status_pagamento)}">${esc(ROTULOS_STATUS_PAGAMENTO[u.status_pagamento] || u.status_pagamento)}</span></td>
               <td>${u.verificado ? 'Sim' : 'Não'}</td>
+              <td>${u.status_suspensao ? `<span class="tag tag-${esc(u.status_suspensao)}">${esc(ROTULOS_SUSPENSAO[u.status_suspensao] || u.status_suspensao)}</span>` : '—'}</td>
               <td>${dataBR(u.data_cadastro)}</td>
             </tr>
           `).join('')}
@@ -476,7 +488,7 @@ async function abrirFichaUsuario(id){
   document.getElementById('fichaOverlay').style.display = 'block';
   try{
     const u = await api('/api/admin/painel/usuarios/' + id);
-    montarFichaUsuario(u, false);
+    montarFichaUsuario(u, false, false);
   }catch(e){
     document.getElementById('fichaConteudo').innerHTML = `<div class="vazio">Erro ao carregar ficha do usuário.</div>`;
   }
@@ -487,8 +499,68 @@ function fecharFichaUsuario(){
   fichaUsuarioAtual = null;
 }
 
+// Edição de perfil e suspensão são mutuamente exclusivas na tela — ligar uma
+// desliga a outra, evita confundir dois formulários abertos ao mesmo tempo.
 function alternarEdicaoFicha(ligar){
-  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, ligar);
+  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, ligar, false);
+}
+function alternarFormSuspensao(ligar){
+  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, ligar);
+}
+
+async function confirmarSuspensao(id){
+  const btn = document.getElementById('fichaSuspenderBtn');
+  const tipo = document.querySelector('input[name="susp_tipo"]:checked')?.value;
+  const ate = document.getElementById('susp_ate')?.value;
+  const motivo = document.getElementById('susp_motivo')?.value.trim();
+
+  if(!motivo){ mostrarMsg('painelMsg', 'Motivo é obrigatório para suspender.', 'erro'); return; }
+  if(tipo === 'temporaria' && !ate){ mostrarMsg('painelMsg', 'Escolha a data de fim da suspensão.', 'erro'); return; }
+
+  if(btn){ btn.disabled = true; btn.textContent = 'Suspendendo...'; }
+  try{
+    const resp = await fetch(API_URL + '/api/admin/painel/usuarios/' + id + '/suspender', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ tipo, ate: tipo === 'temporaria' ? ate : undefined, motivo })
+    });
+    const dados = await resp.json().catch(()=>({}));
+    if(resp.status === 401 || resp.status === 403){ sair(dados.erro || 'Acesso negado.'); return; }
+    if(!resp.ok) throw new Error(dados.erro || 'Erro ao suspender usuário');
+
+    await abrirFichaUsuario(id);
+    carregarUsuarios(usuariosPaginaAtual);
+    mostrarMsg('painelMsg', 'Usuário suspenso.', 'ok');
+  }catch(e){
+    mostrarMsg('painelMsg', e.message || 'Erro ao suspender usuário', 'erro');
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = 'Confirmar suspensão'; }
+  }
+}
+
+async function confirmarRemocaoSuspensao(id){
+  const btn = document.getElementById('fichaRemoverSuspensaoBtn');
+  const motivo = document.getElementById('susp_motivo_remocao')?.value.trim() || undefined;
+
+  if(btn){ btn.disabled = true; btn.textContent = 'Removendo...'; }
+  try{
+    const resp = await fetch(API_URL + '/api/admin/painel/usuarios/' + id + '/remover-suspensao', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ motivo })
+    });
+    const dados = await resp.json().catch(()=>({}));
+    if(resp.status === 401 || resp.status === 403){ sair(dados.erro || 'Acesso negado.'); return; }
+    if(!resp.ok) throw new Error(dados.erro || 'Erro ao remover suspensão');
+
+    await abrirFichaUsuario(id);
+    carregarUsuarios(usuariosPaginaAtual);
+    mostrarMsg('painelMsg', 'Suspensão removida.', 'ok');
+  }catch(e){
+    mostrarMsg('painelMsg', e.message || 'Erro ao remover suspensão', 'erro');
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = 'Confirmar remoção'; }
+  }
 }
 
 function copiarIdUsuario(id){
@@ -522,12 +594,64 @@ async function salvarEdicaoFicha(id){
   }
 }
 
-function montarFichaUsuario(u, modoEdicao){
+function montarFichaUsuario(u, modoEdicao, mostrarFormSuspensao){
   fichaUsuarioAtual = u;
 
   const ultimoPagamento = u.ultimo_pagamento
     ? `${ROTULOS_METODO[u.ultimo_pagamento.metodo] || u.ultimo_pagamento.metodo} · ${esc(u.ultimo_pagamento.plano)} · ${reais(u.ultimo_pagamento.valor)} em ${dataBR(u.ultimo_pagamento.processado_em)}`
     : '—';
+
+  // ===== Suspensão (Lote 3) =====
+  const jaSuspenso = !!u.status_suspensao;
+  let secaoSuspensao;
+  if(mostrarFormSuspensao && !jaSuspenso){
+    secaoSuspensao = `
+      <div class="ficha-suspensao-form">
+        <div class="linha-form">
+          <label>Tipo</label>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--texto)"><input type="radio" name="susp_tipo" value="temporaria" checked style="width:auto" onchange="document.getElementById('susp_ate_linha').style.display='block'"/> Temporária</label>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--texto);margin-left:16px"><input type="radio" name="susp_tipo" value="permanente" style="width:auto" onchange="document.getElementById('susp_ate_linha').style.display='none'"/> Permanente (banimento)</label>
+        </div>
+        <div class="linha-form" id="susp_ate_linha">
+          <label for="susp_ate">Suspensa até</label>
+          <input type="date" id="susp_ate"/>
+        </div>
+        <div class="linha-form">
+          <label for="susp_motivo">Motivo (obrigatório, fica no log de auditoria)</label>
+          <textarea id="susp_motivo" rows="3"></textarea>
+        </div>
+        <div class="acoes">
+          <button class="btn-secundario" onclick="alternarFormSuspensao(false)">Cancelar</button>
+          <button class="btn-primario" id="fichaSuspenderBtn" onclick="confirmarSuspensao('${u.id}')">Confirmar suspensão</button>
+        </div>
+      </div>
+    `;
+  }else if(mostrarFormSuspensao && jaSuspenso){
+    secaoSuspensao = `
+      <div class="ficha-suspensao-form">
+        <div class="linha-form">
+          <label for="susp_motivo_remocao">Motivo da remoção (opcional, fica no log de auditoria)</label>
+          <textarea id="susp_motivo_remocao" rows="2"></textarea>
+        </div>
+        <div class="acoes">
+          <button class="btn-secundario" onclick="alternarFormSuspensao(false)">Cancelar</button>
+          <button class="btn-primario" id="fichaRemoverSuspensaoBtn" onclick="confirmarRemocaoSuspensao('${u.id}')">Confirmar remoção</button>
+        </div>
+      </div>
+    `;
+  }else{
+    const botaoSuspensao = jaSuspenso
+      ? `<button class="btn-secundario" onclick="alternarFormSuspensao(true)">Remover suspensão</button>`
+      : `<button class="btn-secundario" onclick="alternarFormSuspensao(true)">Suspender usuário</button>`;
+    secaoSuspensao = `
+      <div class="ficha-grid">
+        ${campoFicha('Situação', u.status_suspensao ? `<span class="tag tag-${esc(u.status_suspensao)}">${esc(ROTULOS_SUSPENSAO[u.status_suspensao] || u.status_suspensao)}</span>` : 'Nenhuma suspensão ativa')}
+        ${u.status_suspensao === 'temporaria' ? campoFicha('Suspensa até', dataBR(u.suspenso_ate)) : ''}
+        ${jaSuspenso ? campoFicha('Motivo', escOuTraco(u.suspenso_motivo)) : ''}
+      </div>
+      <div style="margin-top:10px">${botaoSuspensao}</div>
+    `;
+  }
 
   const botoesAcao = modoEdicao
     ? `
@@ -607,6 +731,11 @@ function montarFichaUsuario(u, modoEdicao){
         ${campoFicha('Última atualização', dataBR(u.updatedAt))}
       </div>
       ${modoEdicao ? '<div class="ficha-vazio-nota" style="margin-top:8px">Estes campos não são editáveis por aqui — mudam por outros fluxos (pagamento, verificação) ou entram em ações próprias nos próximos lotes.</div>' : ''}
+    </div>
+
+    <div class="ficha-secao">
+      <h3>Suspensão</h3>
+      ${secaoSuspensao}
     </div>
 
     <div class="ficha-secao">

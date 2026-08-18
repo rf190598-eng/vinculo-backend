@@ -205,6 +205,29 @@ cor_cabelo: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
   },
+  // Suspensão administrativa (Lote 3 do plano de acesso total do Painel
+  // Central) — diferente de `ativo` (que é um campo mais antigo e genérico,
+  // não usado por nenhum fluxo de suspensão até aqui).
+  // suspenso_permanente=true = banimento permanente, ignora suspenso_ate.
+  // suspenso_ate com data futura = suspensão temporária até aquela data.
+  // suspenso_ate no passado (e permanente=false) = suspensão já expirou,
+  // não bloqueia mais — comparado na hora, sem precisar de job de limpeza
+  // (mesmo padrão já usado aqui para premium_ate/plano_atual).
+  // suspenso_motivo guarda o motivo da suspensão ATUAL, pra aparecer na
+  // ficha sem precisar consultar o log de auditoria — o log continua sendo
+  // o histórico completo de todas as suspensões/remoções já feitas.
+  suspenso_ate: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  suspenso_permanente: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  suspenso_motivo: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
   reset_token: {
     type: DataTypes.STRING,
     allowNull: true

@@ -134,6 +134,16 @@ function statusPagamento(usuario, agora) {
   return 'gratuito';
 }
 
+// Status de suspensão pra exibição — Lote 3. Também derivado na hora, mesmo
+// padrão de statusPagamento: suspenso_ate no passado não bloqueia mais (ver
+// comentário no model Usuario), então não conta como suspenso aqui mesmo
+// que o campo ainda tenha uma data antiga guardada.
+function statusSuspensao(usuario, agora) {
+  if (usuario.suspenso_permanente) return 'permanente';
+  if (usuario.suspenso_ate && new Date(usuario.suspenso_ate) > agora) return 'temporaria';
+  return null;
+}
+
 const PAGINA_TAMANHO_PADRAO = 25;
 const PAGINA_TAMANHO_MAXIMO = 100;
 
@@ -160,7 +170,10 @@ const listarUsuarios = async (req, res) => {
 
     const { count, rows } = await Usuario.findAndCountAll({
       where,
-      attributes: ['id', 'nome', 'email', 'verificado', 'premium', 'plano_atual', 'premium_ate', 'createdAt'],
+      attributes: [
+        'id', 'nome', 'email', 'verificado', 'premium', 'plano_atual', 'premium_ate',
+        'suspenso_ate', 'suspenso_permanente', 'createdAt'
+      ],
       order: [['createdAt', 'DESC']],
       limit: porPagina,
       offset: (pagina - 1) * porPagina
@@ -174,6 +187,7 @@ const listarUsuarios = async (req, res) => {
         email: u.email,
         verificado: u.verificado,
         status_pagamento: statusPagamento(u, agora),
+        status_suspensao: statusSuspensao(u, agora),
         data_cadastro: u.createdAt
       })),
       total: count,
@@ -203,6 +217,7 @@ const CAMPOS_FICHA_USUARIO = [
   'pref_peso_min', 'pref_peso_max', 'pref_cor_cabelo',
   'verificado', 'liveness_aprovado', 'liveness_confianca', 'premium', 'premium_ate',
   'plano_atual', 'ativo', 'is_admin', 'tour_seguranca_visto',
+  'suspenso_ate', 'suspenso_permanente', 'suspenso_motivo',
   'codigo_indicacao', 'indicado_por', 'bonus_indicacao_creditado',
   'indicado_por_parceiro_id', 'mercadopago_subscription_id',
   'createdAt', 'updatedAt'
@@ -229,6 +244,7 @@ const obterUsuarioDetalhe = async (req, res) => {
     res.json({
       ...usuario.get({ plain: true }),
       status_pagamento: statusPagamento(usuario, new Date()),
+      status_suspensao: statusSuspensao(usuario, new Date()),
       ultimo_pagamento: ultimoPagamento
         ? {
             metodo: ultimoPagamento.metodo,
@@ -359,6 +375,107 @@ const editarUsuario = async (req, res) => {
   }
 };
 
+const MOTIVO_TAMANHO_MAXIMO = 500;
+
+// POST /api/admin/painel/usuarios/:id/suspender — Lote 3 do plano de acesso
+// total. Corpo: { tipo: 'temporaria'|'permanente', ate: 'AAAA-MM-DD' (só se
+// temporaria), motivo: string (obrigatório) }. Motivo é obrigatório de
+// propósito — toda suspensão precisa de uma justificativa registrada, tanto
+// no próprio usuário (suspenso_motivo, pra aparecer na ficha) quanto no log
+// de auditoria (histórico completo, mesmo que o motivo do campo seja
+// sobrescrito por uma suspensão futura).
+const suspenderUsuario = async (req, res) => {
+  try {
+    const usuario = await Usuario.findByPk(req.params.id);
+    if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
+
+    const { tipo, ate, motivo } = req.body || {};
+
+    if (tipo !== 'temporaria' && tipo !== 'permanente') {
+      return res.status(400).json({ erro: 'Tipo de suspensão inválido — use "temporaria" ou "permanente"' });
+    }
+
+    const motivoLimpo = String(motivo || '').trim().slice(0, MOTIVO_TAMANHO_MAXIMO);
+    if (!motivoLimpo) {
+      return res.status(400).json({ erro: 'Motivo é obrigatório' });
+    }
+
+    let ateData = null;
+    if (tipo === 'temporaria') {
+      ateData = new Date(ate);
+      if (!ate || isNaN(ateData.getTime())) {
+        return res.status(400).json({ erro: 'Data de fim da suspensão inválida' });
+      }
+      if (ateData <= new Date()) {
+        return res.status(400).json({ erro: 'A data de fim da suspensão precisa ser no futuro' });
+      }
+    }
+
+    usuario.suspenso_permanente = tipo === 'permanente';
+    usuario.suspenso_ate = tipo === 'temporaria' ? ateData : null;
+    usuario.suspenso_motivo = motivoLimpo;
+    await usuario.save();
+
+    await registrarLogAuditoria({
+      admin: req.usuarioAdmin,
+      acao: 'suspender_usuario',
+      usuarioAlvo: usuario,
+      detalhes: { tipo, ate: ateData ? ateData.toISOString() : null, motivo: motivoLimpo }
+    });
+
+    res.json({
+      ok: true,
+      status_suspensao: statusSuspensao(usuario, new Date()),
+      suspenso_ate: usuario.suspenso_ate,
+      suspenso_permanente: usuario.suspenso_permanente,
+      suspenso_motivo: usuario.suspenso_motivo
+    });
+  } catch (erro) {
+    console.error('Erro ao suspender usuário no painel administrativo:', erro);
+    res.status(500).json({ erro: 'Erro ao suspender usuário' });
+  }
+};
+
+// POST /api/admin/painel/usuarios/:id/remover-suspensao — Lote 3. Corpo
+// opcional: { motivo: string }. Se o usuário não estiver suspenso agora
+// (nem temporária vencida ainda marcada, nem permanente), recusa — evita
+// poluir o log de auditoria com remoções que não removeram nada.
+const removerSuspensaoUsuario = async (req, res) => {
+  try {
+    const usuario = await Usuario.findByPk(req.params.id);
+    if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
+
+    if (!usuario.suspenso_permanente && !usuario.suspenso_ate) {
+      return res.status(400).json({ erro: 'Usuário não está suspenso' });
+    }
+
+    const suspensaoAnterior = {
+      tipo: usuario.suspenso_permanente ? 'permanente' : 'temporaria',
+      ate: usuario.suspenso_ate,
+      motivo: usuario.suspenso_motivo
+    };
+
+    usuario.suspenso_permanente = false;
+    usuario.suspenso_ate = null;
+    usuario.suspenso_motivo = null;
+    await usuario.save();
+
+    const motivoRemocao = String((req.body && req.body.motivo) || '').trim().slice(0, MOTIVO_TAMANHO_MAXIMO) || null;
+
+    await registrarLogAuditoria({
+      admin: req.usuarioAdmin,
+      acao: 'remover_suspensao_usuario',
+      usuarioAlvo: usuario,
+      detalhes: { suspensao_anterior: suspensaoAnterior, motivo_remocao: motivoRemocao }
+    });
+
+    res.json({ ok: true });
+  } catch (erro) {
+    console.error('Erro ao remover suspensão de usuário no painel administrativo:', erro);
+    res.status(500).json({ erro: 'Erro ao remover suspensão' });
+  }
+};
+
 // Ranking de comissão pro Painel Central — Lote 2 (do plano original de
 // conteúdo do painel, anterior ao plano de acesso total). "Quanto já ganharam" é
 // tratado como comissão GERADA (paga + pendente), não só a já paga — é uma
@@ -484,6 +601,8 @@ module.exports = {
   listarUsuarios,
   obterUsuarioDetalhe,
   editarUsuario,
+  suspenderUsuario,
+  removerSuspensaoUsuario,
   obterRankingComissoes,
   obterSegmentacaoPagantes
 };
