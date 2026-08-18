@@ -71,6 +71,16 @@
   .tag-gratuito{background:#eee;color:#666}
   .tag-temporaria{background:#fbe8d0;color:#8a5a1f}
   .tag-permanente{background:#f7d3d3;color:var(--erro)}
+  .tag-pendente{background:#fbe8d0;color:#8a5a1f}
+  .tag-em_analise{background:#dbe9fb;color:#1a5ea8}
+  .tag-resolvida{background:#dcf3e2;color:var(--ok)}
+  .tag-arquivada{background:#eee;color:#666}
+
+  .denuncia-card{border:1px solid var(--borda);border-radius:8px;padding:12px 14px;margin-top:10px;font-size:13px}
+  .denuncia-card .linha1{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+  .denuncia-card .quem{font-weight:600}
+  .denuncia-card .contato{color:var(--suave);font-size:12px}
+  .denuncia-card .descricao{margin-top:6px;white-space:pre-wrap}
 
   .ficha-suspensao-form{background:#fafafa;border:1px solid var(--borda);border-radius:8px;padding:14px;margin-top:10px}
   .ficha-suspensao-form textarea{width:100%;padding:9px 10px;border:1px solid var(--borda);border-radius:7px;font-size:14px;font-family:inherit}
@@ -343,6 +353,21 @@ const ROTULOS_SUSPENSAO = {
   temporaria: 'Suspenso',
   permanente: 'Banido'
 };
+const ROTULOS_MOTIVO_DENUNCIA = {
+  assedio: 'Assédio',
+  perfil_falso: 'Perfil falso',
+  'conteudo_impróprio': 'Conteúdo impróprio',
+  golpe_financeiro: 'Golpe financeiro',
+  ameaca: 'Ameaça',
+  spam: 'Spam',
+  outro: 'Outro'
+};
+const ROTULOS_STATUS_DENUNCIA = {
+  pendente: 'Pendente',
+  em_analise: 'Em análise',
+  resolvida: 'Resolvida',
+  arquivada: 'Arquivada'
+};
 
 // ===== 2. TODOS OS USUÁRIOS (busca + paginação própria, carrega separado
 // do resto do painel pra não travar as outras seções numa base grande) =====
@@ -499,10 +524,18 @@ let senhaTemporariaRevelada = null;
 // todas, e depois de excluir a ficha inteira fecha (o usuário não existe
 // mais), então não precisa sobreviver a um "voltar pra tela normal".
 let mostrarConfirmExcluirConta = false;
+// Denúncias envolvendo o usuário (Lote 7) — dado sensível (nome, e-mail,
+// telefone de terceiros), por isso NÃO carrega junto com o resto da ficha:
+// null = ainda não pedido; array = já carregado (mesmo vazio). Cada busca
+// gera um log de auditoria no backend, então só busca quando o admin clica
+// explicitamente.
+let denunciasReveladas = null;
+let carregandoDenuncias = false;
 
 async function abrirFichaUsuario(id){
   document.getElementById('fichaConteudo').innerHTML = '<div class="vazio">Carregando...</div>';
   document.getElementById('fichaOverlay').style.display = 'block';
+  denunciasReveladas = null;
   try{
     const u = await api('/api/admin/painel/usuarios/' + id);
     montarFichaUsuario(u, false, false, false);
@@ -517,6 +550,21 @@ function fecharFichaUsuario(){
   mostrarConfirmResetarSenha = false;
   senhaTemporariaRevelada = null;
   mostrarConfirmExcluirConta = false;
+  denunciasReveladas = null;
+}
+
+async function carregarDenunciasUsuario(id){
+  carregandoDenuncias = true;
+  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
+  try{
+    const dados = await api('/api/admin/painel/usuarios/' + id + '/denuncias');
+    denunciasReveladas = dados.denuncias;
+  }catch(e){
+    mostrarMsg('painelMsg', e.message || 'Erro ao carregar denúncias', 'erro');
+  }finally{
+    carregandoDenuncias = false;
+    if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
+  }
 }
 
 // Edição de perfil, suspensão, revogação de sessão, reset de senha e
@@ -839,6 +887,35 @@ function montarFichaUsuario(u, modoEdicao, mostrarFormSuspensao, mostrarConfirmR
     secaoSenha = `<button class="btn-secundario" onclick="alternarConfirmResetarSenha(true)">Resetar senha</button>`;
   }
 
+  // ===== Denúncias envolvendo o usuário (Lote 7) =====
+  let secaoDenuncias;
+  if(denunciasReveladas === null){
+    secaoDenuncias = carregandoDenuncias
+      ? `<div class="vazio">Carregando...</div>`
+      : `<button class="btn-secundario" onclick="carregarDenunciasUsuario('${u.id}')">Ver denúncias envolvendo este usuário</button>`;
+  }else if(!denunciasReveladas.length){
+    secaoDenuncias = `<div class="ficha-vazio-nota">Nenhuma denúncia envolvendo este usuário.</div>`;
+  }else{
+    secaoDenuncias = denunciasReveladas.map(d => {
+      const outra = d.outra_parte;
+      const quem = d.papel === 'denunciante' ? 'Fez denúncia contra' : 'Foi denunciado(a) por';
+      const contato = outra
+        ? `${esc(outra.nome)} · ${esc(outra.email)}${outra.telefone ? ' · ' + esc(outra.telefone) : ''}`
+        : '(conta já excluída)';
+      return `
+        <div class="denuncia-card">
+          <div class="linha1">
+            <span class="quem">${quem} ${contato}</span>
+            <span class="tag tag-${esc(d.status)}">${esc(ROTULOS_STATUS_DENUNCIA[d.status] || d.status)}</span>
+          </div>
+          <div class="contato">Motivo: ${esc(ROTULOS_MOTIVO_DENUNCIA[d.motivo] || d.motivo)} · ${dataBR(d.criado_em)}</div>
+          ${d.descricao ? `<div class="descricao">${esc(d.descricao)}</div>` : ''}
+          ${d.observacao_admin ? `<div class="descricao" style="color:var(--suave)">Observação do admin: ${esc(d.observacao_admin)}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
   // ===== Excluir conta (Lote 6) — zona de risco, a ação mais grave =====
   const secaoExcluir = mostrarConfirmExcluirConta
     ? `
@@ -974,6 +1051,11 @@ function montarFichaUsuario(u, modoEdicao, mostrarFormSuspensao, mostrarConfirmR
         ${campoFicha('Veio de parceiro (ID)', escOuTraco(u.indicado_por_parceiro_id))}
         ${campoFicha('Assinatura recorrente (Mercado Pago)', escOuTraco(u.mercadopago_subscription_id))}
       </div>
+    </div>
+
+    <div class="ficha-secao">
+      <h3>Denúncias</h3>
+      ${secaoDenuncias}
     </div>
 
     <div class="ficha-secao">

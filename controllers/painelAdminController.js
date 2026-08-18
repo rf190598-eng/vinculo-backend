@@ -663,6 +663,71 @@ const excluirContaUsuario = async (req, res) => {
   }
 };
 
+// GET /api/admin/painel/usuarios/:id/denuncias — Lote 7 do plano de acesso
+// total. Dado sensível (nome, e-mail, telefone de terceiros), por isso NÃO
+// é carregado junto com o resto da ficha — só quando o admin clica
+// explicitamente pra ver, e cada chamada grava um log de auditoria (a
+// visualização em si é o que precisa ficar rastreado, não só uma ação
+// sobre o dado).
+//
+// Traz as denúncias nos dois papéis (o usuário como denunciante e como
+// denunciado) e, pra cada uma, os dados de contato da OUTRA pessoa
+// envolvida — não da pessoa da ficha, que o admin já está vendo. Busca em
+// lote (mesmo padrão do resto do painel): uma consulta pra achar os IDs
+// das outras partes, não uma por denúncia.
+const obterDenunciasUsuario = async (req, res) => {
+  try {
+    const usuario = await Usuario.findByPk(req.params.id, { attributes: ['id', 'nome', 'email'] });
+    if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
+
+    const denuncias = await Denuncia.findAll({
+      where: { [Op.or]: [{ denunciante_id: usuario.id }, { denunciado_id: usuario.id }] },
+      order: [['createdAt', 'DESC']]
+    });
+
+    const idsOutraParte = [...new Set(
+      denuncias.map(d => (d.denunciante_id === usuario.id ? d.denunciado_id : d.denunciante_id))
+    )];
+    const outrasPartes = idsOutraParte.length
+      ? await Usuario.findAll({
+          where: { id: { [Op.in]: idsOutraParte } },
+          attributes: ['id', 'nome', 'email', 'telefone']
+        })
+      : [];
+    const mapaOutrasPartes = new Map(outrasPartes.map(u => [u.id, u]));
+
+    const lista = denuncias.map(d => {
+      const ehDenunciante = d.denunciante_id === usuario.id;
+      const outraParteId = ehDenunciante ? d.denunciado_id : d.denunciante_id;
+      const outraParte = mapaOutrasPartes.get(outraParteId);
+      return {
+        id: d.id,
+        papel: ehDenunciante ? 'denunciante' : 'denunciado',
+        outra_parte: outraParte
+          ? { nome: outraParte.nome, email: outraParte.email, telefone: outraParte.telefone }
+          : null, // conta da outra parte já foi excluída
+        motivo: d.motivo,
+        descricao: d.descricao,
+        status: d.status,
+        observacao_admin: d.observacao_admin,
+        criado_em: d.createdAt
+      };
+    });
+
+    res.json({ denuncias: lista });
+
+    registrarLogAuditoria({
+      admin: req.usuarioAdmin,
+      acao: 'ver_denuncias_usuario',
+      usuarioAlvo: usuario,
+      detalhes: { total_denuncias: lista.length }
+    });
+  } catch (erro) {
+    console.error('Erro ao montar denúncias de usuário no painel administrativo:', erro);
+    res.status(500).json({ erro: 'Erro ao montar denúncias do usuário' });
+  }
+};
+
 // Ranking de comissão pro Painel Central — Lote 2 (do plano original de
 // conteúdo do painel, anterior ao plano de acesso total). "Quanto já ganharam" é
 // tratado como comissão GERADA (paga + pendente), não só a já paga — é uma
@@ -793,6 +858,7 @@ module.exports = {
   revogarSessoesUsuario,
   resetarSenhaUsuario,
   excluirContaUsuario,
+  obterDenunciasUsuario,
   obterRankingComissoes,
   obterSegmentacaoPagantes
 };
