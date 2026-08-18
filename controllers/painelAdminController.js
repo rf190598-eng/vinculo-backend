@@ -3,6 +3,7 @@ const { sequelize } = require('../database');
 const Usuario = require('../models/Usuario');
 const PagamentoProcessado = require('../models/PagamentoProcessado');
 const Comissao = require('../models/Comissao');
+const Parceiro = require('../models/Parceiro');
 const { primeiroDiaDoMes } = require('./parceiroController');
 
 function somaDecimal(valor) {
@@ -184,4 +185,66 @@ const listarUsuarios = async (req, res) => {
   }
 };
 
-module.exports = { obterPainel, listarUsuarios };
+// Ranking de comissão pro Painel Central — Lote 2. "Quanto já ganharam" é
+// tratado como comissão GERADA (paga + pendente), não só a já paga — é uma
+// medida de performance da indicação, não de fluxo de caixa. Se um dia fizer
+// mais sentido ver só o que já foi efetivamente pago, dá pra filtrar
+// status_pagamento:'pago' nas duas agregações abaixo.
+const obterRankingComissoes = async (req, res) => {
+  try {
+    const mesAtual = primeiroDiaDoMes();
+
+    // Duas agregações em lote (mesmo padrão de listarComissoes): total
+    // histórico por parceiro, e total só do mês atual por parceiro.
+    const totalHistoricoRaw = await Comissao.findAll({
+      attributes: ['parceiro_id', [sequelize.fn('SUM', sequelize.col('valor')), 'total']],
+      group: ['parceiro_id']
+    });
+    const totalMesAtualRaw = await Comissao.findAll({
+      attributes: ['parceiro_id', [sequelize.fn('SUM', sequelize.col('valor')), 'total']],
+      where: { mes_referencia: mesAtual },
+      group: ['parceiro_id']
+    });
+
+    if (!totalHistoricoRaw.length) return res.json({ ranking: [] });
+
+    const totalMesAtualPorParceiro = new Map(
+      totalMesAtualRaw.map(r => [r.parceiro_id, somaDecimal(r.get('total'))])
+    );
+
+    const idsParceiros = totalHistoricoRaw.map(r => r.parceiro_id);
+    const parceiros = await Parceiro.findAll({
+      where: { id: { [Op.in]: idsParceiros } },
+      attributes: ['id', 'usuario_id', 'tipo', 'nome_instituicao']
+    });
+    const mapaParceiros = new Map(parceiros.map(p => [p.id, p]));
+
+    const usuarios = await Usuario.findAll({
+      where: { id: { [Op.in]: parceiros.map(p => p.usuario_id) } },
+      attributes: ['id', 'nome']
+    });
+    const mapaUsuarios = new Map(usuarios.map(u => [u.id, u]));
+
+    const ranking = totalHistoricoRaw
+      .map(r => {
+        const parceiro = mapaParceiros.get(r.parceiro_id);
+        const usuario = parceiro ? mapaUsuarios.get(parceiro.usuario_id) : null;
+        return {
+          nome: parceiro && parceiro.nome_instituicao
+            ? parceiro.nome_instituicao
+            : (usuario ? usuario.nome : '(parceiro removido)'),
+          tipo: parceiro ? parceiro.tipo : null,
+          valor_total_historico: somaDecimal(r.get('total')),
+          valor_mes_atual: totalMesAtualPorParceiro.get(r.parceiro_id) || 0
+        };
+      })
+      .sort((a, b) => b.valor_total_historico - a.valor_total_historico);
+
+    res.json({ ranking });
+  } catch (erro) {
+    console.error('Erro ao montar ranking de comissão no painel administrativo:', erro);
+    res.status(500).json({ erro: 'Erro ao montar ranking de comissão' });
+  }
+};
+
+module.exports = { obterPainel, listarUsuarios, obterRankingComissoes };
