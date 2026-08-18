@@ -9,6 +9,7 @@ const {
   removerSuspensaoUsuario,
   revogarSessoesUsuario,
   resetarSenhaUsuario,
+  excluirContaUsuario,
   obterRankingComissoes,
   obterSegmentacaoPagantes
 } = require('../controllers/painelAdminController');
@@ -25,6 +26,7 @@ router.post('/usuarios/:id/suspender', suspenderUsuario);
 router.post('/usuarios/:id/remover-suspensao', removerSuspensaoUsuario);
 router.post('/usuarios/:id/revogar-sessoes', revogarSessoesUsuario);
 router.post('/usuarios/:id/resetar-senha', resetarSenhaUsuario);
+router.delete('/usuarios/:id', excluirContaUsuario);
 router.get('/ranking-comissoes', obterRankingComissoes);
 router.get('/segmentacao-pagantes', obterSegmentacaoPagantes);
 router.get('/logs-auditoria', listarLogsAuditoria);

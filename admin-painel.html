@@ -77,6 +77,12 @@
   .ficha-suspensao-form .linha-form label{margin-top:0}
   .ficha-suspensao-form .acoes{display:flex;gap:8px;margin-top:12px}
 
+  .ficha-perigo{background:#fdf1f1;border:1px solid #f0b8b8;border-radius:8px;padding:14px;margin-top:10px}
+  .ficha-perigo textarea,.ficha-perigo input{width:100%;padding:9px 10px;border:1px solid var(--borda);border-radius:7px;font-size:14px;font-family:inherit;background:#fff}
+  .ficha-perigo .linha-form label{margin-top:0}
+  .ficha-perigo .acoes{display:flex;gap:8px;margin-top:12px}
+  .btn-perigo{background:var(--erro);color:#fff}
+
   tbody tr.linha-clicavel{cursor:pointer}
 
   /* Ficha do usuário (modal) */
@@ -488,6 +494,11 @@ let fichaUsuarioAtual = null;
 // devolve a senha de novo — ela só existe na resposta do momento do reset).
 let mostrarConfirmResetarSenha = false;
 let senhaTemporariaRevelada = null;
+// Estado da exclusão de conta (Lote 6) — mesmo motivo de ficar fora dos
+// parâmetros de montarFichaUsuario que os outros: é a ação mais grave de
+// todas, e depois de excluir a ficha inteira fecha (o usuário não existe
+// mais), então não precisa sobreviver a um "voltar pra tela normal".
+let mostrarConfirmExcluirConta = false;
 
 async function abrirFichaUsuario(id){
   document.getElementById('fichaConteudo').innerHTML = '<div class="vazio">Carregando...</div>';
@@ -505,29 +516,40 @@ function fecharFichaUsuario(){
   fichaUsuarioAtual = null;
   mostrarConfirmResetarSenha = false;
   senhaTemporariaRevelada = null;
+  mostrarConfirmExcluirConta = false;
 }
 
-// Edição de perfil, suspensão, revogação de sessão e reset de senha são
-// mutuamente exclusivos na tela — ligar um desliga os outros, evita
-// confundir mais de um formulário aberto ao mesmo tempo.
+// Edição de perfil, suspensão, revogação de sessão, reset de senha e
+// exclusão de conta são mutuamente exclusivos na tela — ligar um desliga
+// os outros, evita confundir mais de um formulário aberto ao mesmo tempo.
 function alternarEdicaoFicha(ligar){
   mostrarConfirmResetarSenha = false;
   senhaTemporariaRevelada = null;
+  mostrarConfirmExcluirConta = false;
   if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, ligar, false, false);
 }
 function alternarFormSuspensao(ligar){
   mostrarConfirmResetarSenha = false;
   senhaTemporariaRevelada = null;
+  mostrarConfirmExcluirConta = false;
   if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, ligar, false);
 }
 function alternarConfirmRevogarSessoes(ligar){
   mostrarConfirmResetarSenha = false;
   senhaTemporariaRevelada = null;
+  mostrarConfirmExcluirConta = false;
   if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, ligar);
 }
 function alternarConfirmResetarSenha(ligar){
   senhaTemporariaRevelada = null;
   mostrarConfirmResetarSenha = ligar;
+  mostrarConfirmExcluirConta = false;
+  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
+}
+function alternarConfirmExcluirConta(ligar){
+  mostrarConfirmResetarSenha = false;
+  senhaTemporariaRevelada = null;
+  mostrarConfirmExcluirConta = ligar;
   if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
 }
 
@@ -642,6 +664,44 @@ function copiarSenhaTemporaria(){
 function fecharSenhaTemporaria(){
   senhaTemporariaRevelada = null;
   if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
+}
+
+// Exclusão de conta (Lote 6) — a ação mais grave. Confirmação em duas
+// camadas antes de chamar a API: motivo preenchido, E o e-mail digitado
+// batendo exatamente com o e-mail do usuário (mesmo padrão de "digite pra
+// confirmar" que serviços sérios usam pra ações irreversíveis). O backend
+// checa tudo de novo — isso aqui é só pra não deixar o admin nem tentar
+// sem ter digitado certo.
+async function confirmarExcluirConta(id){
+  const btn = document.getElementById('fichaExcluirContaBtn');
+  const motivo = document.getElementById('excluir_motivo')?.value.trim();
+  const emailDigitado = document.getElementById('excluir_email_confirmacao')?.value.trim();
+  const emailEsperado = fichaUsuarioAtual ? fichaUsuarioAtual.email : '';
+
+  if(!motivo){ mostrarMsg('painelMsg', 'Motivo é obrigatório para excluir a conta.', 'erro'); return; }
+  if(!emailDigitado || emailDigitado.toLowerCase() !== String(emailEsperado).toLowerCase()){
+    mostrarMsg('painelMsg', 'O e-mail digitado não confere com o e-mail do usuário.', 'erro');
+    return;
+  }
+
+  if(btn){ btn.disabled = true; btn.textContent = 'Excluindo...'; }
+  try{
+    const resp = await fetch(API_URL + '/api/admin/painel/usuarios/' + id, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ motivo, email_confirmacao: emailDigitado })
+    });
+    const dados = await resp.json().catch(()=>({}));
+    if(resp.status === 401 || resp.status === 403){ sair(dados.erro || 'Acesso negado.'); return; }
+    if(!resp.ok) throw new Error(dados.erro || 'Erro ao excluir conta');
+
+    fecharFichaUsuario();
+    carregarUsuarios(usuariosPaginaAtual);
+    mostrarMsg('painelMsg', 'Conta excluída permanentemente.', 'ok');
+  }catch(e){
+    mostrarMsg('painelMsg', e.message || 'Erro ao excluir conta', 'erro');
+    if(btn){ btn.disabled = false; btn.textContent = 'Excluir conta permanentemente'; }
+  }
 }
 
 function copiarIdUsuario(id){
@@ -779,6 +839,27 @@ function montarFichaUsuario(u, modoEdicao, mostrarFormSuspensao, mostrarConfirmR
     secaoSenha = `<button class="btn-secundario" onclick="alternarConfirmResetarSenha(true)">Resetar senha</button>`;
   }
 
+  // ===== Excluir conta (Lote 6) — zona de risco, a ação mais grave =====
+  const secaoExcluir = mostrarConfirmExcluirConta
+    ? `
+      <div class="ficha-perigo">
+        <div class="ficha-vazio-nota" style="color:var(--erro);margin-bottom:10px"><strong>Isso apaga a conta e todos os dados vinculados — matches, mensagens, denúncias, fotos, avaliações — permanentemente. Não tem como desfazer.</strong></div>
+        <div class="linha-form">
+          <label for="excluir_motivo">Motivo (obrigatório, fica no log de auditoria)</label>
+          <textarea id="excluir_motivo" rows="3"></textarea>
+        </div>
+        <div class="linha-form">
+          <label for="excluir_email_confirmacao">Pra confirmar, digite o e-mail do usuário: <span class="mono">${esc(u.email)}</span></label>
+          <input type="email" id="excluir_email_confirmacao" placeholder="${esc(u.email)}"/>
+        </div>
+        <div class="acoes">
+          <button class="btn-secundario" onclick="alternarConfirmExcluirConta(false)">Cancelar</button>
+          <button class="btn-perigo" id="fichaExcluirContaBtn" onclick="confirmarExcluirConta('${u.id}')">Excluir conta permanentemente</button>
+        </div>
+      </div>
+    `
+    : `<button class="btn-secundario" style="color:var(--erro);border-color:var(--erro);border:1px solid var(--erro)" onclick="alternarConfirmExcluirConta(true)">Excluir conta</button>`;
+
   const botoesAcao = modoEdicao
     ? `
       <button class="btn-secundario" onclick="alternarEdicaoFicha(false)">Cancelar</button>
@@ -893,6 +974,11 @@ function montarFichaUsuario(u, modoEdicao, mostrarFormSuspensao, mostrarConfirmR
         ${campoFicha('Veio de parceiro (ID)', escOuTraco(u.indicado_por_parceiro_id))}
         ${campoFicha('Assinatura recorrente (Mercado Pago)', escOuTraco(u.mercadopago_subscription_id))}
       </div>
+    </div>
+
+    <div class="ficha-secao">
+      <h3 style="color:var(--erro)">Zona de risco</h3>
+      ${secaoExcluir}
     </div>
 
     <div class="aviso-nota">Foto de verificação facial, mensagens e localização não aparecem aqui — entram em lotes futuros, com acesso e log de auditoria próprios. Toda edição salva aqui fica registrada no log de auditoria, campo a campo.</div>

@@ -6,8 +6,11 @@ const Usuario = require('../models/Usuario');
 const PagamentoProcessado = require('../models/PagamentoProcessado');
 const Comissao = require('../models/Comissao');
 const Parceiro = require('../models/Parceiro');
+const Match = require('../models/Match');
+const Denuncia = require('../models/Denuncia');
 const { primeiroDiaDoMes } = require('./parceiroController');
 const { registrarLogAuditoria } = require('./auditoriaController');
+const { executarCascataExclusaoConta, apagarArquivosDaContaExcluida } = require('./contaController');
 
 function somaDecimal(valor) {
   return Number(valor || 0);
@@ -567,6 +570,99 @@ const resetarSenhaUsuario = async (req, res) => {
   }
 };
 
+// DELETE /api/admin/painel/usuarios/:id — Lote 6 do plano de acesso total.
+// A AÇÃO MAIS GRAVE de todo o plano: irreversível, apaga dado de verdade.
+// Reaproveita a MESMA cascata de exclusão do autoatendimento
+// (contaController.executarCascataExclusaoConta) — nenhuma lógica de
+// exclusão duplicada ou reescrita aqui, só uma porta de entrada diferente.
+//
+// Camadas de proteção, em ordem:
+// 1. Não deixa um admin excluir a própria conta por aqui (evita destrancar
+//    o próprio acesso por engano) — ação separada, fora de escopo deste lote.
+// 2. Motivo obrigatório, mesmo padrão da suspensão.
+// 3. Confirmação por e-mail: o corpo da requisição precisa trazer o e-mail
+//    EXATO do usuário alvo. O frontend já faz essa checagem antes de
+//    chamar a rota (digitar o e-mail pra habilitar o botão), mas repete
+//    aqui no backend — a proteção não pode depender só do JavaScript do
+//    navegador.
+// 4. Só entra na transação de exclusão depois de passar pelas 3 acima.
+//
+// Antes de excluir, monta um resumo do que a conta representava (tinha
+// assinatura ativa? era parceiro do programa? quantos matches/denúncias
+// envolvia?) — é capturado ANTES da cascata e vai pro log de auditoria,
+// porque depois de excluída não tem mais como consultar nada disso. O
+// próprio nome/e-mail do usuário também são congelados num objeto simples
+// ANTES da exclusão, pro log de auditoria (usuarioAlvo) não depender da
+// instância do Sequelize depois que a linha já foi apagada do banco.
+const excluirContaUsuario = async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    if (req.params.id === req.usuarioAdmin.id) {
+      await t.rollback();
+      return res.status(400).json({ erro: 'Não é possível excluir a própria conta por aqui.' });
+    }
+
+    const usuario = await Usuario.findByPk(req.params.id, { transaction: t });
+    if (!usuario) {
+      await t.rollback();
+      return res.status(404).json({ erro: 'Usuário não encontrado' });
+    }
+
+    const motivoLimpo = String((req.body && req.body.motivo) || '').trim().slice(0, MOTIVO_TAMANHO_MAXIMO);
+    if (!motivoLimpo) {
+      await t.rollback();
+      return res.status(400).json({ erro: 'Motivo é obrigatório' });
+    }
+
+    const emailConfirmacao = String((req.body && req.body.email_confirmacao) || '').trim().toLowerCase();
+    if (!emailConfirmacao || emailConfirmacao !== String(usuario.email).toLowerCase()) {
+      await t.rollback();
+      return res.status(400).json({ erro: 'O e-mail de confirmação não corresponde ao e-mail do usuário' });
+    }
+
+    const agora = new Date();
+    const [totalMatches, totalDenuncias, parceiroVinculado] = await Promise.all([
+      Match.count({
+        where: { [Op.or]: [{ usuario1_id: usuario.id }, { usuario2_id: usuario.id }] },
+        transaction: t
+      }),
+      Denuncia.count({
+        where: { [Op.or]: [{ denunciante_id: usuario.id }, { denunciado_id: usuario.id }] },
+        transaction: t
+      }),
+      Parceiro.findOne({ where: { usuario_id: usuario.id }, attributes: ['id', 'tipo'], transaction: t })
+    ]);
+
+    const resumoAntesDeExcluir = {
+      data_cadastro: usuario.createdAt,
+      verificado: usuario.verificado,
+      status_pagamento: statusPagamento(usuario, agora),
+      tinha_indicacao_de_parceiro: !!usuario.indicado_por_parceiro_id,
+      era_parceiro_do_programa: !!parceiroVinculado,
+      total_matches: totalMatches,
+      total_denuncias_envolvendo: totalDenuncias
+    };
+    const usuarioAlvoParaLog = { id: usuario.id, nome: usuario.nome, email: usuario.email };
+
+    const resultadoArquivos = await executarCascataExclusaoConta(usuario, t);
+    await t.commit();
+    apagarArquivosDaContaExcluida(resultadoArquivos);
+
+    await registrarLogAuditoria({
+      admin: req.usuarioAdmin,
+      acao: 'excluir_conta_usuario',
+      usuarioAlvo: usuarioAlvoParaLog,
+      detalhes: { motivo: motivoLimpo, resumo_antes_de_excluir: resumoAntesDeExcluir }
+    });
+
+    res.json({ ok: true, mensagem: 'Conta excluída com sucesso.' });
+  } catch (erro) {
+    await t.rollback();
+    console.error('Erro ao excluir conta de usuário no painel administrativo:', erro);
+    res.status(500).json({ erro: 'Não foi possível excluir a conta. Tente novamente em instantes.' });
+  }
+};
+
 // Ranking de comissão pro Painel Central — Lote 2 (do plano original de
 // conteúdo do painel, anterior ao plano de acesso total). "Quanto já ganharam" é
 // tratado como comissão GERADA (paga + pendente), não só a já paga — é uma
@@ -696,6 +792,7 @@ module.exports = {
   removerSuspensaoUsuario,
   revogarSessoesUsuario,
   resetarSenhaUsuario,
+  excluirContaUsuario,
   obterRankingComissoes,
   obterSegmentacaoPagantes
 };
