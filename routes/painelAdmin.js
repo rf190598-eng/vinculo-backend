@@ -4,6 +4,7 @@ const {
   obterPainel,
   listarUsuarios,
   obterUsuarioDetalhe,
+  editarUsuario,
   obterRankingComissoes,
   obterSegmentacaoPagantes
 } = require('../controllers/painelAdminController');
@@ -15,6 +16,7 @@ router.use(autenticar, verificarAdmin);
 router.get('/', obterPainel);
 router.get('/usuarios', listarUsuarios);
 router.get('/usuarios/:id', obterUsuarioDetalhe);
+router.patch('/usuarios/:id', editarUsuario);
 router.get('/ranking-comissoes', obterRankingComissoes);
 router.get('/segmentacao-pagantes', obterSegmentacaoPagantes);
 router.get('/logs-auditoria', listarLogsAuditoria);

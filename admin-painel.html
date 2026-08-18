@@ -397,12 +397,86 @@ function simNao(v){ return v ? 'Sim' : 'Não'; }
 function listaOuTraco(v){ return Array.isArray(v) && v.length ? esc(v.join(', ')) : '—'; }
 function escOuTraco(v){ return v ? esc(v) : '—'; }
 
+// Campos de perfil e preferências que o admin pode editar na ficha — Lote 2
+// do plano de acesso total. Precisa bater com CAMPOS_EDITAVEIS_USUARIO no
+// backend (controllers/painelAdminController.js); status de pagamento/
+// verificação/admin e indicação/parceiro continuam só leitura aqui, mesma
+// decisão do backend (ver comentário lá do porquê).
+const CAMPOS_EDIT_PERFIL = [
+  { campo: 'nome', rot: 'Nome', tipo: 'text' },
+  { campo: 'email', rot: 'E-mail', tipo: 'email' },
+  { campo: 'telefone', rot: 'Telefone', tipo: 'text' },
+  { campo: 'data_nascimento', rot: 'Data de nascimento', tipo: 'date' },
+  { campo: 'genero', rot: 'Gênero', tipo: 'text' },
+  { campo: 'objetivo', rot: 'Objetivo', tipo: 'text' },
+  { campo: 'signo', rot: 'Signo', tipo: 'text' },
+  { campo: 'altura', rot: 'Altura (cm)', tipo: 'number' },
+  { campo: 'peso', rot: 'Peso (kg)', tipo: 'number' },
+  { campo: 'cor_cabelo', rot: 'Cor de cabelo', tipo: 'text' },
+  { campo: 'cidade', rot: 'Cidade', tipo: 'text' },
+  { campo: 'instagram_handle', rot: 'Instagram', tipo: 'text' },
+  { campo: 'foto_url', rot: 'URL da foto de perfil', tipo: 'text' },
+  { campo: 'interesses', rot: 'Interesses (separados por vírgula)', tipo: 'lista' },
+  { campo: 'estilo_vida', rot: 'Estilo de vida (separados por vírgula)', tipo: 'lista' }
+];
+const CAMPOS_EDIT_PREFERENCIAS = [
+  { campo: 'pref_genero', rot: 'Gênero preferido', tipo: 'text' },
+  { campo: 'pref_idade_min', rot: 'Idade mínima', tipo: 'number' },
+  { campo: 'pref_idade_max', rot: 'Idade máxima', tipo: 'number' },
+  { campo: 'pref_distancia_km', rot: 'Distância (km)', tipo: 'number' },
+  { campo: 'pref_apenas_verificados', rot: 'Apenas verificados', tipo: 'checkbox' },
+  { campo: 'pref_objetivo', rot: 'Objetivo preferido', tipo: 'text' },
+  { campo: 'pref_altura_min', rot: 'Altura mínima (cm)', tipo: 'number' },
+  { campo: 'pref_altura_max', rot: 'Altura máxima (cm)', tipo: 'number' },
+  { campo: 'pref_peso_min', rot: 'Peso mínimo (kg)', tipo: 'number' },
+  { campo: 'pref_peso_max', rot: 'Peso máximo (kg)', tipo: 'number' },
+  { campo: 'pref_cor_cabelo', rot: 'Cor de cabelo preferida', tipo: 'text' }
+];
+// prompts/latitude/longitude também são editáveis pela API (backend), mas
+// ficam de fora deste formulário por enquanto — são campos complexos
+// (prompts é uma lista de pergunta/resposta; lat/long é coordenada) que não
+// valem um editor dedicado ainda. Editar via ficha cobre o que o admin
+// realmente costuma precisar corrigir no dia a dia.
+
+function campoEdit(cfg, valor){
+  const id = 'edit_' + cfg.campo;
+  if(cfg.tipo === 'checkbox'){
+    return `<div class="ficha-campo"><label class="rot" for="${id}">${esc(cfg.rot)}</label><input type="checkbox" id="${id}" ${valor ? 'checked' : ''} style="width:auto"/></div>`;
+  }
+  if(cfg.tipo === 'lista'){
+    const texto = Array.isArray(valor) ? valor.join(', ') : '';
+    return `<div class="ficha-campo"><label class="rot" for="${id}">${esc(cfg.rot)}</label><input type="text" id="${id}" value="${esc(texto)}"/></div>`;
+  }
+  if(cfg.tipo === 'date'){
+    const iso = valor ? String(valor).slice(0, 10) : '';
+    return `<div class="ficha-campo"><label class="rot" for="${id}">${esc(cfg.rot)}</label><input type="date" id="${id}" value="${iso}"/></div>`;
+  }
+  return `<div class="ficha-campo"><label class="rot" for="${id}">${esc(cfg.rot)}</label><input type="${cfg.tipo}" id="${id}" value="${esc(valor == null ? '' : valor)}"/></div>`;
+}
+
+function coletarEdicaoFicha(){
+  const corpo = {};
+  [...CAMPOS_EDIT_PERFIL, ...CAMPOS_EDIT_PREFERENCIAS].forEach(cfg => {
+    const el = document.getElementById('edit_' + cfg.campo);
+    if(!el) return;
+    if(cfg.tipo === 'checkbox') corpo[cfg.campo] = el.checked;
+    else if(cfg.tipo === 'lista') corpo[cfg.campo] = el.value.split(',').map(s => s.trim()).filter(Boolean);
+    else if(cfg.tipo === 'number') corpo[cfg.campo] = el.value === '' ? null : Number(el.value);
+    else corpo[cfg.campo] = el.value === '' ? null : el.value;
+  });
+  const bioEl = document.getElementById('edit_bio');
+  if(bioEl) corpo.bio = bioEl.value === '' ? null : bioEl.value;
+  return corpo;
+}
+
+let fichaUsuarioAtual = null;
+
 async function abrirFichaUsuario(id){
   document.getElementById('fichaConteudo').innerHTML = '<div class="vazio">Carregando...</div>';
   document.getElementById('fichaOverlay').style.display = 'block';
   try{
     const u = await api('/api/admin/painel/usuarios/' + id);
-    montarFichaUsuario(u);
+    montarFichaUsuario(u, false);
   }catch(e){
     document.getElementById('fichaConteudo').innerHTML = `<div class="vazio">Erro ao carregar ficha do usuário.</div>`;
   }
@@ -410,6 +484,11 @@ async function abrirFichaUsuario(id){
 
 function fecharFichaUsuario(){
   document.getElementById('fichaOverlay').style.display = 'none';
+  fichaUsuarioAtual = null;
+}
+
+function alternarEdicaoFicha(ligar){
+  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, ligar);
 }
 
 function copiarIdUsuario(id){
@@ -419,15 +498,93 @@ function copiarIdUsuario(id){
   });
 }
 
-function montarFichaUsuario(u){
+async function salvarEdicaoFicha(id){
+  const btn = document.getElementById('fichaSalvarBtn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Salvando...'; }
+  try{
+    const corpo = coletarEdicaoFicha();
+    const resp = await fetch(API_URL + '/api/admin/painel/usuarios/' + id, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify(corpo)
+    });
+    const dados = await resp.json().catch(()=>({}));
+    if(resp.status === 401 || resp.status === 403){ sair(dados.erro || 'Acesso negado.'); return; }
+    if(!resp.ok) throw new Error(dados.erro || 'Erro ao salvar alterações');
+
+    await abrirFichaUsuario(id);
+    carregarUsuarios(usuariosPaginaAtual);
+    mostrarMsg('painelMsg', dados.alterado ? 'Perfil atualizado.' : 'Nenhuma alteração para salvar.', 'ok');
+  }catch(e){
+    mostrarMsg('painelMsg', e.message || 'Erro ao salvar alterações', 'erro');
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = 'Salvar alterações'; }
+  }
+}
+
+function montarFichaUsuario(u, modoEdicao){
+  fichaUsuarioAtual = u;
+
   const ultimoPagamento = u.ultimo_pagamento
     ? `${ROTULOS_METODO[u.ultimo_pagamento.metodo] || u.ultimo_pagamento.metodo} · ${esc(u.ultimo_pagamento.plano)} · ${reais(u.ultimo_pagamento.valor)} em ${dataBR(u.ultimo_pagamento.processado_em)}`
     : '—';
 
+  const botoesAcao = modoEdicao
+    ? `
+      <button class="btn-secundario" onclick="alternarEdicaoFicha(false)">Cancelar</button>
+      <button class="btn-primario" id="fichaSalvarBtn" onclick="salvarEdicaoFicha('${u.id}')">Salvar alterações</button>
+    `
+    : `<button class="btn-secundario" onclick="alternarEdicaoFicha(true)">Editar perfil</button>`;
+
+  const secaoPerfil = modoEdicao
+    ? `
+      <div class="ficha-grid">
+        ${CAMPOS_EDIT_PERFIL.map(cfg => campoEdit(cfg, u[cfg.campo])).join('')}
+      </div>
+      <div style="margin-top:10px">
+        <label class="rot" for="edit_bio">Bio</label>
+        <textarea id="edit_bio" rows="3" style="width:100%;padding:9px 10px;border:1px solid var(--borda);border-radius:7px;font-size:14px;font-family:inherit">${esc(u.bio || '')}</textarea>
+      </div>
+    `
+    : `
+      <div class="ficha-grid">
+        ${campoFicha('E-mail', esc(u.email))}
+        ${campoFicha('Telefone', escOuTraco(u.telefone))}
+        ${campoFicha('Data de nascimento', dataBR(u.data_nascimento))}
+        ${campoFicha('Gênero', escOuTraco(u.genero))}
+        ${campoFicha('Objetivo', escOuTraco(u.objetivo))}
+        ${campoFicha('Signo', escOuTraco(u.signo))}
+        ${campoFicha('Altura', u.altura ? u.altura + ' cm' : '—')}
+        ${campoFicha('Peso', u.peso ? u.peso + ' kg' : '—')}
+        ${campoFicha('Cor de cabelo', escOuTraco(u.cor_cabelo))}
+        ${campoFicha('Cidade', escOuTraco(u.cidade))}
+        ${campoFicha('Instagram', escOuTraco(u.instagram_handle))}
+        ${campoFicha('Interesses', listaOuTraco(u.interesses))}
+        ${campoFicha('Estilo de vida', listaOuTraco(u.estilo_vida))}
+      </div>
+      ${u.bio ? `<div style="margin-top:10px" class="ficha-campo"><div class="rot">Bio</div><div class="val" style="white-space:pre-wrap">${esc(u.bio)}</div></div>` : ''}
+      ${u.foto_url ? `<div style="margin-top:10px"><a class="ver-mais" href="${esc(u.foto_url)}" target="_blank" rel="noopener">Ver foto de perfil ↗</a></div>` : ''}
+    `;
+
+  const secaoPreferencias = modoEdicao
+    ? `<div class="ficha-grid">${CAMPOS_EDIT_PREFERENCIAS.map(cfg => campoEdit(cfg, u[cfg.campo])).join('')}</div>`
+    : `
+      <div class="ficha-grid">
+        ${campoFicha('Gênero preferido', escOuTraco(u.pref_genero))}
+        ${campoFicha('Faixa etária', `${u.pref_idade_min ?? '—'} a ${u.pref_idade_max ?? '—'}`)}
+        ${campoFicha('Distância', u.pref_distancia_km ? u.pref_distancia_km + ' km' : '—')}
+        ${campoFicha('Apenas verificados', simNao(u.pref_apenas_verificados))}
+        ${campoFicha('Objetivo preferido', escOuTraco(u.pref_objetivo))}
+      </div>
+    `;
+
   document.getElementById('fichaConteudo').innerHTML = `
     <div class="ficha-head">
       <h2>${esc(u.nome)}</h2>
-      <button class="ficha-fechar" onclick="fecharFichaUsuario()">&times;</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        ${botoesAcao}
+        <button class="ficha-fechar" onclick="fecharFichaUsuario()">&times;</button>
+      </div>
     </div>
     <div class="ficha-id">
       <span>ID:</span>
@@ -449,38 +606,17 @@ function montarFichaUsuario(u){
         ${campoFicha('Cadastro', dataBR(u.createdAt))}
         ${campoFicha('Última atualização', dataBR(u.updatedAt))}
       </div>
+      ${modoEdicao ? '<div class="ficha-vazio-nota" style="margin-top:8px">Estes campos não são editáveis por aqui — mudam por outros fluxos (pagamento, verificação) ou entram em ações próprias nos próximos lotes.</div>' : ''}
     </div>
 
     <div class="ficha-secao">
       <h3>Perfil</h3>
-      <div class="ficha-grid">
-        ${campoFicha('E-mail', esc(u.email))}
-        ${campoFicha('Telefone', escOuTraco(u.telefone))}
-        ${campoFicha('Data de nascimento', dataBR(u.data_nascimento))}
-        ${campoFicha('Gênero', escOuTraco(u.genero))}
-        ${campoFicha('Objetivo', escOuTraco(u.objetivo))}
-        ${campoFicha('Signo', escOuTraco(u.signo))}
-        ${campoFicha('Altura', u.altura ? u.altura + ' cm' : '—')}
-        ${campoFicha('Peso', u.peso ? u.peso + ' kg' : '—')}
-        ${campoFicha('Cor de cabelo', escOuTraco(u.cor_cabelo))}
-        ${campoFicha('Cidade', escOuTraco(u.cidade))}
-        ${campoFicha('Instagram', escOuTraco(u.instagram_handle))}
-        ${campoFicha('Interesses', listaOuTraco(u.interesses))}
-        ${campoFicha('Estilo de vida', listaOuTraco(u.estilo_vida))}
-      </div>
-      ${u.bio ? `<div style="margin-top:10px" class="ficha-campo"><div class="rot">Bio</div><div class="val" style="white-space:pre-wrap">${esc(u.bio)}</div></div>` : ''}
-      ${u.foto_url ? `<div style="margin-top:10px"><a class="ver-mais" href="${esc(u.foto_url)}" target="_blank" rel="noopener">Ver foto de perfil ↗</a></div>` : ''}
+      ${secaoPerfil}
     </div>
 
     <div class="ficha-secao">
       <h3>Preferências de busca</h3>
-      <div class="ficha-grid">
-        ${campoFicha('Gênero preferido', escOuTraco(u.pref_genero))}
-        ${campoFicha('Faixa etária', `${u.pref_idade_min ?? '—'} a ${u.pref_idade_max ?? '—'}`)}
-        ${campoFicha('Distância', u.pref_distancia_km ? u.pref_distancia_km + ' km' : '—')}
-        ${campoFicha('Apenas verificados', simNao(u.pref_apenas_verificados))}
-        ${campoFicha('Objetivo preferido', escOuTraco(u.pref_objetivo))}
-      </div>
+      ${secaoPreferencias}
     </div>
 
     <div class="ficha-secao">
@@ -494,7 +630,7 @@ function montarFichaUsuario(u){
       </div>
     </div>
 
-    <div class="aviso-nota">Ficha só leitura por enquanto. Foto de verificação facial, mensagens e localização não aparecem aqui — entram em lotes futuros, com acesso e log de auditoria próprios.</div>
+    <div class="aviso-nota">Foto de verificação facial, mensagens e localização não aparecem aqui — entram em lotes futuros, com acesso e log de auditoria próprios. Toda edição salva aqui fica registrada no log de auditoria, campo a campo.</div>
   `;
 }
 
