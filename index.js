@@ -187,6 +187,25 @@ app.get('/vinculo-liveness-bundle.mjs', (req, res) => {
   res.sendFile(path.join(__dirname, 'vinculo-liveness-bundle.mjs'));
 });
 
+// ===== PWA: manifest, service worker e ícones =====
+// manifest.json e sw.js precisam ser servidos da raiz do domínio (mesmo
+// escopo do /prototipo) pra valerem pro app inteiro. Cache-Control do sw.js
+// é propositalmente curto — um Cache-Control agressivo aqui atrasaria a
+// propagação de qualquer atualização futura do service worker.
+app.get('/manifest.json', (req, res) => {
+  res.set('Content-Type', 'application/manifest+json');
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.sendFile(path.join(__dirname, 'manifest.json'));
+});
+app.get('/sw.js', (req, res) => {
+  res.set('Content-Type', 'application/javascript');
+  res.set('Cache-Control', 'no-cache');
+  res.sendFile(path.join(__dirname, 'sw.js'));
+});
+app.use('/icons', express.static(path.join(__dirname, 'public/icons'), {
+  maxAge: '7d'
+}));
+
 // ===== Bloqueio de /uploads/privado (correção do achado CRÍTICO 1 da auditoria) =====
 // uploads/privado/liveness/ guarda as selfies de referência do Face Liveness
 // (livenessController.js). Precisa estar DENTRO de uploads/ pra sobreviver a

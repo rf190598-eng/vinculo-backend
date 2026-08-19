@@ -11,9 +11,27 @@
 <meta name="theme-color" content="#2b0f17"/>
 <title>Vinculo</title>
 
+<!-- ===== PWA — manifest + meta tags de app instalável (Android/iOS) =====
+     display:standalone no manifest.json é o que remove a barra de endereço
+     quando aberto pela tela inicial. As meta apple-mobile-web-app-* cobrem
+     o Safari/iOS, que não lê o manifest.json pra esse fim (regra própria). -->
+<link rel="manifest" href="/manifest.json"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Vínculo"/>
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"/>
+<link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png"/>
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Karla:wght@400;500;600;700&family=Poppins:wght@700;800&family=Caveat:wght@600;700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+/* PWA: remove seleção de texto acidental (toque longo) em elementos de
+   interface — nav, botões, links. Campos de texto, mensagens e bios NÃO são
+   afetados (esta regra não alcança input/textarea nem o texto normal do
+   conteúdo). Zoom por pinça foi deliberadamente MANTIDO como está — decisão
+   de acessibilidade, ver nota do <meta name="viewport"> acima. */
+button,.btn,.icon-btn,.navbtn,.sw-btn,.send-btn,.panic-btn,.topbar,.bottomnav,.logo,a{-webkit-user-select:none;user-select:none;}
 body{font-family:'Karla',system-ui,sans-serif;background:#1a0810;max-width:430px;margin:0 auto;min-height:100vh;color:#fdf6f2;overflow-x:hidden;}
 input,textarea,select{font-size:16px!important;font-family:inherit;}
 .serif{font-family:'Cormorant Garamond',serif;}
@@ -8922,6 +8940,15 @@ function toggleLsRadio(el){
   const siblings = el.parentElement.querySelectorAll('.ls-chip');
   siblings.forEach(s=>s.classList.remove('on'));
   el.classList.add('on');
+}
+
+// PWA: registra o service worker (sw.js). Não faz o app funcionar 100%
+// offline — só é o requisito pra instalabilidade de PWA em alguns
+// navegadores (junto com o manifest.json linkado no <head>).
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
 }
 </script>
 
