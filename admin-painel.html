@@ -531,11 +531,29 @@ let mostrarConfirmExcluirConta = false;
 // explicitamente.
 let denunciasReveladas = null;
 let carregandoDenuncias = false;
+// Foto de verificação facial (Lote 8) — mesmo padrão de carregamento sob
+// demanda do Lote 7: dado biométrico, ainda mais sensível que as
+// denúncias. null = não pedida; 'nenhuma' = pedida mas o usuário não tem
+// foto de referência; qualquer outra string = URL local (blob:) da imagem
+// já baixada. A rota devolve o arquivo puro (não é JSON), por isso não usa
+// o helper api() — busca manual com fetch() + Authorization, e monta a
+// imagem a partir do blob (um <img src> direto não mandaria o header de
+// autenticação).
+let fotoVerificacaoRevelada = null;
+let carregandoFotoVerificacao = false;
+
+function limparFotoVerificacaoRevelada(){
+  if(fotoVerificacaoRevelada && fotoVerificacaoRevelada !== 'nenhuma'){
+    URL.revokeObjectURL(fotoVerificacaoRevelada);
+  }
+  fotoVerificacaoRevelada = null;
+}
 
 async function abrirFichaUsuario(id){
   document.getElementById('fichaConteudo').innerHTML = '<div class="vazio">Carregando...</div>';
   document.getElementById('fichaOverlay').style.display = 'block';
   denunciasReveladas = null;
+  limparFotoVerificacaoRevelada();
   try{
     const u = await api('/api/admin/painel/usuarios/' + id);
     montarFichaUsuario(u, false, false, false);
@@ -551,6 +569,7 @@ function fecharFichaUsuario(){
   senhaTemporariaRevelada = null;
   mostrarConfirmExcluirConta = false;
   denunciasReveladas = null;
+  limparFotoVerificacaoRevelada();
 }
 
 async function carregarDenunciasUsuario(id){
@@ -563,6 +582,32 @@ async function carregarDenunciasUsuario(id){
     mostrarMsg('painelMsg', e.message || 'Erro ao carregar denúncias', 'erro');
   }finally{
     carregandoDenuncias = false;
+    if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
+  }
+}
+
+async function carregarFotoVerificacaoUsuario(id){
+  carregandoFotoVerificacao = true;
+  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
+  try{
+    const resp = await fetch(API_URL + '/api/perfil/liveness/referencia/' + id, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if(resp.status === 401 || resp.status === 403){
+      sair('Acesso negado. Faça login com uma conta administradora.');
+      return;
+    }
+    if(resp.status === 404){
+      fotoVerificacaoRevelada = 'nenhuma';
+      return;
+    }
+    if(!resp.ok) throw new Error('Erro ao carregar foto de verificação');
+    const blob = await resp.blob();
+    fotoVerificacaoRevelada = URL.createObjectURL(blob);
+  }catch(e){
+    mostrarMsg('painelMsg', e.message || 'Erro ao carregar foto de verificação', 'erro');
+  }finally{
+    carregandoFotoVerificacao = false;
     if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
   }
 }
@@ -887,6 +932,21 @@ function montarFichaUsuario(u, modoEdicao, mostrarFormSuspensao, mostrarConfirmR
     secaoSenha = `<button class="btn-secundario" onclick="alternarConfirmResetarSenha(true)">Resetar senha</button>`;
   }
 
+  // ===== Foto de verificação facial (Lote 8) =====
+  let secaoFotoVerificacao;
+  if(fotoVerificacaoRevelada === null){
+    secaoFotoVerificacao = carregandoFotoVerificacao
+      ? `<div class="vazio">Carregando...</div>`
+      : `<button class="btn-secundario" onclick="carregarFotoVerificacaoUsuario('${u.id}')">Ver foto de verificação</button>`;
+  }else if(fotoVerificacaoRevelada === 'nenhuma'){
+    secaoFotoVerificacao = `<div class="ficha-vazio-nota">Nenhuma foto de verificação encontrada para este usuário.</div>`;
+  }else{
+    secaoFotoVerificacao = `
+      <img src="${fotoVerificacaoRevelada}" alt="Foto de verificação facial" style="max-width:280px;border-radius:8px;border:1px solid var(--borda);display:block"/>
+      <div class="ficha-vazio-nota" style="margin-top:8px">Selfie de referência capturada durante a verificação facial (Face Liveness) — não é a foto de perfil que aparece no app.</div>
+    `;
+  }
+
   // ===== Denúncias envolvendo o usuário (Lote 7) =====
   let secaoDenuncias;
   if(denunciasReveladas === null){
@@ -1051,6 +1111,11 @@ function montarFichaUsuario(u, modoEdicao, mostrarFormSuspensao, mostrarConfirmR
         ${campoFicha('Veio de parceiro (ID)', escOuTraco(u.indicado_por_parceiro_id))}
         ${campoFicha('Assinatura recorrente (Mercado Pago)', escOuTraco(u.mercadopago_subscription_id))}
       </div>
+    </div>
+
+    <div class="ficha-secao">
+      <h3>Verificação facial</h3>
+      ${secaoFotoVerificacao}
     </div>
 
     <div class="ficha-secao">

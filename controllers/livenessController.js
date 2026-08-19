@@ -38,6 +38,7 @@ const { Op } = require('sequelize');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { registrarLogAuditoria } = require('./auditoriaController');
 
 const REGIAO_LIVENESS = process.env.AWS_REKOGNITION_LIVENESS_REGION || 'us-east-1';
 
@@ -213,13 +214,29 @@ async function obterFotoLivenessPropria(req, res) {
 }
 
 // Entrega a referência de liveness de QUALQUER usuário — só admin (moderação).
+//
+// Log de auditoria (Lote 8 do plano de acesso total do Painel Central): dado
+// biométrico, extra sensível — toda visualização fica registrada. req.
+// usuarioAdmin vem do middleware verificarAdmin, que já protege esta rota
+// (routes/livenessRoutes.js), então está sempre disponível aqui.
 async function obterFotoLivenessAdmin(req, res) {
   try {
-    const usuario = await Usuario.findByPk(req.params.usuarioId, { attributes: ['foto_referencia_liveness'] });
+    const usuario = await Usuario.findByPk(req.params.usuarioId, {
+      attributes: ['id', 'nome', 'email', 'foto_referencia_liveness']
+    });
     const caminho = caminhoArquivoLiveness(usuario && usuario.foto_referencia_liveness);
     if (!caminho || !fs.existsSync(caminho)) {
       return res.status(404).json({ erro: 'Nenhuma foto de verificação encontrada.' });
     }
+
+    if (req.usuarioAdmin) {
+      registrarLogAuditoria({
+        admin: req.usuarioAdmin,
+        acao: 'ver_foto_verificacao_usuario',
+        usuarioAlvo: usuario
+      });
+    }
+
     return res.sendFile(caminho);
   } catch (erro) {
     return res.status(500).json({ erro: 'Erro ao buscar foto de verificação: ' + erro.message });
