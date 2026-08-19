@@ -898,11 +898,14 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       </div>
     </div>
 
-    <div style="background:rgba(212,131,154,.12);border:1.5px solid rgba(212,131,154,.3);border-radius:14px;padding:12px 16px;margin-bottom:12px;text-align:center;width:100%;max-width:320px">
-      <div style="font-size:12px;color:#f0a0b8;font-weight:700;margin-bottom:3px">&#128274; Chat exclusivo Premium</div>
-      <div style="font-size:11.5px;color:#e0c0d0;line-height:1.5">Assine para conversar com esse match.</div>
-    </div>
-    <button class="btn btn-primary" style="max-width:320px;font-size:13px" onclick="goTo('assinatura')">&#128172; Conversar — a partir de R$9,90/semana</button>
+    <!-- Chat é gratuito após o match (decisão de produto — o card de paywall
+         "Chat exclusivo Premium" que existia aqui foi removido porque
+         afirmava algo factualmente falso: o backend nunca exigiu premium
+         pra enviar mensagem, só faltava um caminho direto até o chat).
+         Pendência registrada à parte: revisar outros textos "Conversar — a
+         partir de R$9,90/semana" no resto do app quando a decisão de
+         monetização estiver fechada. -->
+    <button class="btn btn-primary" style="max-width:320px;font-size:13px" onclick="irParaChatDoMatch()">&#128172; Ir para o chat</button>
     <button class="btn btn-ghost" style="margin-top:10px;max-width:320px;color:#907080;border-color:rgba(255,255,255,.12)" onclick="goTo('discover')">Continuar explorando</button>
   </div>
 </div>
@@ -3588,6 +3591,7 @@ async function doSwipe(dir){
   const tipo = dir==='left' ? 'dislike' : (dir==='super' ? 'superlike' : 'like');
 
   let deuMatch = false;
+  let matchIdCriado = null;
   try{
     const resp = await fetch(`${API_URL}/api/swipe/dar`, {
       method:'POST',
@@ -3596,6 +3600,7 @@ async function doSwipe(dir){
     });
     const dados = await resp.json();
     deuMatch = !!dados.match;
+    matchIdCriado = dados.match_id || null;
   } catch(e){
     // Achado MÉDIA da auditoria de UX: antes falhava 100% em silêncio — a
     // pessoa via a animação do swipe e a fila avançar, mas a curtida podia
@@ -3628,6 +3633,7 @@ async function doSwipe(dir){
       document.getElementById('nopeStamp').style.opacity='0';
       const nomeEl = document.getElementById('matchNomeTexto');
       if(nomeEl) nomeEl.textContent = perfilCard1Data ? `Você e ${perfilCard1Data.nome} curtiram um ao outro 🌟` : 'Vocês curtiram um ao outro 🌟';
+      matchRecemCriado = matchIdCriado ? { id: matchIdCriado, outro_usuario: perfilCard1Data } : null;
       goTo('match');
     },500);
     return;
@@ -3730,6 +3736,10 @@ async function curtirDeVolta(alvoId, nomeAlvo, cardEl){
 
 let planoSelecionado = 'mensal';
 let matchAtual = null;
+// Guarda o match que acabou de ser criado (id + dados do outro usuário), pra
+// alimentar tanto o botão "Ir para o chat" quanto o quebra-gelo na tela de
+// match — sem isso, os dois não tinham como saber qual conversa abrir.
+let matchRecemCriado = null;
 let perfilDenunciadoId = null;
 let motivoReportSelecionado = null;
 
@@ -8422,12 +8432,35 @@ function launchConfetti(){
   setTimeout(()=>{ if(container) container.innerHTML=''; }, 4000);
 }
 
-function sendIcebreaker(el, text){
+async function sendIcebreaker(el, text){
+  if(!matchRecemCriado){ goTo('assinatura'); return; }
+  el.style.pointerEvents = 'none';
   el.style.background='rgba(212,131,154,.25)';
   el.style.borderColor='#d4839a';
   el.style.color='#fdf6f2';
-  showToastVinculo('Quebra-gelo enviado: ' + text + ' 💗');
-  setTimeout(()=>{ goTo('assinatura'); }, 1200);
+  try{
+    const resp = await fetch(`${API_URL}/api/chat/enviar`, {
+      method:'POST',
+      headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
+      body: JSON.stringify({ match_id: matchRecemCriado.id, conteudo: text })
+    });
+    if(!resp.ok){
+      const dados = await resp.json().catch(()=>({}));
+      showToastVinculo(dados.erro || 'Não foi possível enviar o quebra-gelo.');
+      el.style.pointerEvents = '';
+      return;
+    }
+    showToastVinculo('Quebra-gelo enviado: ' + text + ' 💗');
+    setTimeout(() => irParaChatDoMatch(), 900);
+  }catch(e){
+    showToastVinculo('Erro ao enviar quebra-gelo. Tenta de novo.');
+    el.style.pointerEvents = '';
+  }
+}
+
+async function irParaChatDoMatch(){
+  if(!matchRecemCriado){ goTo('chats'); return; }
+  await abrirChat(matchRecemCriado);
 }
 async function salvarInstagram(){
   const igInputEl = document.getElementById('editInstagram');
