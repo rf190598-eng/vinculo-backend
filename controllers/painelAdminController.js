@@ -10,6 +10,7 @@ const Match = require('../models/Match');
 const Denuncia = require('../models/Denuncia');
 const SessaoSeguranca = require('../models/SessaoSeguranca');
 const AlertaSeguranca = require('../models/AlertaSeguranca');
+const Mensagem = require('../models/Mensagem');
 const { primeiroDiaDoMes } = require('./parceiroController');
 const { registrarLogAuditoria } = require('./auditoriaController');
 const { executarCascataExclusaoConta, apagarArquivosDaContaExcluida } = require('./contaController');
@@ -829,6 +830,146 @@ const obterSegurancaUsuario = async (req, res) => {
   }
 };
 
+const LIMITE_MENSAGENS_CONVERSA = 50;
+
+// ===== Mensagens de qualquer chat (Lote 10) — nível 1: lista de conversas =====
+// O dado mais sensível do sistema (conteúdo de conversa privada). Por isso
+// este lote tem dois níveis: listar os matches do usuário (metadado, loga
+// auditoria mas sem exigir motivo, mesmo padrão dos Lotes 7/8/9) e abrir o
+// conteúdo de uma conversa específica (nível 2, abaixo), que exige motivo
+// obrigatório por ser o conteúdo em si — o dado mais sensível de todos, que
+// uma vez visto não tem como "devolver".
+const obterConversasUsuario = async (req, res) => {
+  try {
+    const usuario = await Usuario.findByPk(req.params.id, { attributes: ['id', 'nome', 'email'] });
+    if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
+
+    const matches = await Match.findAll({
+      where: { [Op.or]: [{ usuario1_id: usuario.id }, { usuario2_id: usuario.id }] },
+      order: [['createdAt', 'DESC']]
+    });
+
+    const idsOutraParte = matches.map(m => (m.usuario1_id === usuario.id ? m.usuario2_id : m.usuario1_id));
+    const outrasPartes = idsOutraParte.length
+      ? await Usuario.findAll({ where: { id: { [Op.in]: idsOutraParte } }, attributes: ['id', 'nome'] })
+      : [];
+    const mapaOutrasPartes = new Map(outrasPartes.map(u => [u.id, u.nome]));
+
+    const idsMatches = matches.map(m => m.id);
+    const agregados = idsMatches.length
+      ? await Mensagem.findAll({
+          where: { match_id: { [Op.in]: idsMatches } },
+          attributes: [
+            'match_id',
+            [sequelize.fn('COUNT', sequelize.col('id')), 'total'],
+            [sequelize.fn('MAX', sequelize.col('createdAt')), 'ultima']
+          ],
+          group: ['match_id']
+        })
+      : [];
+    const mapaAgregados = new Map(agregados.map(a => [a.match_id, {
+      total: Number(a.get('total')),
+      ultima: a.get('ultima')
+    }]));
+
+    const conversas = matches.map(m => {
+      const outraParteId = m.usuario1_id === usuario.id ? m.usuario2_id : m.usuario1_id;
+      const agregado = mapaAgregados.get(m.id) || { total: 0, ultima: null };
+      return {
+        match_id: m.id,
+        outro_usuario: { id: outraParteId, nome: mapaOutrasPartes.get(outraParteId) || null },
+        ativo: m.ativo,
+        total_mensagens: agregado.total,
+        ultima_mensagem_em: agregado.ultima,
+        match_criado_em: m.createdAt
+      };
+    });
+
+    res.json({ conversas });
+
+    registrarLogAuditoria({
+      admin: req.usuarioAdmin,
+      acao: 'ver_lista_conversas_usuario',
+      usuarioAlvo: usuario,
+      detalhes: { total_matches: conversas.length }
+    });
+  } catch (erro) {
+    console.error('Erro ao montar lista de conversas de usuário no painel administrativo:', erro);
+    res.status(500).json({ erro: 'Erro ao montar lista de conversas do usuário' });
+  }
+};
+
+// ===== Mensagens de qualquer chat (Lote 10) — nível 2: conteúdo de uma
+// conversa específica. Exige motivo obrigatório (fica no log de auditoria)
+// e é paginado por cursor de data (não por offset, pra não pular/duplicar
+// mensagem se a conversa continuar rolando enquanto o admin está olhando).
+const obterMensagensConversaUsuario = async (req, res) => {
+  try {
+    const usuario = await Usuario.findByPk(req.params.id, { attributes: ['id', 'nome', 'email'] });
+    if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
+
+    const motivo = String(req.query.motivo || '').trim();
+    if (!motivo) return res.status(400).json({ erro: 'Informe o motivo para abrir esta conversa' });
+
+    const match = await Match.findOne({
+      where: {
+        id: req.params.matchId,
+        [Op.or]: [{ usuario1_id: usuario.id }, { usuario2_id: usuario.id }]
+      }
+    });
+    if (!match) return res.status(404).json({ erro: 'Conversa não encontrada para este usuário' });
+
+    const outraParteId = match.usuario1_id === usuario.id ? match.usuario2_id : match.usuario1_id;
+    const outraParte = await Usuario.findByPk(outraParteId, { attributes: ['id', 'nome', 'email'] });
+
+    const antes = req.query.antes ? new Date(req.query.antes) : null;
+    const where = { match_id: match.id };
+    if (antes && !isNaN(antes)) where.createdAt = { [Op.lt]: antes };
+
+    const pagina = await Mensagem.findAll({
+      where,
+      order: [['createdAt', 'DESC']],
+      limit: LIMITE_MENSAGENS_CONVERSA + 1
+    });
+    const temMaisAntigas = pagina.length > LIMITE_MENSAGENS_CONVERSA;
+    const mensagens = pagina.slice(0, LIMITE_MENSAGENS_CONVERSA).reverse().map(m => ({
+      id: m.id,
+      remetente_id: m.remetente_id,
+      conteudo: m.conteudo,
+      enviado_em: m.createdAt
+    }));
+
+    res.json({
+      match_id: match.id,
+      outro_usuario: outraParte ? { id: outraParte.id, nome: outraParte.nome } : null,
+      mensagens,
+      tem_mais_antigas: temMaisAntigas
+    });
+
+    // Só grava log na primeira página (abertura da conversa) — paginar pra
+    // mensagens mais antigas dentro da mesma conversa já aberta não é um
+    // novo evento de acesso, é continuação do mesmo, já coberto pelo motivo
+    // dado na abertura.
+    if (!antes) {
+      const totalMensagens = await Mensagem.count({ where: { match_id: match.id } });
+      registrarLogAuditoria({
+        admin: req.usuarioAdmin,
+        acao: 'ver_mensagens_conversa',
+        usuarioAlvo: usuario,
+        detalhes: {
+          match_id: match.id,
+          outro_usuario: outraParte ? { id: outraParte.id, nome: outraParte.nome, email: outraParte.email } : null,
+          motivo,
+          total_mensagens_no_match: totalMensagens
+        }
+      });
+    }
+  } catch (erro) {
+    console.error('Erro ao montar mensagens de conversa no painel administrativo:', erro);
+    res.status(500).json({ erro: 'Erro ao montar mensagens da conversa' });
+  }
+};
+
 // Ranking de comissão pro Painel Central — Lote 2 (do plano original de
 // conteúdo do painel, anterior ao plano de acesso total). "Quanto já ganharam" é
 // tratado como comissão GERADA (paga + pendente), não só a já paga — é uma
@@ -961,6 +1102,8 @@ module.exports = {
   excluirContaUsuario,
   obterDenunciasUsuario,
   obterSegurancaUsuario,
+  obterConversasUsuario,
+  obterMensagensConversaUsuario,
   obterRankingComissoes,
   obterSegmentacaoPagantes
 };

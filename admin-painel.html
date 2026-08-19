@@ -78,6 +78,12 @@
   .tag-em_andamento{background:#dbe9fb;color:#1a5ea8}
   .tag-alerta_disparado{background:#f7d3d3;color:var(--erro)}
   .tag-encerrado{background:#eee;color:#666}
+  .conversa-lista{display:flex;flex-direction:column;gap:8px;max-height:420px;overflow-y:auto;padding:4px}
+  .mensagem-bubble{max-width:75%;padding:8px 12px;border-radius:10px;font-size:13px;background:#f2f2f2}
+  .mensagem-bubble.mensagem-propria{align-self:flex-end;background:#dbe9fb}
+  .mensagem-bubble .mensagem-autor{font-size:11px;font-weight:600;color:var(--suave);margin-bottom:2px}
+  .mensagem-bubble .mensagem-conteudo{white-space:pre-wrap}
+  .mensagem-bubble .mensagem-data{font-size:11px;color:var(--suave);margin-top:4px;text-align:right}
 
   .denuncia-card{border:1px solid var(--borda);border-radius:8px;padding:12px 14px;margin-top:10px;font-size:13px}
   .denuncia-card .linha1{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
@@ -557,6 +563,15 @@ let carregandoFotoVerificacao = false;
 // carregamento sob demanda: dado sensível (geolocalização).
 let segurancaRevelada = null;
 let carregandoSeguranca = false;
+// Mensagens de qualquer chat (Lote 10) — dado mais sensível do sistema.
+// Dois níveis: lista de conversas (sem motivo) e conteúdo de uma conversa
+// específica (motivo obrigatório). null = nada pedido; array = lista
+// carregada (mesmo vazia).
+let conversasReveladas = null;
+let carregandoConversas = false;
+let matchPedindoMotivo = null; // match_id com o formulário de motivo aberto
+let conversaAberta = null; // {match_id, outro_usuario, mensagens, tem_mais_antigas, motivo}
+let carregandoMensagensConversa = false;
 
 function limparFotoVerificacaoRevelada(){
   if(fotoVerificacaoRevelada && fotoVerificacaoRevelada !== 'nenhuma'){
@@ -571,6 +586,9 @@ async function abrirFichaUsuario(id){
   denunciasReveladas = null;
   limparFotoVerificacaoRevelada();
   segurancaRevelada = null;
+  conversasReveladas = null;
+  matchPedindoMotivo = null;
+  conversaAberta = null;
   try{
     const u = await api('/api/admin/painel/usuarios/' + id);
     montarFichaUsuario(u, false, false, false);
@@ -588,6 +606,9 @@ function fecharFichaUsuario(){
   denunciasReveladas = null;
   limparFotoVerificacaoRevelada();
   segurancaRevelada = null;
+  conversasReveladas = null;
+  matchPedindoMotivo = null;
+  conversaAberta = null;
 }
 
 async function carregarDenunciasUsuario(id){
@@ -641,6 +662,66 @@ async function carregarSegurancaUsuario(id){
     carregandoSeguranca = false;
     if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
   }
+}
+
+async function carregarConversasUsuario(id){
+  carregandoConversas = true;
+  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
+  try{
+    const dados = await api('/api/admin/painel/usuarios/' + id + '/conversas');
+    conversasReveladas = dados.conversas;
+  }catch(e){
+    mostrarMsg('painelMsg', e.message || 'Erro ao carregar conversas', 'erro');
+  }finally{
+    carregandoConversas = false;
+    if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
+  }
+}
+
+function alternarMotivoAbrirConversa(matchId){
+  matchPedindoMotivo = matchId;
+  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
+}
+
+async function confirmarAbrirConversa(usuarioId, matchId){
+  const motivo = document.getElementById('conversa_motivo_' + matchId)?.value.trim();
+  if(!motivo){
+    mostrarMsg('painelMsg', 'Informe o motivo para abrir esta conversa', 'erro');
+    return;
+  }
+  carregandoMensagensConversa = true;
+  matchPedindoMotivo = null;
+  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
+  try{
+    const dados = await api('/api/admin/painel/usuarios/' + usuarioId + '/conversas/' + matchId + '/mensagens?motivo=' + encodeURIComponent(motivo));
+    conversaAberta = { ...dados, motivo };
+  }catch(e){
+    mostrarMsg('painelMsg', e.message || 'Erro ao carregar mensagens da conversa', 'erro');
+  }finally{
+    carregandoMensagensConversa = false;
+    if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
+  }
+}
+
+async function carregarMensagensMaisAntigas(usuarioId){
+  if(!conversaAberta || !conversaAberta.mensagens.length) return;
+  carregandoMensagensConversa = true;
+  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
+  try{
+    const antes = conversaAberta.mensagens[0].enviado_em;
+    const dados = await api('/api/admin/painel/usuarios/' + usuarioId + '/conversas/' + conversaAberta.match_id + '/mensagens?motivo=' + encodeURIComponent(conversaAberta.motivo) + '&antes=' + encodeURIComponent(antes));
+    conversaAberta = { ...conversaAberta, mensagens: [...dados.mensagens, ...conversaAberta.mensagens], tem_mais_antigas: dados.tem_mais_antigas };
+  }catch(e){
+    mostrarMsg('painelMsg', e.message || 'Erro ao carregar mensagens mais antigas', 'erro');
+  }finally{
+    carregandoMensagensConversa = false;
+    if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
+  }
+}
+
+function fecharConversaAberta(){
+  conversaAberta = null;
+  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
 }
 
 // Edição de perfil, suspensão, revogação de sessão, reset de senha e
@@ -1053,6 +1134,54 @@ function montarFichaUsuario(u, modoEdicao, mostrarFormSuspensao, mostrarConfirmR
     `;
   }
 
+  // ===== Mensagens de qualquer chat (Lote 10) =====
+  let secaoConversas;
+  if(conversaAberta){
+    const outro = conversaAberta.outro_usuario;
+    secaoConversas = `
+      <div class="ficha-vazio-nota" style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+        <span>Conversa com <strong>${esc(outro ? outro.nome : '—')}</strong></span>
+        <button class="btn-secundario" onclick="fecharConversaAberta()">Voltar para lista de conversas</button>
+      </div>
+      ${conversaAberta.tem_mais_antigas ? `<button class="btn-secundario" ${carregandoMensagensConversa ? 'disabled' : ''} onclick="carregarMensagensMaisAntigas('${u.id}')" style="margin-bottom:10px">${carregandoMensagensConversa ? 'Carregando...' : 'Carregar mensagens mais antigas'}</button>` : ''}
+      <div class="conversa-lista">
+        ${!conversaAberta.mensagens.length ? `<div class="ficha-vazio-nota">Nenhuma mensagem nesta conversa.</div>` : conversaAberta.mensagens.map(m => `
+          <div class="mensagem-bubble ${m.remetente_id === u.id ? 'mensagem-propria' : 'mensagem-outro'}">
+            <div class="mensagem-autor">${m.remetente_id === u.id ? esc(u.nome) : esc(outro ? outro.nome : 'Outro usuário')}</div>
+            <div class="mensagem-conteudo">${esc(m.conteudo)}</div>
+            <div class="mensagem-data">${dataBR(m.enviado_em)}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }else if(conversasReveladas === null){
+    secaoConversas = carregandoConversas
+      ? `<div class="vazio">Carregando...</div>`
+      : `<button class="btn-secundario" onclick="carregarConversasUsuario('${u.id}')">Ver conversas deste usuário</button>`;
+  }else if(!conversasReveladas.length){
+    secaoConversas = `<div class="ficha-vazio-nota">Nenhuma conversa encontrada para este usuário.</div>`;
+  }else{
+    secaoConversas = conversasReveladas.map(c => `
+      <div class="denuncia-card">
+        <div class="linha1">
+          <span class="quem">${esc(c.outro_usuario.nome || '—')}</span>
+          <span class="tag ${c.ativo ? 'tag-em_andamento' : 'tag-encerrado'}">${c.ativo ? 'Match ativo' : 'Match encerrado'}</span>
+        </div>
+        <div class="contato">${c.total_mensagens} mensagem${c.total_mensagens === 1 ? '' : 's'}${c.ultima_mensagem_em ? ' · última em ' + dataBR(c.ultima_mensagem_em) : ''}</div>
+        ${matchPedindoMotivo === c.match_id ? `
+          <div class="linha-form" style="margin-top:8px">
+            <label for="conversa_motivo_${c.match_id}">Motivo para abrir esta conversa (obrigatório, fica no log de auditoria)</label>
+            <textarea id="conversa_motivo_${c.match_id}" rows="2"></textarea>
+          </div>
+          <div class="acoes">
+            <button class="btn-secundario" onclick="alternarMotivoAbrirConversa(null)">Cancelar</button>
+            <button class="btn-primario" onclick="confirmarAbrirConversa('${u.id}', '${c.match_id}')">Confirmar e abrir</button>
+          </div>
+        ` : `<button class="btn-secundario" style="margin-top:8px" onclick="alternarMotivoAbrirConversa('${c.match_id}')">Abrir conversa</button>`}
+      </div>
+    `).join('');
+  }
+
   // ===== Excluir conta (Lote 6) — zona de risco, a ação mais grave =====
   const secaoExcluir = mostrarConfirmExcluirConta
     ? `
@@ -1206,11 +1335,16 @@ function montarFichaUsuario(u, modoEdicao, mostrarFormSuspensao, mostrarConfirmR
     </div>
 
     <div class="ficha-secao">
+      <h3>Conversas</h3>
+      ${secaoConversas}
+    </div>
+
+    <div class="ficha-secao">
       <h3 style="color:var(--erro)">Zona de risco</h3>
       ${secaoExcluir}
     </div>
 
-    <div class="aviso-nota">Mensagens não aparecem aqui — entram no próximo lote, com acesso e log de auditoria próprios. Toda edição salva aqui fica registrada no log de auditoria, campo a campo.</div>
+    <div class="aviso-nota">Toda edição salva aqui fica registrada no log de auditoria, campo a campo.</div>
   `;
 }
 

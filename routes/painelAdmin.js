@@ -12,6 +12,8 @@ const {
   excluirContaUsuario,
   obterDenunciasUsuario,
   obterSegurancaUsuario,
+  obterConversasUsuario,
+  obterMensagensConversaUsuario,
   obterRankingComissoes,
   obterSegmentacaoPagantes
 } = require('../controllers/painelAdminController');
@@ -31,6 +33,8 @@ router.post('/usuarios/:id/resetar-senha', resetarSenhaUsuario);
 router.delete('/usuarios/:id', excluirContaUsuario);
 router.get('/usuarios/:id/denuncias', obterDenunciasUsuario);
 router.get('/usuarios/:id/seguranca', obterSegurancaUsuario);
+router.get('/usuarios/:id/conversas', obterConversasUsuario);
+router.get('/usuarios/:id/conversas/:matchId/mensagens', obterMensagensConversaUsuario);
 router.get('/ranking-comissoes', obterRankingComissoes);
 router.get('/segmentacao-pagantes', obterSegmentacaoPagantes);
 router.get('/logs-auditoria', listarLogsAuditoria);
