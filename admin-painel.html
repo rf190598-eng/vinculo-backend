@@ -75,6 +75,9 @@
   .tag-em_analise{background:#dbe9fb;color:#1a5ea8}
   .tag-resolvida{background:#dcf3e2;color:var(--ok)}
   .tag-arquivada{background:#eee;color:#666}
+  .tag-em_andamento{background:#dbe9fb;color:#1a5ea8}
+  .tag-alerta_disparado{background:#f7d3d3;color:var(--erro)}
+  .tag-encerrado{background:#eee;color:#666}
 
   .denuncia-card{border:1px solid var(--borda);border-radius:8px;padding:12px 14px;margin-top:10px;font-size:13px}
   .denuncia-card .linha1{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
@@ -368,6 +371,15 @@ const ROTULOS_STATUS_DENUNCIA = {
   resolvida: 'Resolvida',
   arquivada: 'Arquivada'
 };
+const ROTULOS_STATUS_CHECKIN = {
+  em_andamento: 'Em andamento',
+  alerta_disparado: 'Alerta disparado (venceu)',
+  encerrado: 'Encerrado'
+};
+const ROTULOS_TIPO_ALERTA = {
+  panico: 'Botão de pânico',
+  checkin_perdido: 'Check-in perdido (automático)'
+};
 
 // ===== 2. TODOS OS USUÁRIOS (busca + paginação própria, carrega separado
 // do resto do painel pra não travar as outras seções numa base grande) =====
@@ -541,6 +553,10 @@ let carregandoDenuncias = false;
 // autenticação).
 let fotoVerificacaoRevelada = null;
 let carregandoFotoVerificacao = false;
+// Localização / check-ins de segurança (Lote 9) — mesmo padrão de
+// carregamento sob demanda: dado sensível (geolocalização).
+let segurancaRevelada = null;
+let carregandoSeguranca = false;
 
 function limparFotoVerificacaoRevelada(){
   if(fotoVerificacaoRevelada && fotoVerificacaoRevelada !== 'nenhuma'){
@@ -554,6 +570,7 @@ async function abrirFichaUsuario(id){
   document.getElementById('fichaOverlay').style.display = 'block';
   denunciasReveladas = null;
   limparFotoVerificacaoRevelada();
+  segurancaRevelada = null;
   try{
     const u = await api('/api/admin/painel/usuarios/' + id);
     montarFichaUsuario(u, false, false, false);
@@ -570,6 +587,7 @@ function fecharFichaUsuario(){
   mostrarConfirmExcluirConta = false;
   denunciasReveladas = null;
   limparFotoVerificacaoRevelada();
+  segurancaRevelada = null;
 }
 
 async function carregarDenunciasUsuario(id){
@@ -608,6 +626,19 @@ async function carregarFotoVerificacaoUsuario(id){
     mostrarMsg('painelMsg', e.message || 'Erro ao carregar foto de verificação', 'erro');
   }finally{
     carregandoFotoVerificacao = false;
+    if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
+  }
+}
+
+async function carregarSegurancaUsuario(id){
+  carregandoSeguranca = true;
+  if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
+  try{
+    segurancaRevelada = await api('/api/admin/painel/usuarios/' + id + '/seguranca');
+  }catch(e){
+    mostrarMsg('painelMsg', e.message || 'Erro ao carregar dados de segurança', 'erro');
+  }finally{
+    carregandoSeguranca = false;
     if(fichaUsuarioAtual) montarFichaUsuario(fichaUsuarioAtual, false, false, false);
   }
 }
@@ -976,6 +1007,52 @@ function montarFichaUsuario(u, modoEdicao, mostrarFormSuspensao, mostrarConfirmR
     }).join('');
   }
 
+  // ===== Localização / check-ins de segurança (Lote 9) =====
+  let secaoSeguranca;
+  if(segurancaRevelada === null){
+    secaoSeguranca = carregandoSeguranca
+      ? `<div class="vazio">Carregando...</div>`
+      : `<button class="btn-secundario" onclick="carregarSegurancaUsuario('${u.id}')">Ver localização e check-ins de segurança</button>`;
+  }else{
+    const localGeral = segurancaRevelada.localizacao_geral_perfil
+      ? `<div class="ficha-vazio-nota" style="margin-bottom:10px">Localização geral do perfil (usada pro cálculo de distância de match, não é necessariamente a localização atual): ${segurancaRevelada.localizacao_geral_perfil.lat.toFixed(5)}, ${segurancaRevelada.localizacao_geral_perfil.lng.toFixed(5)}</div>`
+      : `<div class="ficha-vazio-nota" style="margin-bottom:10px">Sem localização geral registrada no perfil.</div>`;
+
+    const cardsSessoes = !segurancaRevelada.sessoes_checkin.length
+      ? `<div class="ficha-vazio-nota">Nenhum check-in de segurança registrado.</div>`
+      : segurancaRevelada.sessoes_checkin.map(s => `
+          <div class="denuncia-card">
+            <div class="linha1">
+              <span class="quem">${s.com_usuario_nome ? 'Encontro com ' + esc(s.com_usuario_nome) : 'Check-in de segurança'}</span>
+              <span class="tag tag-${esc(s.status)}">${esc(ROTULOS_STATUS_CHECKIN[s.status] || s.status)}</span>
+            </div>
+            <div class="contato">Iniciado em ${dataBR(s.iniciado_em)}${s.duracao_planejada_minutos != null ? ' · duração planejada: ' + s.duracao_planejada_minutos + ' min' : ''}</div>
+            ${s.ultima_localizacao ? `<div class="contato">Última localização: ${s.ultima_localizacao.lat.toFixed(5)}, ${s.ultima_localizacao.lng.toFixed(5)}</div>` : ''}
+          </div>
+        `).join('');
+
+    const cardsAlertas = !segurancaRevelada.alertas_seguranca.length
+      ? `<div class="ficha-vazio-nota">Nenhum alerta de segurança registrado.</div>`
+      : segurancaRevelada.alertas_seguranca.map(a => `
+          <div class="denuncia-card">
+            <div class="linha1">
+              <span class="quem">${esc(ROTULOS_TIPO_ALERTA[a.tipo] || a.tipo)}</span>
+              <span class="contato">${dataBR(a.disparado_em)}</span>
+            </div>
+            ${a.localizacao ? `<div class="contato">Localização: ${a.localizacao.lat.toFixed(5)}, ${a.localizacao.lng.toFixed(5)}</div>` : '<div class="contato">Sem localização registrada</div>'}
+            ${a.contatos_notificados.length ? `<div class="descricao">Contatos notificados: ${a.contatos_notificados.map(c => esc(c.contato_nome) + (c.sucesso ? '' : ' (falhou)')).join(', ')}</div>` : ''}
+          </div>
+        `).join('');
+
+    secaoSeguranca = `
+      ${localGeral}
+      <div class="ficha-vazio-nota" style="margin:10px 0 4px;font-weight:600">Check-ins</div>
+      ${cardsSessoes}
+      <div class="ficha-vazio-nota" style="margin:14px 0 4px;font-weight:600">Alertas de segurança</div>
+      ${cardsAlertas}
+    `;
+  }
+
   // ===== Excluir conta (Lote 6) — zona de risco, a ação mais grave =====
   const secaoExcluir = mostrarConfirmExcluirConta
     ? `
@@ -1124,11 +1201,16 @@ function montarFichaUsuario(u, modoEdicao, mostrarFormSuspensao, mostrarConfirmR
     </div>
 
     <div class="ficha-secao">
+      <h3>Localização e check-ins de segurança</h3>
+      ${secaoSeguranca}
+    </div>
+
+    <div class="ficha-secao">
       <h3 style="color:var(--erro)">Zona de risco</h3>
       ${secaoExcluir}
     </div>
 
-    <div class="aviso-nota">Foto de verificação facial, mensagens e localização não aparecem aqui — entram em lotes futuros, com acesso e log de auditoria próprios. Toda edição salva aqui fica registrada no log de auditoria, campo a campo.</div>
+    <div class="aviso-nota">Mensagens não aparecem aqui — entram no próximo lote, com acesso e log de auditoria próprios. Toda edição salva aqui fica registrada no log de auditoria, campo a campo.</div>
   `;
 }
 

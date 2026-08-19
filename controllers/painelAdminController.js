@@ -8,6 +8,8 @@ const Comissao = require('../models/Comissao');
 const Parceiro = require('../models/Parceiro');
 const Match = require('../models/Match');
 const Denuncia = require('../models/Denuncia');
+const SessaoSeguranca = require('../models/SessaoSeguranca');
+const AlertaSeguranca = require('../models/AlertaSeguranca');
 const { primeiroDiaDoMes } = require('./parceiroController');
 const { registrarLogAuditoria } = require('./auditoriaController');
 const { executarCascataExclusaoConta, apagarArquivosDaContaExcluida } = require('./contaController');
@@ -728,6 +730,105 @@ const obterDenunciasUsuario = async (req, res) => {
   }
 };
 
+// ===== Localização / histórico de check-in de segurança (Lote 9) =====
+// Dado sensível (geolocalização). Não precisa de tabela nova: reaproveita
+// SessaoSeguranca (check-in de encontro) e AlertaSeguranca (botão de
+// pânico + alerta automático de check-in vencido), que já existem no
+// fluxo de segurança do usuário comum. Carregamento sob demanda na
+// ficha, mesmo padrão dos Lotes 7 e 8.
+const obterSegurancaUsuario = async (req, res) => {
+  try {
+    const usuario = await Usuario.findByPk(req.params.id, {
+      attributes: ['id', 'nome', 'email', 'latitude', 'longitude']
+    });
+    if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
+
+    const sessoes = await SessaoSeguranca.findAll({
+      where: { usuario_id: usuario.id },
+      order: [['createdAt', 'DESC']]
+    });
+    const alertas = await AlertaSeguranca.findAll({
+      where: { usuario_id: usuario.id },
+      order: [['createdAt', 'DESC']]
+    });
+
+    const idsComUsuario = [...new Set(sessoes.map(s => s.com_usuario_id).filter(Boolean))];
+    const comUsuarios = idsComUsuario.length
+      ? await Usuario.findAll({ where: { id: { [Op.in]: idsComUsuario } }, attributes: ['id', 'nome'] })
+      : [];
+    const mapaComUsuarios = new Map(comUsuarios.map(u => [u.id, u.nome]));
+
+    // Status derivado: o job que expira check-ins vencidos marca
+    // alerta_disparado=true mas nunca zera "ativa" sozinho — isso só
+    // acontece quando o usuário confirma retorno seguro ou começa um
+    // novo check-in (que desativa os antigos de lambuja). Por isso
+    // "encerrado" aqui não distingue com certeza "confirmou que tava
+    // seguro" de "foi substituído por outro check-in" — a coluna não
+    // guarda essa diferença, então não inventamos uma certeza que o
+    // dado não sustenta.
+    const listaSessoes = sessoes.map(s => {
+      let status;
+      if (s.alerta_disparado) status = 'alerta_disparado';
+      else if (!s.ativa) status = 'encerrado';
+      else status = 'em_andamento';
+
+      const duracaoMin = s.prazo_confirmacao
+        ? Math.round((new Date(s.prazo_confirmacao) - new Date(s.createdAt)) / 60000)
+        : null;
+
+      return {
+        id: s.id,
+        com_usuario_nome: s.com_usuario_id ? (mapaComUsuarios.get(s.com_usuario_id) || null) : null,
+        status,
+        iniciado_em: s.createdAt,
+        prazo_confirmacao: s.prazo_confirmacao,
+        duracao_planejada_minutos: duracaoMin,
+        ultima_localizacao: (s.ultima_lat != null && s.ultima_lng != null)
+          ? { lat: s.ultima_lat, lng: s.ultima_lng }
+          : null
+      };
+    });
+
+    // mensagens_enviadas traz telefone dos contatos de confiança — dado
+    // de terceiro que não foi pedido aqui; expõe só nome + resultado do
+    // envio, no mesmo espírito de minimização do Lote 7 (não duplicar
+    // PII de terceiro que não é o propósito desta tela).
+    const listaAlertas = alertas.map(a => ({
+      id: a.id,
+      tipo: a.tipo,
+      disparado_em: a.createdAt,
+      localizacao: (a.latitude != null && a.longitude != null)
+        ? { lat: a.latitude, lng: a.longitude }
+        : null,
+      contatos_notificados: Array.isArray(a.mensagens_enviadas)
+        ? a.mensagens_enviadas.map(m => ({
+            contato_nome: m.contato_nome,
+            template_usado: m.template_usado,
+            sucesso: m.sucesso
+          }))
+        : []
+    }));
+
+    res.json({
+      sessoes_checkin: listaSessoes,
+      alertas_seguranca: listaAlertas,
+      localizacao_geral_perfil: (usuario.latitude != null && usuario.longitude != null)
+        ? { lat: usuario.latitude, lng: usuario.longitude }
+        : null
+    });
+
+    registrarLogAuditoria({
+      admin: req.usuarioAdmin,
+      acao: 'ver_seguranca_usuario',
+      usuarioAlvo: usuario,
+      detalhes: { total_sessoes: listaSessoes.length, total_alertas: listaAlertas.length }
+    });
+  } catch (erro) {
+    console.error('Erro ao montar segurança/localização de usuário no painel administrativo:', erro);
+    res.status(500).json({ erro: 'Erro ao montar dados de segurança do usuário' });
+  }
+};
+
 // Ranking de comissão pro Painel Central — Lote 2 (do plano original de
 // conteúdo do painel, anterior ao plano de acesso total). "Quanto já ganharam" é
 // tratado como comissão GERADA (paga + pendente), não só a já paga — é uma
@@ -859,6 +960,7 @@ module.exports = {
   resetarSenhaUsuario,
   excluirContaUsuario,
   obterDenunciasUsuario,
+  obterSegurancaUsuario,
   obterRankingComissoes,
   obterSegmentacaoPagantes
 };
