@@ -181,7 +181,19 @@ const listarPerfis = async (req, res) => {
 
     const where = {
       id: { [Op.notIn]: idsAvaliados },
-      ativo: true
+      ativo: true,
+      // "Perfis completos recebem mais curtidas" (banner do Descobrir) só é
+      // verdade se o servidor de fato só mostrar perfis completos — antes
+      // disso era só um gate visual do lado de quem tá se cadastrando, sem
+      // nenhum efeito em quem aparece pros outros. Fechando de quebra uma
+      // brecha: sem isso, contas que nunca terminaram a verificação de
+      // identidade podiam aparecer no feed de outras pessoas.
+      verificado: true,
+      // Op.ne repetido na mesma chave se sobrescreveria (objeto JS só guarda
+      // um valor por chave, mesmo com [Op.ne] sendo um Symbol) — por isso o
+      // "não é null E não é vazio" precisa dos dois dentro de um Op.and.
+      bio: { [Op.and]: [{ [Op.ne]: null }, { [Op.ne]: '' }] },
+      foto_url: { [Op.ne]: null }
     };
     if (eu.pref_genero && eu.pref_genero !== 'todos') {
       where.genero = eu.pref_genero;

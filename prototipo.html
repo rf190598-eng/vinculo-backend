@@ -4427,6 +4427,11 @@ async function salvarEdicaoPerfil(){
   ].filter(p => p.resposta);
 
   if(!nome){ showToastVinculo('O nome não pode ficar vazio.'); return; }
+  // Achado do streamline: bio vazia salvava "com sucesso" (o backend aceita
+  // bio vazia — é campo opcional pra edições normais), só que o guard de
+  // navegação via perfilIncompleto() ainda sem bio e devolvia a pessoa pra
+  // essa mesma tela em silêncio, sem nenhum toast explicando o motivo.
+  if(window.emOnboardingPerfil && !bio){ showToastVinculo('Escreva uma breve bio antes de continuar.'); return; }
   if(window.emOnboardingPerfil){
     const totalFotos = parseInt(document.getElementById('galeriaContagem').textContent, 10) || 0;
     if(totalFotos < 1){ showToastVinculo('Adicione pelo menos 1 foto antes de continuar.'); return; }
