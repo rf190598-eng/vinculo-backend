@@ -141,6 +141,17 @@ const listarPerfis = async (req, res) => {
     const idsBloqueados = await obterIdsBloqueados(usuario_id);
     idsBloqueados.forEach((id) => idsAvaliados.push(id));
 
+    // Quem já te curtiu não deve aparecer aqui de novo — essa avaliação
+    // pertence à aba "Curtidas" (curtir de volta ou passar), não ao Descobrir
+    // normal. Sem isso, dar dislike sem querer nessa pessoa aqui a faz sumir
+    // silenciosamente da aba Curtidas, sem nunca ter existido decisão real
+    // (bug encontrado em teste: "curtida some da lista depois de sair e voltar").
+    const curtidasRecebidas = await Swipe.findAll({
+      where: { alvo_id: usuario_id, tipo: ['like', 'superlike'] },
+      attributes: ['usuario_id']
+    });
+    curtidasRecebidas.forEach((s) => idsAvaliados.push(s.usuario_id));
+
     const where = {
       id: { [Op.notIn]: idsAvaliados },
       ativo: true

@@ -298,6 +298,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 
 /* NOVAS TELAS */
 .likes-blur-card{position:relative;border-radius:18px;overflow:hidden;flex:1;min-width:0;}
+.likes-real-card{position:relative;border-radius:18px;overflow:hidden;flex:1;min-width:0;height:180px;background-size:cover;background-position:center;display:flex;align-items:flex-end;padding:8px;cursor:pointer;}
 .likes-blur-photo{height:180px;background:linear-gradient(160deg,#7a3a52,#3a1420);display:flex;align-items:center;justify-content:center;font-size:52px;filter:blur(12px);transform:scale(1.05);}
 .likes-blur-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;}
 .plan-card{border-radius:18px;padding:18px;border:2px solid;margin-bottom:12px;cursor:pointer;transition:.15s;}
@@ -914,7 +915,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 <div class="screen" id="screen-profile-view" style="background:#1a0810;min-height:100vh;">
   <div style="position:relative">
     <div class="my-profile-photo" id="pvFoto" style="height:320px;font-size:90px">&#128100;
-      <div style="position:absolute;top:14px;left:14px" class="icon-btn" onclick="goTo('discover')">&#8592;</div>
+      <div style="position:absolute;top:14px;left:14px" class="icon-btn" id="pvBotaoVoltar" onclick="goTo('discover')">&#8592;</div>
       <div style="position:absolute;top:14px;right:14px" class="icon-btn" onclick="openModal('report')">&#9888;</div>
     </div>
     <div style="position:absolute;bottom:14px;left:18px;display:flex;gap:8px;flex-wrap:wrap" id="pvBadgesFoto"></div>
@@ -952,7 +953,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 
   <!-- Botões de ação -->
   <div class="other-profile-action-bar">
-    <button class="btn btn-ghost" style="flex:1;padding:14px" onclick="doSwipe('left');goTo('discover')">&#10005; Passar</button>
+    <button class="btn btn-ghost" id="pvBotaoPassar" style="flex:1;padding:14px" onclick="doSwipe('left');goTo('discover')">&#10005; Passar</button>
     <button class="btn btn-primary" style="flex:2;padding:14px" id="pvBtnCurtir" onclick="doSwipe('right');goTo('discover')">&#128150; Curtir</button>
   </div>
   <div style="text-align:center;padding:0 18px 18px">
@@ -3699,9 +3700,10 @@ async function carregarCurtidasRecebidas(){
       const card = document.createElement('div');
       const idade = (p && p.data_nascimento) ? calcularIdade(p.data_nascimento) : '';
       if(souPremium){
+        card.className = 'likes-real-card';
         card.innerHTML = `<div style="background:rgba(0,0,0,.5);border-radius:8px;padding:4px 8px;font-size:12px;color:#fff;font-weight:700">${escapeHtml(p.nome)}, ${idade}</div>`;
-        if(p.foto_url){ card.style.backgroundImage = `url(${API_URL}${p.foto_url})`; card.style.backgroundSize='cover'; card.style.backgroundPosition='center'; }
-        card.onclick = () => curtirDeVolta(p.id, p.nome, card);
+        if(p.foto_url){ card.style.backgroundImage = `url(${API_URL}${p.foto_url})`; }
+        card.onclick = () => verPerfilDeCurtida(p);
       } else {
         card.className = 'likes-blur-card';
         card.innerHTML = `<div class="likes-blur-photo">&#128100;</div><div class="likes-blur-overlay"><div style="width:44px;height:44px;border-radius:50%;background:rgba(26,10,14,.8);border:2px solid #c9a06b;display:flex;align-items:center;justify-content:center;font-size:22px">&#128274;</div><div style="font-size:10px;color:#c9a06b;font-weight:700">Premium</div></div>`;
@@ -3715,20 +3717,25 @@ async function carregarCurtidasRecebidas(){
   }
 }
 
-async function curtirDeVolta(alvoId, nomeAlvo, cardEl){
+async function curtirDeVolta(perfil, cardEl){
   try{
     const resp = await fetch(`${API_URL}/api/swipe/dar`, {
       method:'POST',
       headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
-      body: JSON.stringify({ alvo_id: alvoId, tipo: 'like' })
+      body: JSON.stringify({ alvo_id: perfil.id, tipo: 'like' })
     });
     const dados = await resp.json();
     if(dados.match){
       const nomeEl = document.getElementById('matchNomeTexto');
-      if(nomeEl) nomeEl.textContent = `Você e ${nomeAlvo} curtiram um ao outro 🌟`;
+      if(nomeEl) nomeEl.textContent = `Você e ${perfil.nome} curtiram um ao outro 🌟`;
+      // Sem isso, o quebra-gelo e o botão "Ir para o chat" da tela de match
+      // caem no fallback antigo (paywall) quando o match vem de curtir de
+      // volta em vez de vir do swipe normal do Descobrir — bug encontrado em
+      // teste: "quebra-gelo ainda pago em algum lugar".
+      matchRecemCriado = dados.match_id ? { id: dados.match_id, outro_usuario: perfil } : null;
       goTo('match');
     } else {
-      cardEl.style.opacity = '0.3';
+      if(cardEl) cardEl.style.opacity = '0.3';
       showToastVinculo('Curtida enviada!');
     }
   } catch(e){ showToastVinculo('Erro ao curtir.'); }
@@ -4103,7 +4110,7 @@ async function carregarMutualSemConversa(){
       item.className = 'chat-list-item';
       item.style.cursor = 'pointer';
       item.innerHTML = `
-        <div class="chat-avatar">&#128100;</div>
+        <div class="chat-avatar"${outro.foto_url ? ` style="background-image:url(${API_URL}${outro.foto_url});background-size:cover;background-position:center"` : ''}>${outro.foto_url ? '' : '&#128100;'}</div>
         <div class="chat-info">
           <div class="chat-name-row"><span class="chat-name">${outro.nome || 'Usuário'}, ${idade}</span></div>
           <div class="chat-preview">Toque para dizer oi!</div>
@@ -4148,7 +4155,7 @@ async function carregarChats(){
       item.className = 'chat-list-item';
       item.style.cursor='pointer';
       item.innerHTML = `
-        <div class="chat-avatar">&#128100;</div>
+        <div class="chat-avatar"${outro.foto_url ? ` style="background-image:url(${API_URL}${outro.foto_url});background-size:cover;background-position:center"` : ''}>${outro.foto_url ? '' : '&#128100;'}</div>
         <div class="chat-info">
           <div class="chat-name-row"><span class="chat-name">${outro.nome || 'Usuário'}, ${idade}</span></div>
           <div class="chat-preview">Toque para conversar</div>
@@ -4168,6 +4175,18 @@ async function abrirChat(match){
   const outro = match.outro_usuario || {};
   perfilDenunciadoId = outro.id || null;
   document.getElementById('chatroomNome').textContent = outro.nome || 'Usuário';
+  const avatarEl = document.getElementById('chatroomAvatar');
+  if(avatarEl){
+    if(outro.foto_url){
+      avatarEl.style.backgroundImage = `url(${API_URL}${outro.foto_url})`;
+      avatarEl.style.backgroundSize = 'cover';
+      avatarEl.style.backgroundPosition = 'center';
+      avatarEl.innerHTML = '';
+    } else {
+      avatarEl.style.backgroundImage = '';
+      avatarEl.innerHTML = '&#128100;';
+    }
+  }
   const checklistNome = document.getElementById('checklistNomeTexto');
   if(checklistNome) checklistNome.textContent = `Um checklist rapido para o seu encontro com ${outro.nome || 'essa pessoa'}`;
   goTo('chatroom');
@@ -4541,9 +4560,91 @@ function verPerfilCompleto(){
     fotoEl.innerHTML = fotoEl.innerHTML; // mantém os botões de voltar/reportar
   }
 
-  document.getElementById('pvBtnCurtir').innerHTML = `&#128150; Curtir ${escapeHtml(p.nome)}`;
+  // Explícito de propósito: essa tela também é aberta a partir da aba
+  // Curtidas (verPerfilDeCurtida, abaixo), que precisa de voltar/curtir/
+  // passar com comportamento diferente. Setar os três aqui garante que abrir
+  // pelo Descobrir sempre restaura o comportamento certo, mesmo que a pessoa
+  // tenha entrado na tela pela Curtidas antes.
+  const backBtn = document.getElementById('pvBotaoVoltar');
+  if(backBtn) backBtn.onclick = () => goTo('discover');
+  const btnCurtir = document.getElementById('pvBtnCurtir');
+  btnCurtir.innerHTML = `&#128150; Curtir ${escapeHtml(p.nome)}`;
+  btnCurtir.onclick = () => { doSwipe('right'); goTo('discover'); };
+  const btnPassar = document.getElementById('pvBotaoPassar');
+  if(btnPassar) btnPassar.onclick = () => { doSwipe('left'); goTo('discover'); };
 
   goTo('profile-view');
+}
+
+// Versão de verPerfilCompleto() pra quando o perfil vem da aba "Curtidas"
+// (quem já curtiu você), não do card1 da fila do Descobrir — usa o mesmo
+// screen-profile-view, mas voltar/curtir/passar precisam apontar pra outro
+// lugar (curtir de volta pode gerar match na hora; passar precisa registrar
+// um dislike de verdade, porque depois da correção do listarPerfis quem já
+// te curtiu não aparece mais no Descobrir normal — sem isso a pessoa ficaria
+// presa na lista de Curtidas pra sempre, sem nenhum jeito de dispensar).
+function verPerfilDeCurtida(perfil){
+  if(!perfil) return;
+  const p = perfil;
+  perfilDenunciadoId = p.id;
+  registrarVisualizacaoPerfil(p.id);
+  const idade = p.data_nascimento ? calcularIdade(p.data_nascimento) : '';
+
+  document.getElementById('pvNome').textContent = `${p.nome} ${idade}`;
+
+  const bioEl = document.getElementById('pvBio');
+  bioEl.textContent = p.bio ? p.bio : 'Essa pessoa ainda não escreveu uma bio.';
+
+  const objetivoWrap = document.getElementById('pvObjetivoWrap');
+  if(p.objetivo){
+    objetivoWrap.style.display='block';
+    const nomesObjetivo = {serio:'Relacionamento sério', amizade:'Amizade', casual:'Algo casual'};
+    document.getElementById('pvObjetivo').textContent = nomesObjetivo[p.objetivo] || p.objetivo;
+  } else {
+    objetivoWrap.style.display='none';
+  }
+
+  const pvInstagramWrap = document.getElementById('pvInstagramWrap');
+  if(p.instagram_handle){
+    const handleSeguro = handleInstagramSeguro(p.instagram_handle);
+    pvInstagramWrap.style.display = 'block';
+    document.getElementById('pvInstagram').href = `https://instagram.com/${handleSeguro}`;
+    document.getElementById('pvInstagramTexto').textContent = `@${handleSeguro}`;
+  } else {
+    pvInstagramWrap.style.display = 'none';
+  }
+
+  const badgesEl = document.getElementById('pvBadges');
+  badgesEl.innerHTML = p.verificado ? '<div class="badge badge-gold">&#10003; Foto verificada</div>' : '';
+
+  const badgesFotoEl = document.getElementById('pvBadgesFoto');
+  badgesFotoEl.innerHTML = p.verificado ? '<span style="background:rgba(26,10,14,.85);border:1px solid #c9a06b;border-radius:20px;padding:5px 12px;font-size:10.5px;color:#c9a06b;font-weight:700">&#10003; Foto verificada</span>' : '';
+
+  const fotoEl = document.getElementById('pvFoto');
+  fotoEl.style.backgroundImage = p.foto_url ? `url(${API_URL}${p.foto_url})` : '';
+  fotoEl.style.backgroundSize = 'cover';
+  fotoEl.style.backgroundPosition = 'center';
+
+  const backBtn = document.getElementById('pvBotaoVoltar');
+  if(backBtn) backBtn.onclick = () => goTo('likes');
+  const btnCurtir = document.getElementById('pvBtnCurtir');
+  btnCurtir.innerHTML = `&#128150; Curtir ${escapeHtml(p.nome)}`;
+  btnCurtir.onclick = () => curtirDeVolta(p, null);
+  const btnPassar = document.getElementById('pvBotaoPassar');
+  if(btnPassar) btnPassar.onclick = () => passarDaCurtida(p.id);
+
+  goTo('profile-view');
+}
+
+async function passarDaCurtida(alvoId){
+  try{
+    await fetch(`${API_URL}/api/swipe/dar`, {
+      method:'POST',
+      headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
+      body: JSON.stringify({ alvo_id: alvoId, tipo: 'dislike' })
+    });
+  }catch(e){ /* segue mesmo se falhar — abrir a lista de novo tenta de novo */ }
+  goTo('likes');
 }
 
 function preencherCard(elId, perfil){
