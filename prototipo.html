@@ -914,7 +914,8 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 <!-- PERFIL VIEW -->
 <div class="screen" id="screen-profile-view" style="background:#1a0810;min-height:100vh;">
   <div style="position:relative">
-    <div class="my-profile-photo" id="pvFoto" style="height:320px;font-size:90px">&#128100;
+    <div class="my-profile-photo" id="pvFoto" style="height:320px;font-size:90px">
+      <span id="pvFotoPlaceholder">&#128100;</span>
       <div style="position:absolute;top:14px;left:14px" class="icon-btn" id="pvBotaoVoltar" onclick="goTo('discover')">&#8592;</div>
       <div style="position:absolute;top:14px;right:14px" class="icon-btn" onclick="openModal('report')">&#9888;</div>
     </div>
@@ -4624,11 +4625,15 @@ function verPerfilCompleto(){
   badgesFotoEl.innerHTML = p.verificado ? '<span style="background:rgba(26,10,14,.85);border:1px solid #c9a06b;border-radius:20px;padding:5px 12px;font-size:10.5px;color:#c9a06b;font-weight:700">&#10003; Foto verificada</span>' : '';
 
   const fotoEl = document.getElementById('pvFoto');
+  const fotoPlaceholder = document.getElementById('pvFotoPlaceholder');
   if(p.foto_url){
     fotoEl.style.backgroundImage = `url(${API_URL}${p.foto_url})`;
     fotoEl.style.backgroundSize = 'cover';
     fotoEl.style.backgroundPosition = 'center';
-    fotoEl.innerHTML = fotoEl.innerHTML; // mantém os botões de voltar/reportar
+    if(fotoPlaceholder) fotoPlaceholder.style.display = 'none';
+  } else {
+    fotoEl.style.backgroundImage = '';
+    if(fotoPlaceholder) fotoPlaceholder.style.display = '';
   }
 
   // Explícito de propósito: essa tela também é aberta a partir da aba
@@ -4697,9 +4702,11 @@ function verPerfilDeCurtida(perfil){
   badgesFotoEl.innerHTML = p.verificado ? '<span style="background:rgba(26,10,14,.85);border:1px solid #c9a06b;border-radius:20px;padding:5px 12px;font-size:10.5px;color:#c9a06b;font-weight:700">&#10003; Foto verificada</span>' : '';
 
   const fotoEl = document.getElementById('pvFoto');
+  const fotoPlaceholder = document.getElementById('pvFotoPlaceholder');
   fotoEl.style.backgroundImage = p.foto_url ? `url(${API_URL}${p.foto_url})` : '';
   fotoEl.style.backgroundSize = 'cover';
   fotoEl.style.backgroundPosition = 'center';
+  if(fotoPlaceholder) fotoPlaceholder.style.display = p.foto_url ? 'none' : '';
 
   const backBtn = document.getElementById('pvBotaoVoltar');
   if(backBtn) backBtn.onclick = () => goTo('likes');
@@ -4787,9 +4794,11 @@ function verPerfilDeMatch(perfil){
   badgesFotoEl.innerHTML = p.verificado ? '<span style="background:rgba(26,10,14,.85);border:1px solid #c9a06b;border-radius:20px;padding:5px 12px;font-size:10.5px;color:#c9a06b;font-weight:700">&#10003; Foto verificada</span>' : '';
 
   const fotoEl = document.getElementById('pvFoto');
+  const fotoPlaceholder = document.getElementById('pvFotoPlaceholder');
   fotoEl.style.backgroundImage = p.foto_url ? `url(${API_URL}${p.foto_url})` : '';
   fotoEl.style.backgroundSize = 'cover';
   fotoEl.style.backgroundPosition = 'center';
+  if(fotoPlaceholder) fotoPlaceholder.style.display = p.foto_url ? 'none' : '';
 
   const backBtn = document.getElementById('pvBotaoVoltar');
   if(backBtn) backBtn.onclick = () => goTo('chatroom');
