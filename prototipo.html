@@ -492,25 +492,6 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   </div>
 </div>
 
-<!-- WELCOME / ONBOARDING RAPIDO -->
-<div class="screen" id="screen-welcome" style="background:#1a0810;min-height:100vh;">
-  <div class="topbar"><div style="width:38px"></div><div class="logo serif">Vín<span>culo</span></div><div style="width:38px"></div></div>
-  <div style="display:flex;flex-direction:column;align-items:center;padding:10px 28px 36px;text-align:center;background:#1a0810;min-height:calc(100vh - 60px);justify-content:center;">
-    <div style="font-size:52px;margin-bottom:12px">&#127881;</div>
-    <div class="serif" style="font-size:32px;font-weight:700;margin-bottom:8px;color:#fdf6f2">Conta criada!</div>
-    <div style="color:#d0a8b8;font-size:13.5px;margin-bottom:28px;line-height:1.6;max-width:280px">Faltam dois passos rápidos: confirmar sua identidade e adicionar sua primeira foto. É o que garante que todo mundo no Vínculo é uma pessoa real e verificada.</div>
-    <!-- Achado MÉDIA da auditoria de UX: liveness chegava sem nenhum
-         contexto de segurança antes — o tour que explicaria isso só
-         aparece bem depois, já dentro do app. -->
-    <div style="background:rgba(201,160,107,.1);border:1px solid rgba(201,160,107,.3);border-radius:14px;padding:14px 16px;margin-bottom:14px;max-width:300px;text-align:left">
-      <div style="font-size:12px;color:#d4b87a;font-weight:700;margin-bottom:6px">&#128274; Por que pedimos isso</div>
-      <div style="font-size:12px;color:#e0c8a8;line-height:1.6">Confirmar sua identidade é o que destrava os recursos de segurança do Vínculo: botão de pânico, check-in com alerta automático e contatos de confiança — tudo pra você se conectar com tranquilidade.</div>
-    </div>
-    <div class="verify-chip">&#128737; Quase lá — verificação de identidade</div>
-    <button class="btn btn-primary" style="margin-top:20px" onclick="goTo('liveness')">Começar verificação</button>
-  </div>
-</div>
-
 <!-- ONBOARDING PREFERÊNCIAS -->
 <div class="screen" id="screen-onboarding" style="background:#1a0810;min-height:100vh;">
   <div style="min-height:100vh;display:flex;flex-direction:column;padding:50px 24px 32px;background:radial-gradient(ellipse at 50% 0%,#5c1a2e 0%,#1a0810 70%)">
@@ -564,59 +545,41 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     </div>
 
     <button class="btn btn-primary" id="btnContinuarOnboarding" onclick="finalizarOnboarding()" style="opacity:.4;pointer-events:none">Continuar</button>
-    <button class="btn btn-ghost" onclick="goTo('tour1')" style="margin-top:10px">Pular por agora</button>
+    <button class="btn btn-ghost" onclick="pularOnboarding()" style="margin-top:10px">Pular por agora</button>
   </div>
 </div>
 
-<!-- TOUR DE SEGURANCA -->
+<!-- TOUR DE SEGURANCA (condensado: 3 recursos numa tela só, com scroll —
+     achado do streamline: eram 4 telas pra 3 mensagens fixas; o conteúdo de
+     cada mensagem continua completo e idêntico, só o número de toques pra
+     passar por elas que caiu de 4 pra 1) -->
 <div class="screen" id="screen-tour1">
-  <div style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:40px 28px;background:radial-gradient(ellipse at 50% 30%,#5c1a2e 0%,#2b0f17 70%)">
-    <div style="font-size:64px;margin-bottom:20px">&#128737;</div>
-    <div class="serif" style="font-size:26px;font-weight:700;margin-bottom:10px">Sua segurança em primeiro lugar</div>
-    <div style="color:#d8b0c4;font-size:13.5px;line-height:1.7;margin-bottom:30px">Antes de começar, vamos te mostrar 3 recursos rápidos que ficam sempre disponíveis para você.</div>
-    <div class="progress-steps"><div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot"></div></div>
-  </div>
-  <div class="botao-fixo-rodape" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:0 24px">
-    <button class="btn btn-primary" onclick="goTo('tour2')">Próximo</button>
-    <button class="btn btn-ghost" onclick="concluirTourSeguranca()" style="background:none;border:none;color:#c0a0b0">Pular tour</button>
-  </div>
-</div>
-
-<div class="screen" id="screen-tour2">
-  <div style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:40px 28px;background:radial-gradient(ellipse at 50% 30%,#7a1520 0%,#2b0f17 70%)">
-    <div style="font-size:64px;margin-bottom:20px">&#128680;</div>
-    <div class="serif" style="font-size:26px;font-weight:700;margin-bottom:10px">Botão de Pânico</div>
-    <div style="color:#d8b0c4;font-size:13.5px;line-height:1.7;margin-bottom:14px">Disponível a qualquer momento na aba Segurança. Em um toque, alerta seus contatos de confiança com sua localização.</div>
-    <div style="background:rgba(168,41,63,.12);border:1px solid rgba(168,41,63,.3);border-radius:14px;padding:12px 16px;font-size:12px;color:#e8909e">Use sempre que se sentir inseguro(a) em um encontro</div>
-    <div class="progress-steps" style="margin-top:24px"><div class="step-dot done"></div><div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div></div>
-  </div>
-  <div class="botao-fixo-rodape" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:0 24px">
-    <button class="btn btn-primary" onclick="goTo('tour3')">Próximo</button>
-    <button class="btn btn-ghost" onclick="concluirTourSeguranca()" style="background:none;border:none;color:#c0a0b0">Pular tour</button>
-  </div>
-</div>
-
-<div class="screen" id="screen-tour3">
-  <div style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:40px 28px;background:radial-gradient(ellipse at 50% 30%,#4a3a1a 0%,#2b0f17 70%)">
-    <div style="font-size:64px;margin-bottom:20px">&#128205;</div>
-    <div class="serif" style="font-size:26px;font-weight:700;margin-bottom:10px">Compartilhar rota</div>
-    <div style="color:#d8b0c4;font-size:13.5px;line-height:1.7;margin-bottom:14px">Antes de um encontro pessoal, ative o compartilhamento de localização em tempo real com alguém de confiança.</div>
-    <div style="background:rgba(201,160,107,.1);border:1px solid rgba(201,160,107,.3);border-radius:14px;padding:12px 16px;font-size:12px;color:#c9a06b">Cadastre seus contatos de confiança na aba Segurança</div>
-    <div class="progress-steps" style="margin-top:24px"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot active"></div><div class="step-dot"></div></div>
-  </div>
-  <div class="botao-fixo-rodape" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:0 24px">
-    <button class="btn btn-primary" onclick="goTo('tour4')">Próximo</button>
-    <button class="btn btn-ghost" onclick="concluirTourSeguranca()" style="background:none;border:none;color:#c0a0b0">Pular tour</button>
-  </div>
-</div>
-
-<div class="screen" id="screen-tour4">
-  <div style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:40px 28px;background:radial-gradient(ellipse at 50% 30%,#3a1a4a 0%,#2b0f17 70%)">
-    <div style="font-size:64px;margin-bottom:20px">&#9888;</div>
-    <div class="serif" style="font-size:26px;font-weight:700;margin-bottom:10px">Denúncia e bloqueio</div>
-    <div style="color:#d8b0c4;font-size:13.5px;line-height:1.7;margin-bottom:14px">Qualquer perfil pode ser denunciado ou bloqueado em 2 toques. Sua identidade permanece sempre anônima durante todo o processo.</div>
-    <div style="background:rgba(168,41,63,.1);border:1px solid rgba(168,41,63,.3);border-radius:14px;padding:12px 16px;font-size:12px;color:#e8909e">Comportamento inadequado nunca deve ser tolerado</div>
-    <div class="progress-steps" style="margin-top:24px"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot active"></div></div>
+  <div style="min-height:100vh;display:flex;flex-direction:column;padding:40px 24px 110px;background:radial-gradient(ellipse at 50% 0%,#5c1a2e 0%,#2b0f17 70%)">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="font-size:56px;margin-bottom:14px">&#128737;</div>
+      <div class="serif" style="font-size:26px;font-weight:700;margin-bottom:10px">Sua segurança em primeiro lugar</div>
+      <div style="color:#d8b0c4;font-size:13.5px;line-height:1.7">Antes de começar, veja 3 recursos que ficam sempre disponíveis para você.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:18px;text-align:center">
+        <div style="font-size:40px;margin-bottom:10px">&#128680;</div>
+        <div class="serif" style="font-size:18px;font-weight:700;margin-bottom:6px">Botão de Pânico</div>
+        <div style="color:#d8b0c4;font-size:12.5px;line-height:1.6;margin-bottom:12px">Disponível a qualquer momento na aba Segurança. Em um toque, alerta seus contatos de confiança com sua localização.</div>
+        <div style="background:rgba(168,41,63,.12);border:1px solid rgba(168,41,63,.3);border-radius:14px;padding:10px 14px;font-size:11.5px;color:#e8909e">Use sempre que se sentir inseguro(a) em um encontro</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:18px;text-align:center">
+        <div style="font-size:40px;margin-bottom:10px">&#128205;</div>
+        <div class="serif" style="font-size:18px;font-weight:700;margin-bottom:6px">Compartilhar rota</div>
+        <div style="color:#d8b0c4;font-size:12.5px;line-height:1.6;margin-bottom:12px">Antes de um encontro pessoal, ative o compartilhamento de localização em tempo real com alguém de confiança.</div>
+        <div style="background:rgba(201,160,107,.1);border:1px solid rgba(201,160,107,.3);border-radius:14px;padding:10px 14px;font-size:11.5px;color:#c9a06b">Cadastre seus contatos de confiança na aba Segurança</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:18px;text-align:center">
+        <div style="font-size:40px;margin-bottom:10px">&#9888;</div>
+        <div class="serif" style="font-size:18px;font-weight:700;margin-bottom:6px">Denúncia e bloqueio</div>
+        <div style="color:#d8b0c4;font-size:12.5px;line-height:1.6;margin-bottom:12px">Qualquer perfil pode ser denunciado ou bloqueado em 2 toques. Sua identidade permanece sempre anônima durante todo o processo.</div>
+        <div style="background:rgba(168,41,63,.1);border:1px solid rgba(168,41,63,.3);border-radius:14px;padding:10px 14px;font-size:11.5px;color:#e8909e">Comportamento inadequado nunca deve ser tolerado</div>
+      </div>
+    </div>
   </div>
   <div class="botao-fixo-rodape" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:0 24px">
     <button class="btn btn-primary" onclick="concluirTourSeguranca()">Entendi, vamos começar!</button>
@@ -2164,7 +2127,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 
     <div class="edit-section-title">O que você busca</div>
     <div class="edit-lifestyle-grid" id="grupoObjetivo">
-      <div class="ls-chip on" data-valor="relacionamento_serio" onclick="toggleLsRadio(this)">&#128141; Relacionamento sério</div>
+      <div class="ls-chip on" data-valor="serio" onclick="toggleLsRadio(this)">&#128141; Relacionamento sério</div>
       <div class="ls-chip" data-valor="amizade" onclick="toggleLsRadio(this)">&#128107; Amizade</div>
       <div class="ls-chip" data-valor="casual" onclick="toggleLsRadio(this)">&#128293; Algo casual</div>
       <div class="ls-chip" data-valor="aberto" onclick="toggleLsRadio(this)">&#10024; Deixa rolar</div>
@@ -2446,7 +2409,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div class="filter-section">
       <div class="filter-section-title">Tipo de conexão</div>
       <div id="filterObjetivoGrupo">
-        <span class="tag-chip on" data-valor="relacionamento_serio">Relacionamento sério</span>
+        <span class="tag-chip on" data-valor="serio">Relacionamento sério</span>
         <span class="tag-chip" data-valor="amizade">Amizade</span>
         <span class="tag-chip" data-valor="casual">Casual</span>
         <span class="tag-chip" data-valor="aberto">Deixa rolar</span>
@@ -2880,7 +2843,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 </div>
   
 <script>
-const noNav=['landing','auth','login','welcome','onboarding','tour1','tour2','tour3','tour4','liveness','match','profile-view','chatroom','edit-profile','notifications','assinatura','esqueci-senha','redefinir-senha'];
+const noNav=['landing','auth','login','onboarding','tour1','liveness','match','profile-view','chatroom','edit-profile','notifications','assinatura','esqueci-senha','redefinir-senha'];
 let swipeCount=0, timerInterval=null, timerSec=0;
 let lastSwipeDir=null, totalSwipes=0;
 let filaPerfis=[];
@@ -2943,13 +2906,21 @@ let tokenAtual = localStorage.getItem('vinculo_token') || null;
 
 // Telas que um usuário sem liveness aprovado ainda pode acessar.
 // Qualquer outra tela exige liveness_aprovado === true, senão volta pro liveness.
-const telasSemVerificacaoObrigatoria = ['landing','auth','login','welcome','liveness'];
+// (Achado do streamline: a tela "welcome"/"Conta criada!" foi cortada do
+// fluxo — cadastro vai direto pra liveness — então saiu dessa lista.)
+const telasSemVerificacaoObrigatoria = ['landing','auth','login','liveness'];
 // Telas liberadas no estágio intermediário (liveness já aprovado, mas ainda sem
 // foto de perfil confirmada) e também quando falta só completar o perfil (bio etc).
-const telasSemPerfilCompletoObrigatorio = ['landing','auth','login','welcome','liveness','edit-profile','myprofile'];
+const telasSemPerfilCompletoObrigatorio = ['landing','auth','login','liveness','edit-profile','myprofile'];
+// Achado do streamline: a tela "O que você busca?" (screen-onboarding) já
+// existia pronta mas nunca era usada — reconectada aqui como um degrau
+// obrigatório (uma vez só, igual ao tour) entre completar o perfil e o tour.
+const telasSemObjetivoObrigatorio = telasSemPerfilCompletoObrigatorio.concat(['onboarding']);
 // Achado ALTA da auditoria de UX: telas que não obrigam ter visto o tour de
 // segurança pós-cadastro (senão ninguém conseguiria nem chegar até ele).
-const telasSemTourObrigatorio = ['landing','auth','login','welcome','liveness','edit-profile','tour1','tour2','tour3','tour4'];
+// (Streamline: tour2/3/4 deixaram de existir — as 3 mensagens agora vivem
+// todas dentro de tour1, numa tela só.)
+const telasSemTourObrigatorio = ['landing','auth','login','liveness','edit-profile','onboarding','tour1'];
 
 function perfilIncompleto(){
   return !usuarioAtual.bio || !usuarioAtual.foto_url;
@@ -2988,9 +2959,9 @@ window.atualizarUsuarioLocal = function(novoUsuario){
 //   necessariamente com o usuário deslogado (o link do e-mail cai direto em
 //   redefinir-senha, ver o goTo em trocarSenhaComToken)
 //
-// NÃO estão aqui de propósito: welcome, onboarding e tour1-4. Todas fazem
-// parte do pós-cadastro, quando usuarioAtual JÁ existe (o cadastro grava
-// token e usuário antes de navegar).
+// NÃO estão aqui de propósito: onboarding e tour1. Fazem parte do
+// pós-cadastro, quando usuarioAtual JÁ existe (o cadastro grava token e
+// usuário antes de navegar).
 const telasPublicas = ['landing', 'auth', 'login', 'esqueci-senha', 'redefinir-senha'];
 
 const goToBase = goTo;
@@ -3030,6 +3001,18 @@ goTo = function(name){
   // c) Já verificado, mas ainda falta completar o perfil (ex: bio).
   if (usuarioAtual && usuarioAtual.verificado === true && perfilIncompleto() && !telasSemPerfilCompletoObrigatorio.includes(name)) {
     goToBase('edit-profile');
+    return;
+  }
+  // c2) Perfil completo, mas ainda não escolheu "o que busca" — pergunta
+  // isso numa tela dedicada (screen-onboarding) em vez de deixar escondido
+  // nos chips do fim de "Completar perfil", que ninguém reparava (achado
+  // do streamline: a tela dedicada já existia pronta, só nunca era usada).
+  // Igual ao guard do tour logo abaixo: força uma vez só (cobre também
+  // contas antigas sem objetivo), nunca mais depois que a pessoa escolhe
+  // ou pula (pularOnboarding() salva 'aberto', não deixa em branco).
+  if (usuarioAtual && usuarioAtual.verificado === true && !perfilIncompleto()
+      && !usuarioAtual.objetivo && !telasSemObjetivoObrigatorio.includes(name)) {
+    goToBase('onboarding');
     return;
   }
   // d) Perfil completo, mas ainda não viu o tour de segurança — última porta
@@ -3223,8 +3206,13 @@ async function finalizarCadastroGoogle(){
     localStorage.setItem('vinculo_token', tokenAtual);
     localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
     preTokenGoogle = null;
-    // Mesmo destino do cadastro por e-mail/senha: welcome -> liveness.
-    goTo('welcome');
+    // Mesmo destino do cadastro por e-mail/senha: direto pra liveness (o
+    // streamline do onboarding cortou a tela "Conta criada!" sem campo
+    // nenhum — o guard de navegação já faz esse mesmo goTo+iniciarLivenessCheck
+    // normalmente, só adiantamos aqui pra não esperar o próximo goTo() bater
+    // no guard).
+    goTo('liveness');
+    setTimeout(iniciarLivenessCheck, 50);
   } catch(e){
     erroEl.textContent = e.message;
   } finally {
@@ -3506,7 +3494,10 @@ if (!nome) {
     usuarioAtual = dados.usuario;
     localStorage.setItem('vinculo_token', tokenAtual);
     localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
-    goTo('welcome');
+    // Streamline do onboarding: corta a tela "Conta criada!" (sem campo
+    // nenhum) e vai direto pra verificação de identidade.
+    goTo('liveness');
+    setTimeout(iniciarLivenessCheck, 50);
   } catch (e) {
     erroEl.textContent = 'Erro de conexão com o servidor. Tenta de novo.';
   } finally {
@@ -8592,6 +8583,15 @@ function selectPref(el, pref){
   if(btn){btn.style.opacity='1';btn.style.pointerEvents='auto';}
 }
 
+// "Pular" não deixa o campo em branco pra sempre — senão o guard de
+// navegação forçaria essa tela de novo no próximo login (mesma lógica do
+// tour de segurança). "Em aberto" já existe como opção legítima pra quem
+// não quer se comprometer com uma categoria agora.
+function pularOnboarding(){
+  objetivoEscolhido = 'aberto';
+  finalizarOnboarding();
+}
+
 async function finalizarOnboarding(){
   const btn = document.getElementById('btnContinuarOnboarding');
   if (!objetivoEscolhido) { goTo('tour1'); return; }
@@ -8627,7 +8627,7 @@ function abrirModalFiltros(){
     document.getElementById('filterDistVal').textContent = usuarioAtual.pref_distancia_km || 50;
     document.getElementById('filterSoVerificados').classList.toggle('on', !!usuarioAtual.pref_apenas_verificados);
     document.querySelectorAll('#filterObjetivoGrupo .tag-chip').forEach(chip=>{
-      chip.classList.toggle('on', chip.dataset.valor === (usuarioAtual.pref_objetivo || 'relacionamento_serio'));
+      chip.classList.toggle('on', chip.dataset.valor === (usuarioAtual.pref_objetivo || 'serio'));
     });
   }
   openModal('filters');
