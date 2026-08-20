@@ -949,6 +949,34 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <span style="font-size:16px">📸</span><span id="pvInstagramTexto">—</span>
       </a>
     </div>
+
+    <!-- Signo, altura e peso -->
+    <div style="margin-top:16px;display:flex;gap:24px;flex-wrap:wrap" id="pvDetalhesWrap">
+      <div id="pvSignoWrap" style="display:none">
+        <div style="font-size:11px;color:#a88090;text-transform:uppercase;letter-spacing:.5px">Signo</div>
+        <div style="font-size:13.5px;color:#e8d8de;margin-top:2px" id="pvSigno">—</div>
+      </div>
+      <div id="pvAlturaWrap" style="display:none">
+        <div style="font-size:11px;color:#a88090;text-transform:uppercase;letter-spacing:.5px">Altura</div>
+        <div style="font-size:13.5px;color:#e8d8de;margin-top:2px" id="pvAltura">—</div>
+      </div>
+      <div id="pvPesoWrap" style="display:none">
+        <div style="font-size:11px;color:#a88090;text-transform:uppercase;letter-spacing:.5px">Peso</div>
+        <div style="font-size:13.5px;color:#e8d8de;margin-top:2px" id="pvPeso">—</div>
+      </div>
+    </div>
+
+    <!-- Interesses -->
+    <div style="margin-top:16px" id="pvInteressesWrap">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:#d8b0c4;margin-bottom:8px">Interesses</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="pvInteresses"></div>
+    </div>
+  </div>
+
+  <!-- Galeria de fotos (múltiplas, além da principal) -->
+  <div style="padding:0 18px;margin-top:4px;display:none" id="pvGaleriaWrap">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:#d8b0c4;margin-bottom:8px">Mais fotos</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px" id="pvGaleria"></div>
   </div>
 
   <!-- Botões de ação -->
@@ -4515,6 +4543,49 @@ async function fotoPerfilSelecionada(event){
   }
 }
 
+const SIGNO_LABELS = {aries:'Áries',touro:'Touro',gemeos:'Gêmeos',cancer:'Câncer',leao:'Leão',virgem:'Virgem',libra:'Libra',escorpiao:'Escorpião',sagitario:'Sagitário',capricornio:'Capricórnio',aquario:'Aquário',peixes:'Peixes'};
+const INTERESSE_LABELS = {natureza:'🌿 Natureza',leitura:'📚 Leitura',cafe:'☕ Café',gastronomia:'🍽️ Gastronomia',trilhas:'🏃 Trilhas',musica:'🎶 Música',esportes:'⚽ Esportes',viagens:'✈️ Viagens',cinema:'🎬 Cinema'};
+
+// Reaproveitado por verPerfilCompleto/verPerfilDeCurtida/verPerfilDeMatch —
+// as 3 telas de "perfil completo" do app. Cada campo some (display:none)
+// quando o dado não existe, em vez de aparecer vazio.
+function preencherDetalhesEGaleria(p){
+  const signoWrap = document.getElementById('pvSignoWrap');
+  if(p.signo && SIGNO_LABELS[p.signo]){
+    signoWrap.style.display = '';
+    document.getElementById('pvSigno').textContent = SIGNO_LABELS[p.signo];
+  } else { signoWrap.style.display = 'none'; }
+
+  const alturaWrap = document.getElementById('pvAlturaWrap');
+  if(p.altura){
+    alturaWrap.style.display = '';
+    document.getElementById('pvAltura').textContent = `${p.altura} cm`;
+  } else { alturaWrap.style.display = 'none'; }
+
+  const pesoWrap = document.getElementById('pvPesoWrap');
+  if(p.peso){
+    pesoWrap.style.display = '';
+    document.getElementById('pvPeso').textContent = `${p.peso} kg`;
+  } else { pesoWrap.style.display = 'none'; }
+
+  const interessesWrap = document.getElementById('pvInteressesWrap');
+  const interessesEl = document.getElementById('pvInteresses');
+  if(Array.isArray(p.interesses) && p.interesses.length){
+    interessesWrap.style.display = '';
+    interessesEl.innerHTML = p.interesses.map(i => `<div class="card-tag" style="padding:6px 12px;font-size:12px">${escapeHtml(INTERESSE_LABELS[i] || i)}</div>`).join('');
+  } else { interessesWrap.style.display = 'none'; }
+
+  const galeriaWrap = document.getElementById('pvGaleriaWrap');
+  const galeriaEl = document.getElementById('pvGaleria');
+  if(Array.isArray(p.galeria) && p.galeria.length){
+    galeriaWrap.style.display = '';
+    galeriaEl.innerHTML = p.galeria.map(f => `<div style="border-radius:10px;overflow:hidden;height:110px;background-image:url(${API_URL}${f.url});background-size:cover;background-position:center"></div>`).join('');
+  } else {
+    galeriaWrap.style.display = 'none';
+    galeriaEl.innerHTML = '';
+  }
+}
+
 function verPerfilCompleto(){
   if(!perfilCard1Data) return;
   const p = perfilCard1Data;
@@ -4576,6 +4647,7 @@ function verPerfilCompleto(){
   // (verPerfilDeMatch); em qualquer outro contexto ela precisa estar visível.
   const actionBarDiscover = document.getElementById('pvActionBar');
   if(actionBarDiscover) actionBarDiscover.style.display = '';
+  preencherDetalhesEGaleria(p);
 
   goTo('profile-view');
 }
@@ -4640,6 +4712,7 @@ function verPerfilDeCurtida(perfil){
   // aparecer, caso a pessoa tenha vindo da tela de perfil-de-match antes.
   const actionBarCurtida = document.getElementById('pvActionBar');
   if(actionBarCurtida) actionBarCurtida.style.display = '';
+  preencherDetalhesEGaleria(p);
 
   goTo('profile-view');
 }
@@ -4723,6 +4796,7 @@ function verPerfilDeMatch(perfil){
 
   const actionBar = document.getElementById('pvActionBar');
   if(actionBar) actionBar.style.display = 'none';
+  preencherDetalhesEGaleria(p);
 
   goTo('profile-view');
 }

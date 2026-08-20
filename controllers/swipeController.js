@@ -3,8 +3,35 @@ const Match = require('../models/Match');
 const Usuario = require('../models/Usuario');
 const Notificacao = require('../models/Notificacao');
 const Bloqueio = require('../models/Bloqueio');
+const FotoPerfil = require('../models/FotoPerfil');
 const { Op } = require('sequelize');
 const { temPremiumAtivo } = require('../utils/premium');
+
+// Busca a galeria de fotos (múltiplas fotos, tabela fotos_perfil) de uma
+// lista de usuários de uma vez só e devolve os perfis já em JSON com
+// `galeria` anexado — uma única query pra todo mundo da lista, em vez de
+// uma query por perfil, já que Descobrir/Curtidas podem listar vários de
+// uma vez (achado no bug de perfil incompleto no chat: o mesmo buraco
+// existia aqui, só não tinha sido notado ainda).
+async function anexarGaleria(usuarios) {
+  const ids = usuarios.map(u => u.id);
+  if (ids.length === 0) return [];
+  const fotos = await FotoPerfil.findAll({
+    where: { usuario_id: { [Op.in]: ids } },
+    order: [['ordem', 'ASC']],
+    attributes: ['id', 'usuario_id', 'url', 'ordem']
+  });
+  const galeriaPorUsuario = {};
+  fotos.forEach((f) => {
+    if (!galeriaPorUsuario[f.usuario_id]) galeriaPorUsuario[f.usuario_id] = [];
+    galeriaPorUsuario[f.usuario_id].push({ id: f.id, url: f.url, ordem: f.ordem });
+  });
+  return usuarios.map((u) => {
+    const plano = u.toJSON();
+    plano.galeria = galeriaPorUsuario[u.id] || [];
+    return plano;
+  });
+}
 
 function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -198,7 +225,8 @@ const listarPerfis = async (req, res) => {
       });
     }
 
-    res.json({ perfis: candidatos.slice(0, 10) });
+    const perfisComGaleria = await anexarGaleria(candidatos.slice(0, 10));
+    res.json({ perfis: perfisComGaleria });
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao listar perfis: ' + erro.message });
   }
@@ -279,8 +307,9 @@ const listarCurtidasRecebidas = async (req, res) => {
       where: { id: { [Op.in]: idsPendentes } },
       attributes: { exclude: ['senha', 'foto_verificacao', 'foto_referencia_liveness'] }
     });
+    const perfisComGaleria = await anexarGaleria(perfis);
 
-    res.json({ total: perfis.length, perfis, premium: true });
+    res.json({ total: perfisComGaleria.length, perfis: perfisComGaleria, premium: true });
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao listar curtidas: ' + erro.message });
   }
@@ -318,7 +347,8 @@ const obterPerfilMatch = async (req, res) => {
       return res.status(404).json({ erro: 'Perfil não encontrado' });
     }
 
-    res.json({ perfil });
+    const [perfilComGaleria] = await anexarGaleria([perfil]);
+    res.json({ perfil: perfilComGaleria });
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao obter perfil: ' + erro.message });
   }
