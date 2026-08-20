@@ -202,6 +202,20 @@ app.get('/sw.js', (req, res) => {
   res.set('Cache-Control', 'no-cache');
   res.sendFile(path.join(__dirname, 'sw.js'));
 });
+// PWA do Painel Admin, instalável separado do app principal (nome/ícone
+// próprios na tela inicial). Servidos a partir de /admin/ de propósito —
+// dá ao admin-sw.js escopo "/admin/*" automaticamente, sem disputar o
+// escopo "/" que o sw.js do app já controla (ver comentário em admin-sw.js).
+app.get('/admin/manifest.json', (req, res) => {
+  res.set('Content-Type', 'application/manifest+json');
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.sendFile(path.join(__dirname, 'admin-manifest.json'));
+});
+app.get('/admin/sw.js', (req, res) => {
+  res.set('Content-Type', 'application/javascript');
+  res.set('Cache-Control', 'no-cache');
+  res.sendFile(path.join(__dirname, 'admin-sw.js'));
+});
 app.use('/icons', express.static(path.join(__dirname, 'public/icons'), {
   maxAge: '7d'
 }));
