@@ -952,7 +952,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   </div>
 
   <!-- Botões de ação -->
-  <div class="other-profile-action-bar">
+  <div class="other-profile-action-bar" id="pvActionBar">
     <button class="btn btn-ghost" id="pvBotaoPassar" style="flex:1;padding:14px" onclick="doSwipe('left');goTo('discover')">&#10005; Passar</button>
     <button class="btn btn-primary" style="flex:2;padding:14px" id="pvBtnCurtir" onclick="doSwipe('right');goTo('discover')">&#128150; Curtir</button>
   </div>
@@ -1094,8 +1094,8 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 <div class="screen" id="screen-chatroom" style="background:#1a0810;min-height:100vh;">
   <div class="chatroom-topbar">
     <div class="icon-btn" onclick="goTo('chats')">&#8592;</div>
-    <div class="chatroom-avatar" id="chatroomAvatar">&#128100;</div>
-    <div style="flex:1"><div style="font-weight:700;font-size:14px" id="chatroomNome">—</div></div>
+    <div class="chatroom-avatar" id="chatroomAvatar" onclick="abrirPerfilDoMatch()" style="cursor:pointer">&#128100;</div>
+    <div style="flex:1;cursor:pointer" onclick="abrirPerfilDoMatch()"><div style="font-weight:700;font-size:14px" id="chatroomNome">—</div></div>
     <div class="icon-btn" onclick="goTo('safety')">&#128737;</div>
     <div class="icon-btn" onclick="openModal('chat-options')">&#8942;</div>
   </div>
@@ -4572,6 +4572,10 @@ function verPerfilCompleto(){
   btnCurtir.onclick = () => { doSwipe('right'); goTo('discover'); };
   const btnPassar = document.getElementById('pvBotaoPassar');
   if(btnPassar) btnPassar.onclick = () => { doSwipe('left'); goTo('discover'); };
+  // A barra de curtir/passar só some no contexto de perfil-de-match
+  // (verPerfilDeMatch); em qualquer outro contexto ela precisa estar visível.
+  const actionBarDiscover = document.getElementById('pvActionBar');
+  if(actionBarDiscover) actionBarDiscover.style.display = '';
 
   goTo('profile-view');
 }
@@ -4632,6 +4636,10 @@ function verPerfilDeCurtida(perfil){
   btnCurtir.onclick = () => curtirDeVolta(p, null);
   const btnPassar = document.getElementById('pvBotaoPassar');
   if(btnPassar) btnPassar.onclick = () => passarDaCurtida(p.id);
+  // Mesma razão do verPerfilCompleto(): garante que a barra volta a
+  // aparecer, caso a pessoa tenha vindo da tela de perfil-de-match antes.
+  const actionBarCurtida = document.getElementById('pvActionBar');
+  if(actionBarCurtida) actionBarCurtida.style.display = '';
 
   goTo('profile-view');
 }
@@ -4645,6 +4653,78 @@ async function passarDaCurtida(alvoId){
     });
   }catch(e){ /* segue mesmo se falhar — abrir a lista de novo tenta de novo */ }
   goTo('likes');
+}
+
+async function abrirPerfilDoMatch(){
+  if(!matchAtual || !matchAtual.outro_usuario) return;
+  const outroId = matchAtual.outro_usuario.id;
+  try{
+    const resp = await fetch(`${API_URL}/api/swipe/perfil-match/${outroId}`, {
+      headers: {'Authorization': `Bearer ${tokenAtual}`}
+    });
+    const dados = await resp.json();
+    if(resp.ok && dados.perfil){
+      verPerfilDeMatch(dados.perfil);
+    } else {
+      showToastVinculo('Não foi possível abrir o perfil agora.');
+    }
+  }catch(e){ showToastVinculo('Erro ao abrir perfil.'); }
+}
+
+// Igual a verPerfilCompleto()/verPerfilDeCurtida(), mas pro contexto de
+// dentro do chat: já é match, então é grátis pra qualquer usuário (a trava
+// fica só no servidor, checando se existe match ativo), sem botões de
+// curtir/passar (não faz sentido depois do match), e o voltar retorna pro
+// chat, não pro Descobrir.
+function verPerfilDeMatch(perfil){
+  if(!perfil) return;
+  const p = perfil;
+  perfilDenunciadoId = p.id;
+  registrarVisualizacaoPerfil(p.id);
+  const idade = p.data_nascimento ? calcularIdade(p.data_nascimento) : '';
+
+  document.getElementById('pvNome').textContent = `${p.nome} ${idade}`;
+
+  const bioEl = document.getElementById('pvBio');
+  bioEl.textContent = p.bio ? p.bio : 'Essa pessoa ainda não escreveu uma bio.';
+
+  const objetivoWrap = document.getElementById('pvObjetivoWrap');
+  if(p.objetivo){
+    objetivoWrap.style.display='block';
+    const nomesObjetivo = {serio:'Relacionamento sério', amizade:'Amizade', casual:'Algo casual'};
+    document.getElementById('pvObjetivo').textContent = nomesObjetivo[p.objetivo] || p.objetivo;
+  } else {
+    objetivoWrap.style.display='none';
+  }
+
+  const pvInstagramWrap = document.getElementById('pvInstagramWrap');
+  if(p.instagram_handle){
+    const handleSeguro = handleInstagramSeguro(p.instagram_handle);
+    pvInstagramWrap.style.display = 'block';
+    document.getElementById('pvInstagram').href = `https://instagram.com/${handleSeguro}`;
+    document.getElementById('pvInstagramTexto').textContent = `@${handleSeguro}`;
+  } else {
+    pvInstagramWrap.style.display = 'none';
+  }
+
+  const badgesEl = document.getElementById('pvBadges');
+  badgesEl.innerHTML = p.verificado ? '<div class="badge badge-gold">&#10003; Foto verificada</div>' : '';
+
+  const badgesFotoEl = document.getElementById('pvBadgesFoto');
+  badgesFotoEl.innerHTML = p.verificado ? '<span style="background:rgba(26,10,14,.85);border:1px solid #c9a06b;border-radius:20px;padding:5px 12px;font-size:10.5px;color:#c9a06b;font-weight:700">&#10003; Foto verificada</span>' : '';
+
+  const fotoEl = document.getElementById('pvFoto');
+  fotoEl.style.backgroundImage = p.foto_url ? `url(${API_URL}${p.foto_url})` : '';
+  fotoEl.style.backgroundSize = 'cover';
+  fotoEl.style.backgroundPosition = 'center';
+
+  const backBtn = document.getElementById('pvBotaoVoltar');
+  if(backBtn) backBtn.onclick = () => goTo('chatroom');
+
+  const actionBar = document.getElementById('pvActionBar');
+  if(actionBar) actionBar.style.display = 'none';
+
+  goTo('profile-view');
 }
 
 function preencherCard(elId, perfil){

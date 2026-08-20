@@ -286,4 +286,39 @@ const listarCurtidasRecebidas = async (req, res) => {
   }
 };
 
-module.exports = { darSwipe, listarPerfis, listarMatches, listarCurtidasRecebidas };
+const obterPerfilMatch = async (req, res) => {
+  try {
+    const usuario_id = req.usuarioId;
+    const alvo_id = parseInt(req.params.id, 10);
+
+    // Ver o perfil completo de alguém só é grátis se já existe match ativo
+    // entre os dois — é isso que separa esse endpoint da lista de Curtidas
+    // (que continua paga). Sem essa checagem, trocar o ID na URL revelaria
+    // o perfil de qualquer pessoa do app, com ou sem match.
+    const match = await Match.findOne({
+      where: {
+        [Op.or]: [
+          { usuario1_id: usuario_id, usuario2_id: alvo_id },
+          { usuario1_id: alvo_id, usuario2_id: usuario_id }
+        ],
+        ativo: true
+      }
+    });
+    if (!match) {
+      return res.status(403).json({ erro: 'Você só pode ver o perfil completo de quem já é seu Vínculo' });
+    }
+
+    const perfil = await Usuario.findByPk(alvo_id, {
+      attributes: { exclude: ['senha', 'foto_verificacao', 'foto_referencia_liveness'] }
+    });
+    if (!perfil) {
+      return res.status(404).json({ erro: 'Perfil não encontrado' });
+    }
+
+    res.json({ perfil });
+  } catch (erro) {
+    res.status(500).json({ erro: 'Erro ao obter perfil: ' + erro.message });
+  }
+};
+
+module.exports = { darSwipe, listarPerfis, listarMatches, listarCurtidasRecebidas, obterPerfilMatch };
