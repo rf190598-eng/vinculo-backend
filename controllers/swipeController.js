@@ -289,7 +289,10 @@ const listarCurtidasRecebidas = async (req, res) => {
 const obterPerfilMatch = async (req, res) => {
   try {
     const usuario_id = req.usuarioId;
-    const alvo_id = parseInt(req.params.id, 10);
+    // IDs de usuário no Vínculo são UUID, não inteiro — parseInt() quebrava
+    // o ID (virava NaN ou truncava os primeiros dígitos do UUID), fazendo a
+    // busca de match nunca encontrar nada mesmo quando o match existia.
+    const alvo_id = req.params.id;
 
     // Ver o perfil completo de alguém só é grátis se já existe match ativo
     // entre os dois — é isso que separa esse endpoint da lista de Curtidas
