@@ -211,9 +211,9 @@ const listarPerfis = async (req, res) => {
       if (eu.pref_idade_max && idade > eu.pref_idade_max) return false;
       return true;
     });
-    if (eu.pref_apenas_verificados) {
-      candidatos = candidatos.filter(c => c.verificado === true);
-    }
+    // "pref_apenas_verificados" foi removido: desde que `verificado: true`
+    // virou obrigatório na query acima (Lote B), esse filtro já era sempre
+    // um no-op — todo candidato que chega até aqui já é verificado.
     if (eu.pref_objetivo) {
       candidatos = candidatos.filter(c => c.objetivo === eu.pref_objetivo);
     }

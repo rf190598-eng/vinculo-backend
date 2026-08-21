@@ -1149,12 +1149,6 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div id="listaContatosSeguranca"></div>
       <button class="btn btn-ghost" style="padding:10px;font-size:12.5px;margin-top:4px" onclick="abrirModalContatoSeguranca()">+ Adicionar contato</button>
     </div>
-    <div class="sec-card">
-      <div class="sec-title">&#9989; Verificação e privacidade</div>
-      <div class="toggle-row"><div><div class="tl">Mostrar apenas verificados</div></div><div class="switch on" onclick="this.classList.toggle('on')"></div></div>
-      <div class="toggle-row"><div><div class="tl">Bloquear capturas de tela</div></div><div class="switch" onclick="this.classList.toggle('on')"></div></div>
-      <div class="toggle-row"><div><div class="tl">Ocultar sobrenome</div></div><div class="switch on" onclick="this.classList.toggle('on')"></div></div>
-    </div>
   </div>
 </div>
 
@@ -2451,12 +2445,6 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <span class="tag-chip" data-valor="amizade">Amizade</span>
         <span class="tag-chip" data-valor="casual">Casual</span>
         <span class="tag-chip" data-valor="aberto">Deixa rolar</span>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="toggle-row" style="border:none;padding:0">
-        <div><div class="tl">Mostrar só verificados</div></div>
-        <div class="switch" id="filterSoVerificados" onclick="this.classList.toggle('on')"></div>
       </div>
     </div>
     <div id="filtrosErro" style="color:#ff8fa3;font-size:12.5px;margin:4px 0 0;min-height:14px"></div>
@@ -8931,7 +8919,6 @@ function abrirModalFiltros(){
     document.getElementById('ageMaxVal').textContent = usuarioAtual.pref_idade_max || 99;
     document.getElementById('filterDist').value = usuarioAtual.pref_distancia_km || 50;
     document.getElementById('filterDistVal').textContent = usuarioAtual.pref_distancia_km || 50;
-    document.getElementById('filterSoVerificados').classList.toggle('on', !!usuarioAtual.pref_apenas_verificados);
     document.querySelectorAll('#filterObjetivoGrupo .tag-chip').forEach(chip=>{
       chip.classList.toggle('on', chip.dataset.valor === (usuarioAtual.pref_objetivo || 'serio'));
     });
@@ -8947,7 +8934,6 @@ async function aplicarFiltrosReal(){
   const pref_idade_min = parseInt(document.getElementById('ageMin').value, 10);
   const pref_idade_max = parseInt(document.getElementById('ageMax').value, 10);
   const pref_distancia_km = parseInt(document.getElementById('filterDist').value, 10);
-  const pref_apenas_verificados = document.getElementById('filterSoVerificados').classList.contains('on');
   const chipSelecionado = document.querySelector('#filterObjetivoGrupo .tag-chip.on');
   const pref_objetivo = chipSelecionado ? chipSelecionado.dataset.valor : null;
 
@@ -8957,7 +8943,7 @@ async function aplicarFiltrosReal(){
     const resp = await fetch(`${API_URL}/api/perfil/editar`, {
       method: 'PUT',
       headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
-      body: JSON.stringify({ pref_idade_min, pref_idade_max, pref_distancia_km, pref_apenas_verificados, pref_objetivo })
+      body: JSON.stringify({ pref_idade_min, pref_idade_max, pref_distancia_km, pref_objetivo })
     });
     const dados = await resp.json();
     if(!resp.ok){ erroEl.textContent = dados.erro || 'Não foi possível salvar os filtros.'; return; }
