@@ -776,7 +776,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         </div>
       </div>
       <div id="emptyStateAcoesNormais">
-        <button class="btn btn-primary" onclick="abrirModalFiltros()" style="margin-bottom:10px">&#128205; Ampliar raio de busca</button>
+        <button class="btn btn-primary" onclick="abrirModalFiltros()" style="margin-bottom:10px">&#128205; Ajustar raio de busca</button>
         <button style="background:none;border:none;color:#907080;font-size:13px;cursor:pointer;padding:6px;font-family:inherit" onclick="resetDiscoverDeck()">Ver perfis novamente do início</button>
       </div>
       <div id="emptyStateErro" style="display:none">
@@ -1230,11 +1230,11 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div style="padding:0 18px">
     <div class="sec-card">
       <div class="toggle-row">
-        <div><div class="tl">Mostrar minha idade</div><div class="ts">Exibida no seu cartão de perfil</div></div>
+        <div><div class="tl">Mostrar minha idade</div><div class="ts">Em breve: oculta a idade do seu cartão (ainda não ativo)</div></div>
         <div class="switch" id="prefPrivIdade" onclick="alternarPreferencia(this,'priv','mostrarIdade')"></div>
       </div>
       <div class="toggle-row">
-        <div><div class="tl">Modo incógnito</div><div class="ts">Navega no app sem aparecer pra ninguém</div></div>
+        <div><div class="tl">Modo incógnito</div><div class="ts">Em breve: navega sem aparecer pra ninguém (ainda não ativo)</div></div>
         <div class="switch" id="prefPrivIncognito" onclick="alternarPreferencia(this,'priv','incognito')"></div>
       </div>
     </div>
@@ -5203,10 +5203,11 @@ function showEmptyState(comErro){
   }
 }
 
-function resetDiscoverDeck(){
+async function resetDiscoverDeck(){
   totalSwipes=0;
-  carregarPerfis();
-  showToastVinculo('Novos perfis carregados!');
+  await carregarPerfis();
+  const perfilCarregado = !!document.getElementById('card1').dataset.perfilId;
+  showToastVinculo(perfilCarregado ? 'Novos perfis carregados!' : 'Nenhum perfil novo por enquanto.');
 }
 
 function openNotifications(){
@@ -9156,38 +9157,6 @@ async function salvarInstagram(){
   }catch(e){
     igStatusEl.textContent = 'Erro de conexão.';
     igStatusEl.style.color = '#ff8fa3';
-  }
-}
-function toggleRedeSocial(el, rede){
-  const isConnected = el.dataset.connected === '1';
-  if(isConnected){
-    el.dataset.connected = '0';
-    el.style.borderColor='rgba(255,255,255,.12)';
-    el.style.background='rgba(255,255,255,.06)';
-    if(rede==='instagram'){
-      document.getElementById('igStatus').textContent='Não conectado · opcional';
-      document.getElementById('igArrow').textContent='+ Conectar';
-    } else {
-      document.getElementById('fbStatus').textContent='Não conectado · opcional';
-      document.getElementById('fbArrow').textContent='+ Conectar';
-    }
-    showToastVinculo('Rede social desconectada');
-  } else {
-    el.dataset.connected = '1';
-    el.style.borderColor='rgba(109,204,109,.5)';
-    el.style.background='rgba(109,204,109,.08)';
-    if(rede==='instagram'){
-      document.getElementById('igStatus').textContent='✓ Conectado · badge ativo no perfil';
-      document.getElementById('igStatus').style.color='#6dcc6d';
-      document.getElementById('igArrow').textContent='Remover';
-      document.getElementById('igArrow').style.color='#e08090';
-    } else {
-      document.getElementById('fbStatus').textContent='✓ Conectado · badge ativo no perfil';
-      document.getElementById('fbStatus').style.color='#6dcc6d';
-      document.getElementById('fbArrow').textContent='Remover';
-      document.getElementById('fbArrow').style.color='#e08090';
-    }
-    showToastVinculo('✓ ' + (rede==='instagram'?'Instagram':'Facebook') + ' verificado! Badge ativo no seu perfil 🌟');
   }
 }
 
