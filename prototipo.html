@@ -41,11 +41,37 @@ input,textarea,select{font-size:16px!important;font-family:inherit;}
 #screen-match.active{display:flex!important;}
 #screen-auth.active{display:flex!important;}
 
+/* Transição "avançar" entre telas — camada só visual por cima da troca de
+   .active que já existia. Usa transform+transition (sem lib), ~240ms. */
+.screen.tela-transicao{
+  display:block!important;
+  position:fixed;
+  top:0;left:50%;
+  width:100%;max-width:430px;
+  height:100vh;height:100dvh;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  transition:transform .22s cubic-bezier(.22,.61,.36,1);
+}
+/* screen-match e screen-auth usam flex pra centralizar o conteúdo — sem
+   isso, durante a saída (quando .active já saiu mas .tela-transicao ainda
+   está lá) eles cairiam pra display:block por um instante e o conteúdo
+   pularia de layout nos ~240ms da animação. */
+#screen-match.tela-transicao{display:flex!important;}
+#screen-auth.tela-transicao{display:flex!important;}
+.screen.tela-saindo{transform:translateX(-50%);z-index:140;}
+.screen.tela-entrando{transform:translateX(calc(-50% + 100%));z-index:150;}
+.screen.tela-saindo.tela-anim-ativa{transform:translateX(calc(-50% - 100%));}
+.screen.tela-entrando.tela-anim-ativa{transform:translateX(-50%);}
+@media (prefers-reduced-motion: reduce){
+  .screen.tela-transicao{transition:none;}
+}
+
 .screen.active{display:block;}
 
 /* NAV — fundo escuro, texto bem legível */
 .bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:linear-gradient(to top,#0a0306,#120508);border-top:1.5px solid rgba(255,255,255,.15);display:flex;justify-content:space-around;padding:10px 0 18px;z-index:200;box-shadow:0 -4px 20px rgba(0,0,0,.5);}
 .navbtn{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:#9a6070;font-size:9px;font-weight:700;cursor:pointer;flex:1;letter-spacing:.3px;}
+.navbtn:active{transform:scale(.96);}
 .navbtn.active{color:#f0a0b8;}
 .navbtn[data-s="safety"] .ic{color:#e0607a;}
 .navbtn .ic{font-size:21px;}
@@ -54,6 +80,7 @@ input,textarea,select{font-size:16px!important;font-family:inherit;}
 .logo{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#fdf6f2;}
 .logo span{color:#f0a0b8;}
 .icon-btn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fdf6f2;}
+.icon-btn:active{transform:scale(.9);}
 .icon-row{display:flex;gap:8px;}
 
 /* AUTH */
@@ -85,6 +112,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 /* Toggle Pix/Cartão no modal de confirmação de assinatura — Fatia 5 */
 .metodo-toggle{display:flex;gap:8px;margin-bottom:14px}
 .metodo-toggle button{flex:1;padding:11px;border-radius:12px;border:1.5px solid rgba(255,255,255,.18);background:rgba(255,255,255,.05);color:#d8b0c4;font-weight:700;font-size:13px;cursor:pointer;transition:.15s;font-family:inherit}
+.metodo-toggle button:active{transform:scale(.96);}
 .metodo-toggle button.ativo{background:linear-gradient(135deg,#e0607a,#d4839a 50%,#c9a06b);color:#fff;border-color:transparent}
 .verify-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(201,160,107,.15);border:1px solid rgba(201,160,107,.5);border-radius:20px;padding:8px 15px;font-size:11.5px;color:#d4b87a;margin:18px 0 10px;font-weight:600;}
 .auth-foot{color:#b08898;font-size:12px;}
@@ -182,6 +210,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 .estrela-avaliacao{font-size:32px;cursor:pointer;transition:.1s;color:rgba(255,255,255,.3);display:inline-block;}
 .estrela-avaliacao.on{color:#c9a06b;transform:scale(1.15);}
 .tag-chip{display:inline-block;padding:7px 15px;border-radius:20px;border:1.5px solid rgba(255,255,255,.2);font-size:12.5px;margin:0 6px 8px 0;cursor:pointer;color:#e8d0da;transition:.15s;background:rgba(255,255,255,.07);}
+.tag-chip:active{transform:scale(.96);}
 .tag-chip.on{background:rgba(212,131,154,.2);border-color:#d4839a;color:#fdf6f2;}
 .my-profile-photo{height:220px;background:linear-gradient(160deg,#5c1a2e,#2b0f17);display:flex;align-items:center;justify-content:center;font-size:80px;position:relative;}
 .edit-overlay{position:absolute;bottom:14px;right:18px;background:linear-gradient(135deg,#d4839a,#c9a06b);border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#1a0508;}
@@ -210,6 +239,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 .prompt-q{font-size:12.5px;color:#d4b87a;font-weight:700;margin-bottom:7px;}
 .edit-lifestyle-grid{display:flex;flex-wrap:wrap;gap:8px;}
 .ls-chip{padding:8px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);font-size:12.5px;color:#e0c8d0;cursor:pointer;transition:.15s;}
+.ls-chip:active{transform:scale(.96);}
 .ls-chip.on{background:rgba(212,131,154,.2);border-color:#d4839a;color:#fdf6f2;}
 .notif-item{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.08);}
 .notif-item.unread{background:rgba(212,131,154,.07);margin:0 -18px;padding:13px 18px;border-radius:10px;}
@@ -226,6 +256,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 .checklist-text{font-size:13.5px;line-height:1.4;color:#fdf6f2;}
 .checklist-sub{font-size:12px;color:#a08090;margin-top:2px;font-weight:400;}
 .report-reason{padding:11px 14px;border-radius:11px;border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);font-size:13.5px;cursor:pointer;margin-bottom:7px;transition:.15s;color:#fdf6f2;}
+.report-reason:active{transform:scale(.97);}
 .report-reason.on{border-color:#c0293f;background:rgba(168,41,63,.2);color:#fdf6f2;}
 @keyframes heartPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.18);}}
 @keyframes pulseRec{0%,100%{opacity:1;}50%{opacity:.3;}}
@@ -2917,10 +2948,37 @@ let lastSwipeDir=null, totalSwipes=0;
 let filaPerfis=[];
 const lastProfileData = {name:'Camila',age:27};
 
+// Camada visual de transição de tela (padrão "avançar" de app nativo). Não
+// interfere em nenhum guard/lógica de goTo() — só pega as duas telas (a que
+// estava ativa e a nova) e anima o slide entre elas por cima da troca de
+// classe .active que já acontecia antes.
+let temporizadorTransicaoTela = null;
+function animarTransicaoDeTela(telaAntiga, telaNova){
+  if(!telaNova || !telaAntiga || telaAntiga === telaNova) return;
+  if(temporizadorTransicaoTela) clearTimeout(temporizadorTransicaoTela);
+  document.querySelectorAll('.tela-transicao').forEach(s=>{
+    if(s!==telaNova && s!==telaAntiga) s.classList.remove('tela-transicao','tela-saindo','tela-entrando','tela-anim-ativa');
+  });
+  telaAntiga.classList.add('tela-transicao','tela-saindo');
+  telaNova.classList.add('tela-transicao','tela-entrando');
+  void telaNova.offsetWidth; // força o navegador a fixar a posição inicial antes de animar
+  requestAnimationFrame(()=>{
+    telaAntiga.classList.add('tela-anim-ativa');
+    telaNova.classList.add('tela-anim-ativa');
+  });
+  temporizadorTransicaoTela = setTimeout(()=>{
+    telaAntiga.classList.remove('tela-transicao','tela-saindo','tela-anim-ativa');
+    telaNova.classList.remove('tela-transicao','tela-entrando','tela-anim-ativa');
+    temporizadorTransicaoTela = null;
+  }, 240);
+}
+
 function goTo(name){
+  const telaAnterior = document.querySelector('.screen.active');
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const el=document.getElementById('screen-'+name);
   if(el)el.classList.add('active');
+  animarTransicaoDeTela(telaAnterior, el);
   document.getElementById('bottomnav').style.display=noNav.includes(name)?'none':'flex';
   document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.s===name));
   window.scrollTo(0,0);
