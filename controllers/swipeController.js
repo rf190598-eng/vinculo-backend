@@ -74,6 +74,12 @@ async function obterIdsBloqueados(usuario_id) {
   return Array.from(ids);
 }
 
+// Curtidas ilimitadas é um dos benefícios vendidos no Premium (tela de
+// assinatura) — antes disso não valer nada de verdade, conta grátis não
+// tinha limite nenhum. "dislike" (passar) não conta pro limite, só
+// like/superlike — passar por perfis nunca deveria custar nada.
+const LIMITE_CURTIDAS_DIARIO_GRATIS = 20;
+
 const darSwipe = async (req, res) => {
   try {
     const { alvo_id, tipo } = req.body;
@@ -98,6 +104,28 @@ const darSwipe = async (req, res) => {
     if (swipeExiste) {
       return res.status(400).json({ erro: 'Você já avaliou esse perfil' });
     }
+
+    // Limite diário só pra like/superlike, e só pra quem não tem Premium
+    // ativo. Contagem feita direto na tabela swipes (já tem createdAt por
+    // padrão do Sequelize) — não precisa de coluna nova nem de zerar nada à
+    // meia-noite, o count() já é naturalmente por dia corrido.
+    if (tipo === 'like' || tipo === 'superlike') {
+      const eu = await Usuario.findByPk(usuario_id, { attributes: ['id', 'premium', 'premium_ate'] });
+      if (!temPremiumAtivo(eu)) {
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        const curtidasHoje = await Swipe.count({
+          where: { usuario_id, tipo: ['like', 'superlike'], createdAt: { [Op.gte]: hoje } }
+        });
+        if (curtidasHoje >= LIMITE_CURTIDAS_DIARIO_GRATIS) {
+          return res.status(403).json({
+            erro: `Você atingiu o limite de ${LIMITE_CURTIDAS_DIARIO_GRATIS} curtidas de hoje. Assine o Premium para curtir sem limite.`,
+            limite_curtidas_atingido: true
+          });
+        }
+      }
+    }
+
     await Swipe.create({ usuario_id, alvo_id, tipo });
 
     let match = null;

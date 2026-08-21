@@ -771,7 +771,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
             <span style="font-size:18px">&#128205;</span>Ampliar o raio de busca
           </div>
           <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#fdf6f2">
-            <span style="font-size:18px">&#127775;</span>Responder a Pergunta do dia para ganhar destaque
+            <span style="font-size:18px">&#127775;</span>Responder a Pergunta do dia é um jeito ótimo de puxar assunto
           </div>
         </div>
       </div>
@@ -2124,6 +2124,21 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div class="edit-section-title">Altura (cm)</div>
     <input class="inp" id="editAltura" type="number" min="120" max="230" placeholder="Ex: 170"/>
 
+    <div class="edit-section-title">Peso (kg)</div>
+    <input class="inp" id="editPeso" type="number" min="30" max="250" placeholder="Ex: 70"/>
+
+    <div class="edit-section-title">Cor de cabelo</div>
+    <select class="inp" id="editCorCabelo">
+      <option value="">Prefiro não dizer</option>
+      <option value="loiro">Loiro</option>
+      <option value="castanho_claro">Castanho claro</option>
+      <option value="castanho_escuro">Castanho escuro</option>
+      <option value="preto">Preto</option>
+      <option value="ruivo">Ruivo</option>
+      <option value="grisalho">Grisalho</option>
+      <option value="outro">Outro</option>
+    </select>
+
     <div class="edit-section-title">Prompts para te ajudar &#10024;</div>
     <div class="prompt-card">
       <div class="prompt-q">Meu fim de semana ideal e...</div>
@@ -2194,7 +2209,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="height:8px;background:rgba(255,255,255,.1);border-radius:4px;margin-bottom:10px;overflow:hidden">
       <div style="height:100%;width:0%;background:linear-gradient(135deg,#d4839a,#c9a06b);border-radius:4px;transition:width .5s ease" id="meuPerfilBarraProgresso"></div>
     </div>
-    <div style="font-size:12px;color:#e0c8d0;margin-bottom:10px">Perfis completos aparecem com mais frequência no Descobrir</div>
+    <div style="font-size:12px;color:#e0c8d0;margin-bottom:10px">Perfil completo passa mais confiança pra quem visitar seu perfil</div>
     <div style="display:flex;flex-direction:column;gap:6px" id="meuPerfilItensFaltando"></div>
   </div>
 
@@ -2446,6 +2461,32 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <span class="tag-chip" data-valor="casual">Casual</span>
         <span class="tag-chip" data-valor="aberto">Deixa rolar</span>
       </div>
+    </div>
+    <div class="filter-section" id="filtrosAvancadosPremium" style="display:none">
+      <div class="filter-section-title">Filtros avançados &#128081;</div>
+      <div style="font-size:11px;color:#d0a8b8;margin-bottom:4px">Altura mínima (cm)</div>
+      <input class="inp" id="filterAlturaMin" type="number" min="120" max="230" placeholder="Ex: 160"/>
+      <div style="font-size:11px;color:#d0a8b8;margin:8px 0 4px">Altura máxima (cm)</div>
+      <input class="inp" id="filterAlturaMax" type="number" min="120" max="230" placeholder="Ex: 200"/>
+      <div style="font-size:11px;color:#d0a8b8;margin:8px 0 4px">Peso mínimo (kg)</div>
+      <input class="inp" id="filterPesoMin" type="number" min="30" max="250" placeholder="Ex: 50"/>
+      <div style="font-size:11px;color:#d0a8b8;margin:8px 0 4px">Peso máximo (kg)</div>
+      <input class="inp" id="filterPesoMax" type="number" min="30" max="250" placeholder="Ex: 100"/>
+      <div style="font-size:11px;color:#d0a8b8;margin:8px 0 4px">Cor de cabelo</div>
+      <select class="inp" id="filterCorCabelo">
+        <option value="">Qualquer</option>
+        <option value="loiro">Loiro</option>
+        <option value="castanho_claro">Castanho claro</option>
+        <option value="castanho_escuro">Castanho escuro</option>
+        <option value="preto">Preto</option>
+        <option value="ruivo">Ruivo</option>
+        <option value="grisalho">Grisalho</option>
+        <option value="outro">Outro</option>
+      </select>
+    </div>
+    <div class="filter-section" id="filtrosAvancadosUpsell" style="display:none;text-align:center;background:linear-gradient(135deg,rgba(212,131,154,.18),rgba(201,160,107,.1));border:1.5px solid rgba(212,131,154,.45);border-radius:14px;padding:14px">
+      <div style="font-size:12.5px;color:#e0c0d0;line-height:1.5;margin-bottom:10px">&#128081; Assine o Premium para filtrar também por <b style="color:#fdf6f2">altura, peso e cor de cabelo</b>.</div>
+      <button class="btn btn-primary" style="max-width:260px;margin:0 auto;padding:10px;font-size:12px" onclick="closeModal('filters');goTo('assinatura')">Ver planos</button>
     </div>
     <div id="filtrosErro" style="color:#ff8fa3;font-size:12.5px;margin:4px 0 0;min-height:14px"></div>
     <button class="btn btn-primary" onclick="aplicarFiltrosReal()" id="btnAplicarFiltros">Aplicar filtros</button>
@@ -3647,6 +3688,27 @@ async function doSwipe(dir){
       body: JSON.stringify({ alvo_id: perfilId, tipo })
     });
     const dados = await resp.json();
+
+    // O servidor recusou (limite diário de curtidas, já avaliado, bloqueio
+    // etc.) — antes disso não era checado aqui, então a animação de swipe
+    // rodava e o perfil saía da fila mesmo quando a curtida NUNCA foi salva.
+    // Sem isso, ao bater o limite de curtidas grátis, toda curtida seguinte
+    // pareceria funcionar (o cartão voa, a fila avança) mas silenciosamente
+    // não valeria nada — pior tipo de bug pra essa mudança específica.
+    if(!resp.ok){
+      card.dataset.enviando='0';
+      if(dados && dados.limite_curtidas_atingido){
+        const querAssinar = await confirmarAcao(
+          dados.erro || 'Você atingiu o limite de curtidas gratuitas de hoje.',
+          { titulo: 'Limite diário atingido', textoBotao: 'Ver planos' }
+        );
+        if(querAssinar) goTo('assinatura');
+      } else {
+        showToastVinculo(dados.erro || 'Não foi possível registrar essa ação.');
+      }
+      return;
+    }
+
     deuMatch = !!dados.match;
     matchIdCriado = dados.match_id || null;
   } catch(e){
@@ -4506,6 +4568,9 @@ async function salvarEdicaoPerfil(){
   const signo = document.getElementById('editSigno').value;
   const alturaInput = document.getElementById('editAltura').value.trim();
   const altura = alturaInput ? parseInt(alturaInput, 10) : null;
+  const pesoInput = document.getElementById('editPeso').value.trim();
+  const peso = pesoInput ? parseInt(pesoInput, 10) : null;
+  const cor_cabelo = document.getElementById('editCorCabelo').value || null;
 
   const estilo_vida = Array.from(document.querySelectorAll('#grupoEstiloVida .ls-chip.on')).map(el => el.dataset.valor);
   const interesses = Array.from(document.querySelectorAll('#grupoInteresses .ls-chip.on')).map(el => el.dataset.valor);
@@ -4531,7 +4596,7 @@ async function salvarEdicaoPerfil(){
     const resp = await fetch(`${API_URL}/api/perfil/editar`, {
       method:'PUT',
       headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
-      body: JSON.stringify({ nome, bio, genero, signo, altura, estilo_vida, interesses, objetivo, prompts })
+      body: JSON.stringify({ nome, bio, genero, signo, altura, peso, cor_cabelo, estilo_vida, interesses, objetivo, prompts })
     });
     const dados = await resp.json();
     if(!resp.ok){ showToastVinculo(dados.erro || 'Erro ao salvar.'); return; }
@@ -4563,6 +4628,12 @@ function preencherEdicaoPerfilComDadosSalvos(){
 
   const alturaEl = document.getElementById('editAltura');
   if (alturaEl) alturaEl.value = usuarioAtual.altura || '';
+
+  const pesoEl = document.getElementById('editPeso');
+  if (pesoEl) pesoEl.value = usuarioAtual.peso || '';
+
+  const corCabeloEl = document.getElementById('editCorCabelo');
+  if (corCabeloEl) corCabeloEl.value = usuarioAtual.cor_cabelo || '';
 
   const promptsSalvos = Array.isArray(usuarioAtual.prompts) ? usuarioAtual.prompts : [];
   const prompt1El = document.getElementById('editPrompt1');
@@ -8922,6 +8993,21 @@ function abrirModalFiltros(){
     document.querySelectorAll('#filterObjetivoGrupo .tag-chip').forEach(chip=>{
       chip.classList.toggle('on', chip.dataset.valor === (usuarioAtual.pref_objetivo || 'serio'));
     });
+
+    // Filtros avançados (altura/peso/cor de cabelo) só valem pra quem tem
+    // Premium ativo — o próprio backend já ignora esses campos pra quem não
+    // tem (swipeController.js), então mostrar sem gate aqui seria prometer
+    // um filtro que não filtra nada de verdade.
+    const souPremium = !!usuarioAtual.premium;
+    document.getElementById('filtrosAvancadosPremium').style.display = souPremium ? 'block' : 'none';
+    document.getElementById('filtrosAvancadosUpsell').style.display = souPremium ? 'none' : 'block';
+    if(souPremium){
+      document.getElementById('filterAlturaMin').value = usuarioAtual.pref_altura_min || '';
+      document.getElementById('filterAlturaMax').value = usuarioAtual.pref_altura_max || '';
+      document.getElementById('filterPesoMin').value = usuarioAtual.pref_peso_min || '';
+      document.getElementById('filterPesoMax').value = usuarioAtual.pref_peso_max || '';
+      document.getElementById('filterCorCabelo').value = usuarioAtual.pref_cor_cabelo || '';
+    }
   }
   openModal('filters');
 }
@@ -8937,13 +9023,33 @@ async function aplicarFiltrosReal(){
   const chipSelecionado = document.querySelector('#filterObjetivoGrupo .tag-chip.on');
   const pref_objetivo = chipSelecionado ? chipSelecionado.dataset.valor : null;
 
+  // Só manda os filtros avançados se a seção estava visível (ou seja, só
+  // pra quem é Premium) — pra não sobrescrever a preferência salva de
+  // alguém com campos vazios sem querer, e pra não fingir que quem não é
+  // Premium está de fato configurando um filtro que o servidor vai ignorar.
+  const souPremium = document.getElementById('filtrosAvancadosPremium').style.display !== 'none';
+  const alturaMinInput = souPremium ? document.getElementById('filterAlturaMin').value.trim() : '';
+  const alturaMaxInput = souPremium ? document.getElementById('filterAlturaMax').value.trim() : '';
+  const pesoMinInput = souPremium ? document.getElementById('filterPesoMin').value.trim() : '';
+  const pesoMaxInput = souPremium ? document.getElementById('filterPesoMax').value.trim() : '';
+  const corCabeloInput = souPremium ? document.getElementById('filterCorCabelo').value : '';
+
+  const corpo = { pref_idade_min, pref_idade_max, pref_distancia_km, pref_objetivo };
+  if(souPremium){
+    corpo.pref_altura_min = alturaMinInput ? parseInt(alturaMinInput, 10) : null;
+    corpo.pref_altura_max = alturaMaxInput ? parseInt(alturaMaxInput, 10) : null;
+    corpo.pref_peso_min = pesoMinInput ? parseInt(pesoMinInput, 10) : null;
+    corpo.pref_peso_max = pesoMaxInput ? parseInt(pesoMaxInput, 10) : null;
+    corpo.pref_cor_cabelo = corCabeloInput || null;
+  }
+
   btn.disabled = true;
   btn.textContent = 'Aplicando...';
   try{
     const resp = await fetch(`${API_URL}/api/perfil/editar`, {
       method: 'PUT',
       headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
-      body: JSON.stringify({ pref_idade_min, pref_idade_max, pref_distancia_km, pref_objetivo })
+      body: JSON.stringify(corpo)
     });
     const dados = await resp.json();
     if(!resp.ok){ erroEl.textContent = dados.erro || 'Não foi possível salvar os filtros.'; return; }
