@@ -2741,7 +2741,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 
         <div id="composerErro" style="color:#ff8fa3;font-size:12.5px;text-align:center;padding:0 18px;min-height:14px"></div>
         <div style="padding:10px 18px 18px">
-          <button class="btn btn-primary" onclick="finalizarEEnviarStory()">Enviar</button>
+          <button id="btnEnviarStory" class="btn btn-primary" onclick="finalizarEEnviarStory()">Enviar</button>
         </div>
       </div>
     </div>
@@ -7185,10 +7185,69 @@ function converterPosicaoParaFrameStory(caixa){
   };
 }
 
+// Espera a imagem de fundo terminar de DECODIFICAR antes de qualquer desenho
+// no canvas. Ausência disso era a causa do travamento ao responder a
+// Pergunta do dia com uma foto: tocar em "Enviar" antes da decodificação
+// terminar (fácil de acontecer nesse fluxo, já que o cartão da pergunta pode
+// aparecer — via inserirPerguntaQuandoFundoPronto — antes da foto da galeria
+// acabar de decodificar) fazia o ctx.drawImage rodar sobre uma imagem ainda
+// não pronta: no Safari/iOS isso lança uma exceção dentro do executor da
+// Promise (virando uma rejeição que nada tratava, travando o await de
+// finalizarEEnviarStory pra sempre, sem erro visível e sem o botão voltar ao
+// normal); no Chrome/Android não lança nada, só desenha um fundo em branco,
+// publicando o story sem a foto. Usa HTMLImageElement.decode() quando
+// existe (decodificação garantida, não só o disparo do evento) e cai pro
+// load/error do próprio <img> como alternativa. Nunca fica esperando pra
+// sempre: mesmo se a imagem falhar, resolve — o resto do fluxo trata isso
+// como um aviso em vez de travar o envio.
+function aguardarImagemProntaStory(img){
+  if(!img) return Promise.resolve();
+  if(img.complete && img.naturalWidth) return Promise.resolve();
+  if(img.decode) return img.decode().catch(() => {});
+  return new Promise((resolve) => {
+    img.addEventListener('load', resolve, { once: true });
+    img.addEventListener('error', resolve, { once: true });
+  });
+}
+
 // Único botão "Enviar" no rodapé da edição: prepara o arquivo final (igual
 // antes) E já publica em seguida (antes eram 2 passos: "Continuar" preparava
 // e voltava pro modal da pergunta, aí um botão "Publicar" separado enviava).
+//
+// Duas guardas foram adicionadas aqui (além da espera pela imagem, acima):
+// 1) reentrância — nada impedia um segundo toque em "Enviar" enquanto o
+//    primeiro ainda estava rodando (nenhum estado de "enviando" existia).
+//    Como o toque original podia não dar nenhum feedback visível (ver
+//    causa raiz acima), a pessoa tocava de novo, e dois envios/dois canvas
+//    passavam a rodar ao mesmo tempo, disputando as mesmas variáveis
+//    globais (arquivoRespostaSelecionadoVar etc).
+// 2) try/catch/finally — antes, qualquer exceção nessa função (a própria
+//    causa raiz do travamento, ou qualquer outra) escapava sem tratamento:
+//    nada reabilitava o botão, nada avisava a pessoa, a tela ficava do jeito
+//    que estava. Agora qualquer falha aparece em composerErro e o botão
+//    sempre volta a ficar clicável.
+let envioStoryEmAndamento = false;
 async function finalizarEEnviarStory(){
+  if(envioStoryEmAndamento) return;
+  envioStoryEmAndamento = true;
+  const btnEnviar = document.getElementById('btnEnviarStory');
+  const rotuloOriginalBtn = btnEnviar ? btnEnviar.textContent : 'Enviar';
+  if(btnEnviar){ btnEnviar.disabled = true; btnEnviar.textContent = 'Enviando...'; }
+  const erroEl = document.getElementById('composerErro');
+  if(erroEl) erroEl.textContent = '';
+
+  try{
+    await finalizarEEnviarStoryInterno();
+  } catch(erro){
+    console.error('[story] erro ao finalizar/enviar story:', erro);
+    if(erroEl) erroEl.textContent = 'Não deu pra publicar o story. Tenta de novo.';
+  } finally {
+    envioStoryEmAndamento = false;
+    if(btnEnviar){ btnEnviar.disabled = false; btnEnviar.textContent = rotuloOriginalBtn; }
+  }
+}
+
+async function finalizarEEnviarStoryInterno(){
   const camada = document.getElementById('editorStoryCamadaTextos');
   const caixas = Array.from(camada.querySelectorAll('.editor-story-caixa-texto'));
   const camadaRect = camada.getBoundingClientRect();
@@ -7242,6 +7301,10 @@ async function finalizarEEnviarStory(){
       : null;
     await enviarStoryComposer();
     return;
+  }
+
+  if(editorStoryTipoFundo === 'foto'){
+    await aguardarImagemProntaStory(document.getElementById('editorStoryFundoImg'));
   }
 
   const LARGURA_CANVAS = 1080, ALTURA_CANVAS = 1920;
