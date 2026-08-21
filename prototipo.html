@@ -270,6 +270,12 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 #editorStoryRodape,
 #cameraStoryControlesCaptura { padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
 
+/* Segurar pra pausar o story (pausarStory) acionava o long-press padrão do
+   navegador — seleção de texto/callout — pintando a tela toda de azul. O
+   visualizador não tem nenhum texto pra selecionar de propósito, então
+   desliga o gesto nativo aqui. */
+#overlay-view-story { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
 /* Alças de edição de texto/emoji no composer de story: por padrão ESCONDIDAS.
    Só o elemento com .selecionada mostra borda tracejada + X + alças de
    redimensionar/rotacionar (padrão Instagram/Canva). Antes, todas as caixas
@@ -6432,6 +6438,12 @@ function adicionarCaixaTextoStory(textoInicial, origemPergunta){
   // servidor direto num template — sempre pelo textContent, nunca template).
   const conteudoEl = caixa.querySelector('.editor-story-caixa-conteudo');
   conteudoEl.textContent = textoInicial || 'Toque para editar';
+  // Contenteditable é nativamente "arrastável" no navegador quando há texto
+  // selecionado — arrastar a caixa (nosso translate() customizado) podia
+  // disparar esse drag nativo do texto por baixo, cuja prévia às vezes
+  // renderiza em outra escala. Isso não afeta digitar/editar, só desliga o
+  // drag nativo de conteúdo selecionado.
+  conteudoEl.setAttribute('draggable', 'false');
   camada.appendChild(caixa);
   aplicarTransformCaixaStory(caixa);
   configurarInteracaoCaixaStory(caixa);
@@ -7065,6 +7077,10 @@ function configurarInteracaoCaixaStory(caixa){
   caixa.addEventListener('pointerdown', (ev) => {
     if(ev.target === btnDel || ev.target === alcaResize || ev.target === alcaRotate) return;
     selecionarCaixaStory(caixa);
+    // Limpa seleção de texto residual — evita que uma seleção deixada de um
+    // toque anterior dispare o drag nativo do navegador durante o arraste.
+    const selecaoAtual = window.getSelection && window.getSelection();
+    if(selecaoAtual && selecaoAtual.rangeCount) selecaoAtual.removeAllRanges();
     caixa.setPointerCapture(ev.pointerId);
     const p = pontoRelativo(ev);
     pointersAtivos.set(ev.pointerId, p);
