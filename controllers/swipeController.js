@@ -366,4 +366,8 @@ const obterPerfilMatch = async (req, res) => {
   }
 };
 
-module.exports = { darSwipe, listarPerfis, listarMatches, listarCurtidasRecebidas, obterPerfilMatch };
+// anexarGaleria e obterIdsBloqueados também são reaproveitados por
+// listarVisitantesPerfil (estatisticasController.js) — mesma razão de
+// utils/premium.js: duplicar a lógica de bloqueio, em especial, arriscaria os
+// dois lados desatualizarem e um deles vazar perfil de gente bloqueada.
+module.exports = { darSwipe, listarPerfis, listarMatches, listarCurtidasRecebidas, obterPerfilMatch, anexarGaleria, obterIdsBloqueados };

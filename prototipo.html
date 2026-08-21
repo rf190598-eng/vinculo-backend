@@ -1330,6 +1330,27 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   </div>
 </div>
 
+<!-- QUEM VISITOU MEU PERFIL -->
+<div class="screen" id="screen-visitantes" style="background:#1a0810;min-height:100vh;">
+  <div class="topbar">
+    <div class="icon-btn" onclick="goTo('myprofile')">&#8592;</div>
+    <div class="logo serif">Quem visitou você</div>
+    <div style="width:38px"></div>
+  </div>
+  <div style="padding:0 18px">
+    <div style="background:linear-gradient(135deg,rgba(212,131,154,.18),rgba(201,160,107,.1));border:1.5px solid rgba(212,131,154,.45);border-radius:18px;padding:18px 16px;text-align:center;margin-bottom:18px" id="visitantesBannerPremium">
+      <div style="font-size:36px;margin-bottom:8px">&#128064;</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;margin-bottom:6px;color:#fdf6f2"><span id="visitantesContagem">0</span> visitas nos últimos 30 dias</div>
+      <div style="color:#e0c0d0;font-size:13px;line-height:1.6;margin-bottom:8px">Assine o Premium para ver quem são.</div>
+      <button class="btn btn-primary" style="max-width:320px;margin:0 auto;padding:14px;font-size:12.5px" onclick="goTo('assinatura')">&#128274; Desbloquear — a partir de R$9,90/semana</button>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:#d8b0c4;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Visitas recentes</div>
+    <div id="visitantesGridReal"></div>
+    <div id="visitantesVazio" style="display:none;text-align:center;padding:30px 10px;color:#a07080;font-size:12.5px">Ninguém visitou seu perfil nos últimos 30 dias ainda.</div>
+    <button id="visitantesBtnCarregarMais" style="display:none;width:100%;margin-top:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#fdf6f2;font-size:12.5px;font-weight:700;cursor:pointer" onclick="carregarMaisVisitantes()">Carregar mais</button>
+  </div>
+</div>
+
 <!-- ASSINATURA PREMIUM -->
 <div class="screen" id="screen-assinatura" style="background:#1a0810;min-height:100vh;">
 
@@ -2187,7 +2208,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div style="margin:10px 18px 4px;background:linear-gradient(135deg,rgba(212,131,154,.1),rgba(201,160,107,.06));border:1.5px solid rgba(255,255,255,.1);border-radius:18px;padding:16px">
     <div style="font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">&#128202; Seu desempenho</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
-      <div style="text-align:center">
+      <div style="text-align:center;cursor:pointer" onclick="goTo('visitantes')">
         <div style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:#fdf6f2" id="meuPerfilStatVisualizacoes">0</div>
         <div style="font-size:10.5px;color:#d0a8b8;line-height:1.3">visualizações do perfil</div>
       </div>
@@ -2203,8 +2224,8 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <!-- Barra de destaque -->
     <div id="faixaPremiumPerfil" style="background:rgba(255,255,255,.06);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px">
       <span style="font-size:18px">&#128081;</span>
-      <div style="flex:1;font-size:12px;color:#e0c0d0;line-height:1.4">Assine o Premium para ver <b style="color:#fdf6f2">quem visitou seu perfil</b> e aparecer mais vezes</div>
-      <button onclick="goTo('assinatura')" style="background:linear-gradient(135deg,#e0607a,#d4839a 50%,#c9a06b);border:none;border-radius:12px;padding:7px 11px;color:#fff;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">Ver planos</button>
+      <div style="flex:1;font-size:12px;color:#e0c0d0;line-height:1.4">Assine o Premium para ver <b style="color:#fdf6f2">quem visitou seu perfil</b></div>
+      <button onclick="goTo('visitantes')" style="background:linear-gradient(135deg,#e0607a,#d4839a 50%,#c9a06b);border:none;border-radius:12px;padding:7px 11px;color:#fff;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">Ver visitantes</button>
     </div>
     <!-- Achado E2 do streamline: o Programa de Parceiros era só mais um item
          numa lista de 11 configurações, sem destaque nenhum — baixa
@@ -2881,6 +2902,7 @@ function goTo(name){
   if(name==='indica'){ carregarEstatisticasIndicacao(); }
   if(name==='guia-parceiro'){ carregarGuiaParceiro(); }
   if(name==='likes'){ carregarCurtidasRecebidas(); }
+  if(name==='visitantes'){ carregarVisitantesPerfil(true); }
   if(name==='eventos'){ carregarEventos(); }
   if(name==='dupla'){ carregarStatusDuplaTela(); }
   if(name==='dupla-swipe'){ carregarDuplasParaSwipe(); }
@@ -3753,6 +3775,70 @@ async function carregarCurtidasRecebidas(){
     renderizarEstadoLista(vazio, { temErro:true, aoTentarNovo: carregarCurtidasRecebidas });
   }
 }
+
+// "Quem visitou meu perfil" — mesmo padrão de carregarCurtidasRecebidas
+// (servidor decide o que vaza: sem Premium vem visitantes:[] com total>0),
+// com paginação simples de "carregar mais" por cima (janela de 30 dias,
+// 20 por página, decidido no backend).
+let visitantesPaginaCarregada = 0;
+let visitantesTotalPaginas = 0;
+async function carregarVisitantesPerfil(reiniciar){
+  const grid = document.getElementById('visitantesGridReal');
+  const vazio = document.getElementById('visitantesVazio');
+  const contagemEl = document.getElementById('visitantesContagem');
+  const bannerEl = document.getElementById('visitantesBannerPremium');
+  const btnMais = document.getElementById('visitantesBtnCarregarMais');
+  if(reiniciar){ grid.innerHTML = ''; visitantesPaginaCarregada = 0; visitantesTotalPaginas = 0; }
+  const proximaPagina = visitantesPaginaCarregada + 1;
+  try{
+    const resp = await fetchComTimeout(`${API_URL}/api/estatisticas/visitantes?pagina=${proximaPagina}`, { headers:{'Authorization':`Bearer ${tokenAtual}`} }, 10000);
+    const dados = await resp.json();
+    const visitantes = dados.visitantes || [];
+    const totalReal = dados.total || 0;
+    contagemEl.textContent = totalReal;
+    const souPremium = dados.premium === true;
+
+    if(totalReal === 0){
+      renderizarEstadoLista(vazio, { temErro:false, mensagemVazia: 'Ninguém visitou seu perfil nos últimos 30 dias ainda.' });
+      bannerEl.style.display = souPremium ? 'none' : 'block';
+      btnMais.style.display = 'none';
+      return;
+    }
+    vazio.style.display = 'none';
+    bannerEl.style.display = souPremium ? 'none' : 'block';
+
+    grid.style.display = 'grid';
+    grid.style.gridTemplateColumns = '1fr 1fr';
+    grid.style.gap = '10px';
+
+    // Premium: um card por visitante real, igual à lista de Curtidas. Sem
+    // premium: N cards borrados (N = total), sem nenhum perfil de verdade
+    // chegando no cliente pra vazar.
+    const itens = souPremium ? visitantes : Array.from({ length: totalReal });
+    itens.forEach(p=>{
+      const card = document.createElement('div');
+      if(souPremium){
+        const idade = p.data_nascimento ? calcularIdade(p.data_nascimento) : '';
+        card.className = 'likes-real-card';
+        card.innerHTML = `<div style="background:rgba(0,0,0,.5);border-radius:8px;padding:4px 8px;font-size:12px;color:#fff;font-weight:700">${escapeHtml(p.nome)}, ${idade}</div>`;
+        if(p.foto_url){ card.style.backgroundImage = `url(${API_URL}${p.foto_url})`; }
+        card.onclick = () => verPerfilDeVisitante(p);
+      } else {
+        card.className = 'likes-blur-card';
+        card.innerHTML = `<div class="likes-blur-photo">&#128100;</div><div class="likes-blur-overlay"><div style="width:44px;height:44px;border-radius:50%;background:rgba(26,10,14,.8);border:2px solid #c9a06b;display:flex;align-items:center;justify-content:center;font-size:22px">&#128274;</div><div style="font-size:10px;color:#c9a06b;font-weight:700">Premium</div></div>`;
+      }
+      grid.appendChild(card);
+    });
+
+    visitantesPaginaCarregada = dados.pagina || proximaPagina;
+    visitantesTotalPaginas = dados.total_paginas || 0;
+    btnMais.style.display = (souPremium && visitantesPaginaCarregada < visitantesTotalPaginas) ? 'block' : 'none';
+  } catch(e){
+    renderizarEstadoLista(vazio, { temErro:true, aoTentarNovo: () => carregarVisitantesPerfil(true) });
+    btnMais.style.display = 'none';
+  }
+}
+function carregarMaisVisitantes(){ carregarVisitantesPerfil(false); }
 
 async function curtirDeVolta(perfil, cardEl){
   try{
@@ -4815,6 +4901,64 @@ function verPerfilDeMatch(perfil){
 
   const backBtn = document.getElementById('pvBotaoVoltar');
   if(backBtn) backBtn.onclick = () => goTo('chatroom');
+
+  const actionBar = document.getElementById('pvActionBar');
+  if(actionBar) actionBar.style.display = 'none';
+  preencherDetalhesEGaleria(p);
+
+  goTo('profile-view');
+}
+
+// Igual a verPerfilDeMatch() — mesmo motivo de esconder curtir/passar: quem
+// já visitou seu perfil não faz sentido "passar" aqui (essa lista não é uma
+// fila de avaliação), e voltar retorna pra lista de visitantes, não pro
+// Descobrir.
+function verPerfilDeVisitante(perfil){
+  if(!perfil) return;
+  const p = perfil;
+  perfilDenunciadoId = p.id;
+  registrarVisualizacaoPerfil(p.id);
+  const idade = p.data_nascimento ? calcularIdade(p.data_nascimento) : '';
+
+  document.getElementById('pvNome').textContent = `${p.nome} ${idade}`;
+
+  const bioEl = document.getElementById('pvBio');
+  bioEl.textContent = p.bio ? p.bio : 'Essa pessoa ainda não escreveu uma bio.';
+
+  const objetivoWrap = document.getElementById('pvObjetivoWrap');
+  if(p.objetivo){
+    objetivoWrap.style.display='block';
+    const nomesObjetivo = {serio:'Relacionamento sério', amizade:'Amizade', casual:'Algo casual'};
+    document.getElementById('pvObjetivo').textContent = nomesObjetivo[p.objetivo] || p.objetivo;
+  } else {
+    objetivoWrap.style.display='none';
+  }
+
+  const pvInstagramWrap = document.getElementById('pvInstagramWrap');
+  if(p.instagram_handle){
+    const handleSeguro = handleInstagramSeguro(p.instagram_handle);
+    pvInstagramWrap.style.display = 'block';
+    document.getElementById('pvInstagram').href = `https://instagram.com/${handleSeguro}`;
+    document.getElementById('pvInstagramTexto').textContent = `@${handleSeguro}`;
+  } else {
+    pvInstagramWrap.style.display = 'none';
+  }
+
+  const badgesEl = document.getElementById('pvBadges');
+  badgesEl.innerHTML = p.verificado ? '<div class="badge badge-gold">&#10003; Foto verificada</div>' : '';
+
+  const badgesFotoEl = document.getElementById('pvBadgesFoto');
+  badgesFotoEl.innerHTML = p.verificado ? '<span style="background:rgba(26,10,14,.85);border:1px solid #c9a06b;border-radius:20px;padding:5px 12px;font-size:10.5px;color:#c9a06b;font-weight:700">&#10003; Foto verificada</span>' : '';
+
+  const fotoEl = document.getElementById('pvFoto');
+  const fotoPlaceholder = document.getElementById('pvFotoPlaceholder');
+  fotoEl.style.backgroundImage = p.foto_url ? `url(${API_URL}${p.foto_url})` : '';
+  fotoEl.style.backgroundSize = 'cover';
+  fotoEl.style.backgroundPosition = 'center';
+  if(fotoPlaceholder) fotoPlaceholder.style.display = p.foto_url ? 'none' : '';
+
+  const backBtn = document.getElementById('pvBotaoVoltar');
+  if(backBtn) backBtn.onclick = () => goTo('visitantes');
 
   const actionBar = document.getElementById('pvActionBar');
   if(actionBar) actionBar.style.display = 'none';
