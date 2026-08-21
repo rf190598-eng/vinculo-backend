@@ -355,10 +355,19 @@ app.use((req, res) => {
 // e evita que o processo caia ou vaze detalhes internos ao usuário.
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
-    const mensagensMulter = {
-      LIMIT_FILE_SIZE: 'Essa foto é grande demais. Envie uma imagem de até 10MB.'
-    };
-    return res.status(400).json({ erro: mensagensMulter[err.code] || 'Erro no envio do arquivo: ' + err.message });
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      // A mensagem precisa diferenciar rota: /api/status (foto OU vídeo de
+      // story, limite de 25MB) usava a mesma frase escrita pro upload de foto
+      // de perfil (/api/perfil, limite de 10MB) — dizendo "foto"/"10MB" mesmo
+      // quando o arquivo rejeitado era um vídeo de até 25MB.
+      const ehStory = req.originalUrl && req.originalUrl.startsWith('/api/status');
+      return res.status(400).json({
+        erro: ehStory
+          ? 'Esse arquivo é grande demais. Envie um vídeo/foto de até 25MB.'
+          : 'Essa foto é grande demais. Envie uma imagem de até 10MB.'
+      });
+    }
+    return res.status(400).json({ erro: 'Erro no envio do arquivo: ' + err.message });
   }
   console.error('Erro não tratado:', err.stack);
   res.status(err.status || 500).json({

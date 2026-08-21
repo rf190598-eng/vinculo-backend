@@ -5989,11 +5989,22 @@ function usarGaleriaEmVezDeCamera(){
   document.getElementById('respostaArquivoInput').click();
 }
 
+// Mesmo limite do backend (statusController.js: uploadStatus multer
+// limits.fileSize) — checar aqui evita deixar a pessoa editar um vídeo que
+// nunca vai conseguir enviar, e evita bater nesse limite silenciosamente no
+// meio do upload (sem timeout no fetch, isso deixava a tela "carregando"
+// pra sempre em vez de mostrar erro).
+const LIMITE_TAMANHO_VIDEO_STORY_BYTES = 25 * 1024 * 1024;
+
 function arquivoRespostaSelecionado(event){
   const arquivo = event.target.files[0];
   event.target.value = ''; // permite escolher o mesmo arquivo de novo depois
   if(!arquivo) return;
   const ehVideo = arquivo.type.startsWith('video/');
+  if(ehVideo && arquivo.size > LIMITE_TAMANHO_VIDEO_STORY_BYTES){
+    showToastVinculo('Esse vídeo é grande demais (máx. 25MB). Escolhe um menor ou grava direto pelo app.');
+    return;
+  }
   pararStreamCameraStory();
   abrirEditorStory(ehVideo ? 'video' : 'foto', arquivo);
 }
@@ -6428,7 +6439,7 @@ function adicionarCaixaTextoStory(textoInicial, origemPergunta){
   caixa.innerHTML = `
     <span class="editor-story-caixa-del" style="position:absolute;top:-11px;left:-11px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2">&times;</span>
     ${origemPergunta ? '<div class="editor-story-cartao-rotulo">Pergunta do dia</div>' : ''}
-    <div class="editor-story-caixa-conteudo" contenteditable="true" style="color:#fdf6f2;font-family:${EDITOR_STORY_FONTES[0].valor};font-size:${tamanhoInicial}px;font-weight:700;text-shadow:0 2px 10px rgba(0,0,0,.6);outline:none;min-width:26px;white-space:pre-wrap;text-align:center;cursor:text"></div>
+    <div class="editor-story-caixa-conteudo" contenteditable="true" style="color:#fdf6f2;font-family:${EDITOR_STORY_FONTES[0].valor};font-size:${tamanhoInicial}px;font-weight:700;text-shadow:0 2px 10px rgba(0,0,0,.6);outline:none;min-width:26px;white-space:pre-wrap;text-align:center;cursor:text;-webkit-user-select:none;user-select:none"></div>
     <span class="editor-story-caixa-resize" style="position:absolute;bottom:-13px;right:-13px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:nwse-resize;z-index:2">&#8646;</span>
     <span class="editor-story-caixa-rotate" style="position:absolute;top:-13px;right:-13px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:grab;z-index:2">&#8635;</span>
   `;
@@ -7613,11 +7624,19 @@ async function enviarStoryComposer(){
   }
 
   try{
+    const controleTempo = new AbortController();
+    // 60s dá folga pra até 25MB numa conexão de celular ruim, sem deixar a
+    // pessoa esperando indefinidamente se o servidor não responder (era o
+    // caso de vídeo de galeria grande: sem timeout, a tela ficava
+    // "carregando" pra sempre em vez de mostrar um erro).
+    const idTimeout = setTimeout(() => controleTempo.abort(), 60000);
     const resp = await fetch(`${API_URL}/api/status`, {
       method:'POST',
       headers: {'Authorization':`Bearer ${tokenAtual}`},
-      body: formData
+      body: formData,
+      signal: controleTempo.signal
     });
+    clearTimeout(idTimeout);
     const dados = await resp.json();
     if(!resp.ok){ erroEl.textContent = dados.erro || 'Erro ao publicar.'; return; }
     fecharComposerStory();
@@ -7634,7 +7653,11 @@ async function enviarStoryComposer(){
     const meuRing = document.getElementById('meuStoryRing');
     console.log('[ring] enviarStoryComposer: elemento meuStoryRing encontrado?', !!meuRing, '| chamando atualizarMeuStoryRingComMiniatura agora');
     if(meuRing) atualizarMeuStoryRingComMiniatura(meuRing);
-  } catch(e){ erroEl.textContent = 'Erro de conexão.'; }
+  } catch(e){
+    erroEl.textContent = (e && e.name === 'AbortError')
+      ? 'Demorou demais pra enviar. Tenta com uma conexão melhor ou um arquivo menor.'
+      : 'Erro de conexão.';
+  }
 }
 
 async function carregarStoriesBar(){
