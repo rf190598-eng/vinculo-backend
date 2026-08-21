@@ -1437,7 +1437,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="background:rgba(255,255,255,.04);border:1.5px dashed rgba(255,255,255,.15);border-radius:16px;padding:16px;text-align:center;margin-top:8px">
       <div style="font-size:14px;font-weight:700;color:#fdf6f2;margin-bottom:4px">&#127970; Você tem um espaço ou evento?</div>
       <div style="font-size:12.5px;color:#d0a8b8;margin-bottom:12px;line-height:1.5">Anuncie para a comunidade Vínculo em São José do Rio Preto</div>
-      <button style="background:linear-gradient(135deg,rgba(212,131,154,.2),rgba(201,160,107,.1));border:1.5px solid rgba(201,160,107,.4);border-radius:10px;padding:12px 22px;color:#fdf6f2;font-weight:700;cursor:pointer;font-size:13.5px;font-family:inherit" onclick="goTo('parceiro')">&#127970; Quero ser parceiro</button>
+      <button style="background:linear-gradient(135deg,rgba(212,131,154,.2),rgba(201,160,107,.1));border:1.5px solid rgba(201,160,107,.4);border-radius:10px;padding:12px 22px;color:#fdf6f2;font-weight:700;cursor:pointer;font-size:13.5px;font-family:inherit" onclick="goTo('parceiro')">&#127970; Divulgar meu espaço</button>
     </div>
   </div>
 </div>
@@ -1596,7 +1596,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 <div class="screen" id="screen-parceiro" style="background:#1a0810;min-height:100vh;">
   <div class="topbar">
     <div class="icon-btn" onclick="goTo('eventos')">&#8592;</div>
-    <div class="logo serif">Ser <span>Parceiro</span></div>
+    <div class="logo serif">Anunciar <span>Espaço</span></div>
     <div style="width:38px"></div>
   </div>
   <div style="padding:0 18px 32px">
@@ -2026,14 +2026,14 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <input id="piInstituicao" style="width:100%;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18);border-radius:10px;padding:12px;font-size:14px;color:#fdf6f2;outline:none;font-family:inherit"/>
       </div>
       <div style="margin-bottom:14px">
-        <label style="display:block;font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">E-mail de contato</label>
+        <label style="display:block;font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">E-mail de contato *</label>
         <input id="piEmail" type="email" style="width:100%;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18);border-radius:10px;padding:12px;font-size:14px;color:#fdf6f2;outline:none;font-family:inherit"/>
         <div style="font-size:11.5px;color:rgba(255,255,255,.5);margin-top:5px">Pode ser diferente do e-mail da sua conta no Vínculo.</div>
       </div>
       <div style="margin-bottom:14px">
-        <label style="display:block;font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Chave Pix da instituição</label>
+        <label style="display:block;font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Chave Pix da instituição (opcional por agora)</label>
         <input id="piPix" style="width:100%;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18);border-radius:10px;padding:12px;font-size:14px;color:#fdf6f2;outline:none;font-family:inherit"/>
-        <div style="font-size:11.5px;color:rgba(255,255,255,.5);margin-top:5px">É para onde as comissões serão pagas.</div>
+        <div style="font-size:11.5px;color:rgba(255,255,255,.5);margin-top:5px">É para onde as comissões serão pagas — pode enviar depois, antes do primeiro pagamento.</div>
       </div>
       <div style="margin-bottom:16px">
         <label style="display:block;font-size:11px;font-weight:800;color:#d0a8b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Mensagem / justificativa (opcional)</label>
@@ -2199,6 +2199,17 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <span style="font-size:18px">&#128081;</span>
       <div style="flex:1;font-size:12px;color:#e0c0d0;line-height:1.4">Assine o Premium para ver <b style="color:#fdf6f2">quem visitou seu perfil</b> e aparecer mais vezes</div>
       <button onclick="goTo('assinatura')" style="background:linear-gradient(135deg,#e0607a,#d4839a 50%,#c9a06b);border:none;border-radius:12px;padding:7px 11px;color:#fff;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">Ver planos</button>
+    </div>
+    <!-- Achado E2 do streamline: o Programa de Parceiros era só mais um item
+         numa lista de 11 configurações, sem destaque nenhum — baixa
+         descobribilidade. Reaproveita o mesmo padrão de card da faixa do
+         Premium acima, pra ganhar visibilidade sem precisar de tela nova. O
+         item continua também na lista de configurações logo abaixo, como
+         caminho alternativo pra quem procura lá por hábito. -->
+    <div onclick="goTo('indica')" style="background:rgba(255,255,255,.06);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;margin-top:10px;cursor:pointer">
+      <span style="font-size:18px">&#129309;</span>
+      <div style="flex:1;font-size:12px;color:#e0c0d0;line-height:1.4">Indique amigos e <b style="color:#fdf6f2">ganhe de R$ 3,30 a R$ 7,00 por indicação</b>, todo mês</div>
+      <span style="color:#d4b87a;font-size:20px">&#8250;</span>
     </div>
   </div>
 <!-- INSTAGRAM (opcional, informado manualmente) -->
@@ -5347,8 +5358,12 @@ async function enviarSolicitacaoInstitucional(){
     mensagem: document.getElementById('piMensagem').value.trim()
   };
 
-  if(!corpo.nome_completo || !corpo.nome_instituicao || !corpo.chave_pix){
-    erroEl.textContent = 'Preencha nome, instituição e chave Pix.';
+  // Achado E3 do streamline: a chave Pix só é usada no primeiro pagamento,
+  // meses depois da aprovação — pedir ela como obrigatória logo na
+  // solicitação inicial é dado sensível cedo demais. E-mail de contato já
+  // basta pra essa etapa.
+  if(!corpo.nome_completo || !corpo.nome_instituicao || !corpo.email_contato){
+    erroEl.textContent = 'Preencha nome, instituição e e-mail de contato.';
     return;
   }
 

@@ -316,9 +316,12 @@ const solicitarInstitucional = async (req, res) => {
     const nomeCompleto = limpar(nome_completo, 120);
     const emailContato = limpar(email_contato, 150);
 
+    // Achado E3 do streamline: a chave Pix só é usada no primeiro pagamento,
+    // meses depois da aprovação — não faz sentido exigi-la já na solicitação
+    // inicial. E-mail de contato passa a ser o obrigatório dessa etapa.
     if (!nomeInstituicao) return res.status(400).json({ erro: 'Informe o nome da instituição/atlética' });
-    if (!chavePix) return res.status(400).json({ erro: 'Informe a chave Pix da instituição' });
     if (!nomeCompleto) return res.status(400).json({ erro: 'Informe seu nome completo' });
+    if (!emailContato) return res.status(400).json({ erro: 'Informe um e-mail de contato' });
 
     const usuario = await Usuario.findByPk(req.usuarioId, { attributes: ['id', 'nome'] });
     if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
