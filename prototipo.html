@@ -6434,8 +6434,8 @@ function adicionarCaixaTextoStory(textoInicial, origemPergunta){
   // Cartão precisa de mais respiro interno e de largura contida, senão a
   // pergunta vira uma linha só atravessando a tela.
   caixa.style.cssText = origemPergunta
-    ? 'position:absolute;touch-action:none;padding:16px 18px;max-width:74vw;'
-    : 'position:absolute;touch-action:none;padding:10px 14px;';
+    ? 'position:absolute;touch-action:none;padding:16px 18px;width:max-content;max-width:74vw;'
+    : 'position:absolute;touch-action:none;padding:10px 14px;width:max-content;max-width:80vw;';
   caixa.innerHTML = `
     <span class="editor-story-caixa-del" style="position:absolute;top:-11px;left:-11px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2">&times;</span>
     ${origemPergunta ? '<div class="editor-story-cartao-rotulo">Pergunta do dia</div>' : ''}
@@ -7588,12 +7588,60 @@ function renderizarOverlaysTextoStory(item, media){
   });
 }
 
+// Upload por XMLHttpRequest em vez de fetch: existem relatos recorrentes e
+// atuais de fetch()+FormData+Blob travando silenciosamente em uploads
+// grandes no Safari/iOS (especialmente em rede móvel) — nesses casos até um
+// AbortController de fetch não consegue interromper, porque o travamento
+// acontece dentro da própria leitura do Blob pelo WebKit, antes do
+// AbortController conseguir agir. XHR tem histórico mais confiável nesse
+// cenário específico e, com xhr.upload.onprogress, dá pra mostrar % real de
+// progresso — o que também resolve a sensação de "travado" mesmo quando o
+// envio está funcionando, só que devagar numa rede ruim.
+//
+// Em vez de um timeout fixo (que penalizaria injustamente uma rede lenta,
+// mas que está funcionando), detecta ESTAGNAÇÃO: aborta só se ficar
+// TEMPO_SEM_PROGRESSO_MS sem nenhum progresso de upload. Uma rede lenta que
+// segue progredindo, mesmo devagar, nunca é interrompida.
+const TEMPO_SEM_PROGRESSO_MS = 20000;
+function enviarFormDataComProgresso(url, formData, headers, aoProgresso){
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    Object.keys(headers || {}).forEach(k => xhr.setRequestHeader(k, headers[k]));
+
+    let ultimoProgressoEm = Date.now();
+    const vigia = setInterval(() => {
+      if(Date.now() - ultimoProgressoEm > TEMPO_SEM_PROGRESSO_MS){
+        clearInterval(vigia);
+        xhr.abort();
+      }
+    }, 2000);
+
+    if(xhr.upload){
+      xhr.upload.onprogress = (ev) => {
+        ultimoProgressoEm = Date.now();
+        if(ev.lengthComputable && aoProgresso) aoProgresso(Math.round((ev.loaded / ev.total) * 100));
+      };
+    }
+    xhr.onload = () => {
+      clearInterval(vigia);
+      let dados = {};
+      try{ dados = JSON.parse(xhr.responseText || '{}'); } catch(e){}
+      resolve({ ok: xhr.status >= 200 && xhr.status < 300, dados });
+    };
+    xhr.onerror = () => { clearInterval(vigia); reject(new Error('erro de conexao')); };
+    xhr.onabort = () => { clearInterval(vigia); reject(Object.assign(new Error('sem progresso'), { estagnado: true })); };
+    xhr.send(formData);
+  });
+}
+
 // Envio de fato pro backend — POST /api/status inalterado (mesma rota/campos
 // de antes), só a origem dos erros/sucesso mudou de perguntaDoDiaErro/modal
 // pergunta-dia pra composerErro/composer unificado.
 async function enviarStoryComposer(){
   const erroEl = document.getElementById('composerErro');
   erroEl.textContent = '';
+  const btnEnviar = document.getElementById('btnEnviarStory');
 
   const formData = new FormData();
   formData.append('tipo', tipoRespostaEscolhido);
@@ -7624,21 +7672,13 @@ async function enviarStoryComposer(){
   }
 
   try{
-    const controleTempo = new AbortController();
-    // 60s dá folga pra até 25MB numa conexão de celular ruim, sem deixar a
-    // pessoa esperando indefinidamente se o servidor não responder (era o
-    // caso de vídeo de galeria grande: sem timeout, a tela ficava
-    // "carregando" pra sempre em vez de mostrar um erro).
-    const idTimeout = setTimeout(() => controleTempo.abort(), 60000);
-    const resp = await fetch(`${API_URL}/api/status`, {
-      method:'POST',
-      headers: {'Authorization':`Bearer ${tokenAtual}`},
-      body: formData,
-      signal: controleTempo.signal
-    });
-    clearTimeout(idTimeout);
-    const dados = await resp.json();
-    if(!resp.ok){ erroEl.textContent = dados.erro || 'Erro ao publicar.'; return; }
+    const { ok, dados } = await enviarFormDataComProgresso(
+      `${API_URL}/api/status`,
+      formData,
+      { 'Authorization': `Bearer ${tokenAtual}` },
+      (pct) => { if(btnEnviar) btnEnviar.textContent = `Enviando... ${pct}%`; }
+    );
+    if(!ok){ erroEl.textContent = dados.erro || 'Erro ao publicar.'; return; }
     fecharComposerStory();
     showToastVinculo('Resposta publicada! ✨');
     carregarPerguntaDoDia();
@@ -7654,8 +7694,8 @@ async function enviarStoryComposer(){
     console.log('[ring] enviarStoryComposer: elemento meuStoryRing encontrado?', !!meuRing, '| chamando atualizarMeuStoryRingComMiniatura agora');
     if(meuRing) atualizarMeuStoryRingComMiniatura(meuRing);
   } catch(e){
-    erroEl.textContent = (e && e.name === 'AbortError')
-      ? 'Demorou demais pra enviar. Tenta com uma conexão melhor ou um arquivo menor.'
+    erroEl.textContent = (e && e.estagnado)
+      ? 'O envio parou de progredir. Tenta de novo com uma conexão melhor.'
       : 'Erro de conexão.';
   }
 }
