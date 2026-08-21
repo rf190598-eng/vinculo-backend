@@ -37,6 +37,22 @@ input,textarea,select{font-size:16px!important;font-family:inherit;}
 .serif{font-family:'Cormorant Garamond',serif;}
 .demo-bar{background:#1a0a0e;color:#e8c0cc;text-align:center;padding:5px 10px;font-size:10px;letter-spacing:.5px;position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;z-index:999;border-bottom:1px solid #5c1a2e;}
 .app{min-height:100vh;padding-top:26px;padding-bottom:80px;background:#1a0810;}
+
+/* SKELETON LOADING — blocos com brilho passando, paleta escura do app.
+   Reutilizado nas telas que buscam dado do servidor ao carregar. */
+@keyframes skeletonPulse{0%{background-position:-135% 0;}100%{background-position:135% 0;}}
+.skeleton{
+  background-image:linear-gradient(90deg, rgba(255,255,255,.06) 25%, rgba(255,255,255,.14) 37%, rgba(255,255,255,.06) 63%);
+  background-size:400% 100%;
+  animation:skeletonPulse 1.5s ease-in-out infinite;
+  border-radius:8px;
+}
+.skeleton-linha-item{display:flex;align-items:center;gap:12px;padding:13px 8px;}
+.skeleton-linha-avatar{width:54px;height:54px;border-radius:50%;flex-shrink:0;}
+.skeleton-linha-textos{flex:1;display:flex;flex-direction:column;gap:8px;}
+.card-skeleton{z-index:2;display:flex;flex-direction:column;background:linear-gradient(180deg,#2a0f1e,#1a0810);}
+@media (prefers-reduced-motion: reduce){.skeleton{animation:none;opacity:.5;}}
+
 .screen{display:none!important;}.screen.active{display:block!important;}
 #screen-match.active{display:flex!important;}
 #screen-auth.active{display:flex!important;}
@@ -850,6 +866,17 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         </div>
       </div>
     </div>
+    <div class="swipe-card card-skeleton" id="cardSkeleton">
+      <div class="skeleton" style="flex:1;border-radius:0"></div>
+      <div style="padding:14px 18px 18px;display:flex;flex-direction:column;gap:10px">
+        <div class="skeleton" style="width:55%;height:22px;border-radius:6px"></div>
+        <div style="display:flex;gap:6px">
+          <div class="skeleton" style="width:64px;height:24px;border-radius:20px"></div>
+          <div class="skeleton" style="width:78px;height:24px;border-radius:20px"></div>
+          <div class="skeleton" style="width:56px;height:24px;border-radius:20px"></div>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="swipe-btns">
     <button class="sw-btn sw-pass" onclick="doSwipe('left')">&#10005;</button>
@@ -1218,9 +1245,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div class="logo serif">Notificações</div>
     <div style="width:38px"></div>
   </div>
-  <div style="padding:0 18px 24px" id="notifFeedLista">
-    <div style="text-align:center;color:#a07080;font-size:13px;padding:40px 20px">Carregando...</div>
-  </div>
+  <div style="padding:0 18px 24px" id="notifFeedLista"></div>
 </div>
 
 <div class="screen" id="screen-notif-prefs" style="background:#1a0810;min-height:100vh;">
@@ -3022,6 +3047,26 @@ const API_URL = 'https://vinculo-backend-production.up.railway.app';
   function escapeHtml(texto){
   return String(texto ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+// Skeleton loading reutilizável — linhas (avatar + 2 textos, pra listas tipo
+// Conversas/Notificações) e grid (blocos quadrados, pra Curtidas/Visitantes).
+function gerarEsqueletoLinhas(n){
+  let html='';
+  for(let i=0;i<n;i++){
+    html += `<div class="skeleton-linha-item">
+      <div class="skeleton skeleton-linha-avatar"></div>
+      <div class="skeleton-linha-textos">
+        <div class="skeleton" style="width:${55+(i%3)*10}%;height:13px"></div>
+        <div class="skeleton" style="width:${70-(i%3)*8}%;height:11px"></div>
+      </div>
+    </div>`;
+  }
+  return html;
+}
+function gerarEsqueletoGrid(n){
+  let html='';
+  for(let i=0;i<n;i++){ html += `<div class="skeleton" style="height:180px;border-radius:18px"></div>`; }
+  return html;
+}
 // Handle do Instagram vira parte de uma URL e, em alguns lugares, é inserido
 // via innerHTML — não pode conter nada além do que o Instagram realmente aceita
 // em nome de usuário (letras, números, ponto e underscore).
@@ -3835,7 +3880,10 @@ async function carregarCurtidasRecebidas(){
   const vazio = document.getElementById('likesVazio');
   const contagemEl = document.getElementById('likesContagem');
   const bannerEl = document.getElementById('likesBannerPremium');
-  grid.innerHTML = '';
+  grid.innerHTML = gerarEsqueletoGrid(6);
+  grid.style.display = 'grid';
+  grid.style.gridTemplateColumns = '1fr 1fr';
+  grid.style.gap = '10px';
   try{
     const resp = await fetchComTimeout(`${API_URL}/api/swipe/curtidas-recebidas`, { headers:{'Authorization':`Bearer ${tokenAtual}`} }, 10000);
     const dados = await resp.json();
@@ -3849,6 +3897,7 @@ async function carregarCurtidasRecebidas(){
     const souPremium = dados.premium === true;
 
     if(totalReal === 0){
+      grid.innerHTML = '';
       renderizarEstadoLista(vazio, { temErro:false, mensagemVazia: 'Ninguém curtiu você ainda. Continue no Descobrir!' });
       bannerEl.style.display = 'none';
       return;
@@ -3857,9 +3906,7 @@ async function carregarCurtidasRecebidas(){
 
     bannerEl.style.display = souPremium ? 'none' : 'block';
 
-    grid.style.display = 'grid';
-    grid.style.gridTemplateColumns = '1fr 1fr';
-    grid.style.gap = '10px';
+    grid.innerHTML = '';
 
     // Premium: um card por perfil real. Sem premium: N cards borrados, onde N
     // é o total — não existe perfil nenhum no cliente para vazar.
@@ -3881,6 +3928,7 @@ async function carregarCurtidasRecebidas(){
   } catch(e){
     // Achado MÉDIA da auditoria de UX: erro de rede não é mais confundido com
     // "ninguém curtiu" — especialmente sensível aqui, num app de relacionamento.
+    grid.innerHTML = '';
     renderizarEstadoLista(vazio, { temErro:true, aoTentarNovo: carregarCurtidasRecebidas });
   }
 }
@@ -3897,7 +3945,13 @@ async function carregarVisitantesPerfil(reiniciar){
   const contagemEl = document.getElementById('visitantesContagem');
   const bannerEl = document.getElementById('visitantesBannerPremium');
   const btnMais = document.getElementById('visitantesBtnCarregarMais');
-  if(reiniciar){ grid.innerHTML = ''; visitantesPaginaCarregada = 0; visitantesTotalPaginas = 0; }
+  if(reiniciar){
+    grid.innerHTML = gerarEsqueletoGrid(6);
+    grid.style.display = 'grid';
+    grid.style.gridTemplateColumns = '1fr 1fr';
+    grid.style.gap = '10px';
+    visitantesPaginaCarregada = 0; visitantesTotalPaginas = 0;
+  }
   const proximaPagina = visitantesPaginaCarregada + 1;
   try{
     const resp = await fetchComTimeout(`${API_URL}/api/estatisticas/visitantes?pagina=${proximaPagina}`, { headers:{'Authorization':`Bearer ${tokenAtual}`} }, 10000);
@@ -3908,6 +3962,7 @@ async function carregarVisitantesPerfil(reiniciar){
     const souPremium = dados.premium === true;
 
     if(totalReal === 0){
+      if(reiniciar) grid.innerHTML = '';
       renderizarEstadoLista(vazio, { temErro:false, mensagemVazia: 'Ninguém visitou seu perfil nos últimos 30 dias ainda.' });
       bannerEl.style.display = souPremium ? 'none' : 'block';
       btnMais.style.display = 'none';
@@ -3916,6 +3971,7 @@ async function carregarVisitantesPerfil(reiniciar){
     vazio.style.display = 'none';
     bannerEl.style.display = souPremium ? 'none' : 'block';
 
+    if(reiniciar) grid.innerHTML = '';
     grid.style.display = 'grid';
     grid.style.gridTemplateColumns = '1fr 1fr';
     grid.style.gap = '10px';
@@ -3943,6 +3999,7 @@ async function carregarVisitantesPerfil(reiniciar){
     visitantesTotalPaginas = dados.total_paginas || 0;
     btnMais.style.display = (souPremium && visitantesPaginaCarregada < visitantesTotalPaginas) ? 'block' : 'none';
   } catch(e){
+    if(reiniciar) grid.innerHTML = '';
     renderizarEstadoLista(vazio, { temErro:true, aoTentarNovo: () => carregarVisitantesPerfil(true) });
     btnMais.style.display = 'none';
   }
@@ -4357,7 +4414,7 @@ async function carregarChats(){
   const lista = document.getElementById('listaChats');
   const vazio = document.getElementById('chatsVazio');
   const banner = document.getElementById('mutualBanner');
-  lista.innerHTML = '';
+  lista.innerHTML = gerarEsqueletoLinhas(4);
   try{
     const resp = await fetchComTimeout(`${API_URL}/api/swipe/matches`, {
       headers: { 'Authorization': `Bearer ${tokenAtual}` }
@@ -4373,12 +4430,14 @@ async function carregarChats(){
     }
 
     if(matches.length === 0){
+      lista.innerHTML = '';
       renderizarEstadoLista(vazio, {
         temErro:false,
         mensagemVazia: '<div style="font-size:40px;margin-bottom:12px">&#128172;</div><div style="font-size:13.5px;line-height:1.6">Você ainda não tem nenhum Vínculo. Continue dando swipe!</div>'
       });
       return;
     }
+    lista.innerHTML = '';
     vazio.style.display='none';
     matches.forEach(m => {
       const outro = m.outro_usuario || {};
@@ -4398,6 +4457,7 @@ async function carregarChats(){
   } catch(e){
     // Achado MÉDIA da auditoria de UX: erro de rede não é mais confundido com
     // "sem Vínculos ainda" — mensagens diferentes, com tentar de novo no erro.
+    lista.innerHTML = '';
     renderizarEstadoLista(vazio, { temErro:true, aoTentarNovo: carregarChats });
   }
 }
@@ -5117,6 +5177,8 @@ function preencherCard(elId, perfil){
 }
 
 async function carregarPerfis(){
+  const skeleton = document.getElementById('cardSkeleton');
+  if(skeleton) skeleton.style.display = 'flex';
   let houveErro = false;
   try{
     const resp = await fetchComTimeout(`${API_URL}/api/swipe/perfis`, {
@@ -5128,6 +5190,7 @@ async function carregarPerfis(){
     filaPerfis = [];
     houveErro = true;
   }
+  if(skeleton) skeleton.style.display = 'none';
   document.getElementById('emptyState').style.display='none';
   document.getElementById('card1').style.display='block';
   document.getElementById('card2').style.display='block';
@@ -8489,6 +8552,7 @@ async function registrarVisualizacaoPerfil(usuarioVistoId){
 
 async function carregarNotificacoesReais(){
   const lista = document.getElementById('notifFeedLista');
+  if(lista) lista.innerHTML = gerarEsqueletoLinhas(5);
   try{
     const resp = await fetchComTimeout(`${API_URL}/api/estatisticas/notificacoes`, { headers:{'Authorization':`Bearer ${tokenAtual}`} }, 10000);
     const d = await resp.json();
