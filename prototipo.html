@@ -3047,6 +3047,24 @@ const API_URL = 'https://vinculo-backend-production.up.railway.app';
   function escapeHtml(texto){
   return String(texto ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+// Vibração tátil (Vibration API) — só existe no Android; iOS Safari nunca
+// implementou essa API (decisão da própria Apple, não é limitação de
+// versão). A checagem 'vibrate' in navigator cobre isso: no iPhone essa
+// condição é sempre falsa, então isso vira um no-op silencioso lá, sem
+// gerar erro nenhum e sem precisar de nenhum tratamento extra por chamada.
+function vibrar(padrao){
+  if('vibrate' in navigator){
+    try{ navigator.vibrate(padrao); }catch(e){}
+  }
+}
+// Padrões (ms): número único = uma vibração contínua; array = liga/desliga
+// alternado. Cada tipo de evento tem uma "assinatura" diferente de propósito.
+const VIBRACAO = {
+  curtir: 25,                        // toque único e curto — feedback de gesto
+  match: [40,80,40,80,150],          // dois toques rápidos + um mais longo — celebração
+  erro: [40,60,40],                  // dois toques curtos — sensação de "não deu"
+  panico: [120,60,120,60,250]        // forte e insistente — o mais sério do app
+};
 // Skeleton loading reutilizável — linhas (avatar + 2 textos, pra listas tipo
 // Conversas/Notificações) e grid (blocos quadrados, pra Curtidas/Visitantes).
 function gerarEsqueletoLinhas(n){
@@ -3802,6 +3820,7 @@ async function doSwipe(dir){
     if(!resp.ok){
       card.dataset.enviando='0';
       if(dados && dados.limite_curtidas_atingido){
+        vibrar(VIBRACAO.erro);
         const querAssinar = await confirmarAcao(
           dados.erro || 'Você atingiu o limite de curtidas gratuitas de hoje.',
           { titulo: 'Limite diário atingido', textoBotao: 'Ver planos' }
@@ -3815,6 +3834,7 @@ async function doSwipe(dir){
 
     deuMatch = !!dados.match;
     matchIdCriado = dados.match_id || null;
+    if(dir==='right' || dir==='super'){ vibrar(VIBRACAO.curtir); }
   } catch(e){
     // Achado MÉDIA da auditoria de UX: antes falhava 100% em silêncio — a
     // pessoa via a animação do swipe e a fila avançar, mas a curtida podia
@@ -3841,6 +3861,7 @@ async function doSwipe(dir){
   }
 
   if(deuMatch){
+    vibrar(VIBRACAO.match);
     setTimeout(()=>{
       card.style.transform=''; card.style.opacity='';
       document.getElementById('likeStamp').style.opacity='0';
@@ -5356,6 +5377,7 @@ async function startPanicCountdown(){
       clearInterval(panicInterval);
       panicStage='sent';
       document.getElementById('panicCountdownView').style.display='none';
+      vibrar(VIBRACAO.panico);
       await dispararPanicoReal();
       document.getElementById('panicSentView').style.display='block';
       return;
@@ -9539,6 +9561,7 @@ async function enviarTokenCartaoAssinatura(cardTokenId){
     }
 
     if(!resp.ok){
+      vibrar(VIBRACAO.erro);
       erroEl.textContent = dados.erro || 'Não foi possível criar a assinatura.';
       return;
     }
@@ -9547,6 +9570,7 @@ async function enviarTokenCartaoAssinatura(cardTokenId){
     closeModal('confirma-assinatura');
     abrirModalConfirmandoPagamentoCartao();
   }catch(e){
+    vibrar(VIBRACAO.erro);
     erroEl.textContent = 'Erro de conexão. Tenta de novo.';
   }
 }
@@ -9619,6 +9643,7 @@ async function finalizarAssinatura(){
     }
 
     if(!resp.ok){
+      vibrar(VIBRACAO.erro);
       document.getElementById('pixConteudo').innerHTML = `<div style="text-align:center;padding:20px;color:#ff8fa3">${dados.erro || 'Não foi possível gerar o Pix.'}</div>`;
       return;
     }
