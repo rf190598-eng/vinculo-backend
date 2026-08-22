@@ -730,7 +730,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <span style="font-size:18px">&#10024;</span>
       <div style="flex:1;font-size:12px;color:#fdf6f2;line-height:1.4"><b style="color:#d4b87a">Complete seu perfil</b><br><span style="color:#e0c8b0">Perfis completos recebem mais curtidas</span></div>
       <button onclick="goTo('edit-profile')" style="background:rgba(201,160,107,.2);border:1px solid #c9a06b;color:#c9a06b;border-radius:10px;padding:7px 11px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">Completar</button>
-      <button onclick="document.getElementById('completeProfileBanner').style.display='none'" style="background:none;border:none;color:#c0a0b0;font-size:16px;cursor:pointer;padding:0 2px">&#10005;</button>
+      <button onclick="this.closest('#completeProfileBanner').dataset.dispensado='1';this.closest('#completeProfileBanner').style.display='none'" style="background:none;border:none;color:#c0a0b0;font-size:16px;cursor:pointer;padding:0 2px">&#10005;</button>
     </div>
   </div>
   <!-- Achado MÉDIA da auditoria de UX: não havia nenhum incentivo proativo
@@ -3009,7 +3009,7 @@ function goTo(name){
   window.scrollTo(0,0);
   requestAnimationFrame(()=>window.scrollTo(0,0));
   setTimeout(()=>window.scrollTo(0,0), 50);
-  if(name==='discover'){ setTimeout(initSwipeTouch, 150); carregarPerfis(); carregarPerguntaDoDia(); carregarStoriesBar(); atualizarBadgeNotificacoes(); verificarBannerContatoConfianca(); }
+  if(name==='discover'){ setTimeout(initSwipeTouch, 150); carregarPerfis(); carregarPerguntaDoDia(); carregarStoriesBar(); atualizarBadgeNotificacoes(); verificarBannerContatoConfianca(); verificarBannerCompletarPerfil(); }
   if(name==='chats'){ carregarChats(); }
   if(name==='safety'){ carregarContatos(); carregarStatusSeguranca(); }
   if(name==='indica'){ carregarEstatisticasIndicacao(); }
@@ -8899,6 +8899,37 @@ async function temContatoDeConfiancaCadastrado(){
   }catch(e){
     return false; // sem confirmação = trata como "sem contato", lado mais seguro
   }
+}
+
+// BUG: o banner "Complete seu perfil" do Descobrir (completeProfileBanner)
+// nunca teve NENHUMA lógica de visibilidade — nasceu sem display:none no HTML
+// e nada em lugar nenhum do código o escondia, então aparecia sempre, pra
+// todo mundo, mesmo com o perfil 100% completo (o clique no X só escondia até
+// a próxima vez que a tela Descobrir fosse recarregada, e nem isso persistia
+// entre sessões). Reusa calcularCompletudePerfil() — a MESMA definição
+// (bio + foto + signo + objetivo + 7 fotos) já usada na barra de progresso da
+// tela Meu Perfil — em vez de perfilIncompleto() (só bio + foto), que é a
+// checagem mais rígida usada só pra bloquear navegação no onboarding. Faz
+// sentido usar a definição "com incentivo" aqui, já que o texto do banner
+// ("Perfis completos recebem mais curtidas") fala dos campos opcionais, não
+// do mínimo obrigatório. Mesmo padrão de dataset.dispensado do banner de
+// contato de confiança logo abaixo, pra respeitar o X na mesma sessão.
+async function verificarBannerCompletarPerfil(){
+  const banner = document.getElementById('completeProfileBanner');
+  if(!banner || banner.dataset.dispensado === '1' || !usuarioAtual) return;
+  let totalFotos = 0;
+  try{
+    const resp = await fetch(`${API_URL}/api/perfil/galeria`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
+    const dados = await resp.json();
+    totalFotos = (dados.fotos || []).length;
+  }catch(e){
+    // Sem confirmação da galeria: não afirma "perfil completo" no escuro —
+    // mesma lógica defensiva de temContatoDeConfiancaCadastrado() acima.
+    banner.style.display = 'block';
+    return;
+  }
+  const { percentual } = calcularCompletudePerfil(usuarioAtual, totalFotos);
+  banner.style.display = percentual >= 100 ? 'none' : 'block';
 }
 
 // Achado MÉDIA da auditoria de UX: mostra o banner só pra quem ainda não
