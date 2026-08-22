@@ -1184,7 +1184,11 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 
 <!-- SEGURANCA -->
 <div class="screen" id="screen-safety" style="background:#1a0810;min-height:100vh;">
-  <div class="topbar"><div class="logo serif">Segurança</div></div>
+  <div class="topbar">
+    <div class="icon-btn" onclick="goTo('discover')">&#8592;</div>
+    <div class="logo serif">Segurança</div>
+    <div style="width:38px"></div>
+  </div>
   <div style="padding:0 18px">
     <button class="panic-btn" onclick="startPanicCountdown()">
       <span style="font-size:24px">&#128680;</span> Botão de Pânico
