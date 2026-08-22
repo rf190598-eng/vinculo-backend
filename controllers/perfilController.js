@@ -7,7 +7,16 @@ const crypto = require('crypto');
 const { compararRostos } = require('../utils/rekognition');
 const { creditarBonusIndicacaoSeAplicavel, caminhoArquivoLiveness } = require('./livenessController'); // referral antigo (gatilho desligado)
 const { registrarIndicacaoSeAplicavel } = require('./parceiroController');
+const { validarAssinaturaArquivo } = require('../utils/validarAssinaturaArquivo');
 
+// Correção do achado CRÍTICO 5.3 da auditoria: o nome salvo em disco NÃO usa mais
+// a extensão do arquivo enviado (path.extname(file.originalname)) — essa string é
+// livremente controlada por quem faz o upload e nunca foi cruzada com o conteúdo
+// real do arquivo. Todo upload cai com a extensão neutra '.upload' e só recebe a
+// extensão de verdade depois de validarAssinaturaArquivo() checar os bytes reais
+// (ver uploadFoto/adicionarFotoGaleria) — até lá o arquivo não é servível como
+// imagem por nenhum client, e mesmo que fosse, '.upload' não mapeia pra nenhum
+// Content-Type executável no express.static.
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
           const pasta = 'uploads/';
@@ -17,8 +26,7 @@ const storage = multer.diskStorage({
           cb(null, pasta);
     },
     filename: (req, file, cb) => {
-          const ext = path.extname(file.originalname);
-          cb(null, crypto.randomUUID() + ext);
+          cb(null, crypto.randomUUID() + '.upload');
     }
 });
 
@@ -152,6 +160,17 @@ const uploadFoto = async (req, res) => {
           if (!req.file) {
                   return res.status(400).json({ erro: 'Nenhuma foto enviada' });
           }
+
+          // Checagem CRÍTICA (achado 5.3): confirma pelos bytes reais do arquivo que
+          // é de fato um JPEG/PNG antes de confiar nele pra qualquer coisa — apaga o
+          // arquivo e renomeia com a extensão real quando bate. req.file é atualizado
+          // pra refletir o caminho/nome finais.
+          const assinatura = validarAssinaturaArquivo(req.file.path, ['jpeg', 'png']);
+          if (!assinatura.valido) {
+                  return res.status(400).json({ erro: 'Arquivo inválido: o conteúdo enviado não é uma imagem JPG ou PNG.' });
+          }
+          req.file.filename = assinatura.nomeArquivo;
+          req.file.path = assinatura.caminho;
 
           const usuarioAtual = await Usuario.findByPk(req.usuarioId);
           if (!usuarioAtual) {
@@ -291,6 +310,16 @@ const adicionarFotoGaleria = async (req, res) => {
           if (!req.file) {
                   return res.status(400).json({ erro: 'Nenhuma foto enviada' });
           }
+
+          // Mesma checagem de assinatura real de arquivo do uploadFoto (achado
+          // CRÍTICO 5.3) — a galeria usa a mesma rota/multer, então está exposta ao
+          // mesmo risco.
+          const assinatura = validarAssinaturaArquivo(req.file.path, ['jpeg', 'png']);
+          if (!assinatura.valido) {
+                  return res.status(400).json({ erro: 'Arquivo inválido: o conteúdo enviado não é uma imagem JPG ou PNG.' });
+          }
+          req.file.filename = assinatura.nomeArquivo;
+          req.file.path = assinatura.caminho;
 
           // A galeria não pode ser usada pra definir a primeira foto de perfil — isso
           // pularia a comparação facial com a referência do liveness, que só acontece

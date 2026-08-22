@@ -5,6 +5,11 @@ const MensagemDupla = require('../models/MensagemDupla');
 const Usuario = require('../models/Usuario');
 const Notificacao = require('../models/Notificacao');
 
+// Mesmo padrão já usado em perfilController (bio individual) — removido daqui
+// (achado CRÍTICO 5.1 da auditoria: bio_conjunta era a única bio do app sem
+// nenhuma proteção contra HTML/script armazenado, nem servidor nem cliente).
+const removerTagsHtml = (texto) => String(texto).replace(/<[^>]*>/g, '').trim();
+
 async function getMinhaDupla(usuarioId) {
   const { Op } = require('sequelize');
   return await Dupla.findOne({
@@ -132,7 +137,7 @@ const editarBioDupla = async (req, res) => {
   try {
     const dupla = await getMinhaDupla(req.usuarioId);
     if (!dupla) return res.status(400).json({ erro: 'Você não está em nenhuma dupla ativa' });
-    dupla.bio_conjunta = req.body.bio_conjunta || '';
+    dupla.bio_conjunta = removerTagsHtml(req.body.bio_conjunta || '').slice(0, 500);
     await dupla.save();
     res.json({ mensagem: 'Bio da dupla atualizada!', dupla });
   } catch (erro) {

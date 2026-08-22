@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const { validarAssinaturaArquivo } = require('../utils/validarAssinaturaArquivo');
 
 const PERGUNTAS = [
   'Qual foi o lugar mais bonito que voce ja visitou?',
@@ -34,6 +35,10 @@ function getPerguntaDoDia() {
   return PERGUNTAS[diaDoAno % PERGUNTAS.length];
 }
 
+// Correção do achado CRÍTICO 5.3 da auditoria: assim como em perfilController, o
+// nome salvo em disco não usa mais path.extname(file.originalname) — o arquivo cai
+// com extensão neutra '.upload' e só recebe a extensão real depois de
+// validarAssinaturaArquivo() checar os bytes reais (ver criarResposta).
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const pasta = 'uploads/';
@@ -41,8 +46,7 @@ const storage = multer.diskStorage({
     cb(null, pasta);
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, crypto.randomUUID() + ext);
+    cb(null, crypto.randomUUID() + '.upload');
   }
 });
 
@@ -116,6 +120,25 @@ const criarResposta = async (req, res) => {
     }
     if ((tipo === 'foto' || tipo === 'video') && !req.file) {
       return res.status(400).json({ erro: 'Envie um arquivo de ' + tipo });
+    }
+
+    // Checagem CRÍTICA (achado 5.3): confirma pelos bytes reais do arquivo que é
+    // de fato um dos tipos permitidos pra story — nunca confia na extensão do
+    // nome enviado nem só no mimetype declarado no multipart. 'foto' só aceita
+    // imagem; 'video' só aceita vídeo — mesmo que o mimetype declarado no
+    // multer.fileFilter (checagem anterior, mais barata) já tenha passado.
+    if (req.file) {
+      const tiposPermitidos = tipo === 'foto' ? ['jpeg', 'png'] : ['mp4', 'webm', 'mov'];
+      const assinatura = validarAssinaturaArquivo(req.file.path, tiposPermitidos);
+      if (!assinatura.valido) {
+        return res.status(400).json({
+          erro: tipo === 'foto'
+            ? 'Arquivo inválido: o conteúdo enviado não é uma imagem JPG ou PNG.'
+            : 'Arquivo inválido: o conteúdo enviado não é um vídeo MP4, WebM ou MOV.'
+        });
+      }
+      req.file.filename = assinatura.nomeArquivo;
+      req.file.path = assinatura.caminho;
     }
 
     const pergunta = getPerguntaDoDia();
