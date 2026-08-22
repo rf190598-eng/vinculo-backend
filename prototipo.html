@@ -5236,7 +5236,7 @@ function initSwipeTouch(){
   const card = document.getElementById('card1');
   if(!card || card.id==='emptyState') return;
 
-  let startX=0, startY=0, currentX=0, isDragging=false;
+  let startX=0, startY=0, currentX=0, isDragging=false, axisLocked=null;
   const SWIPE_THRESHOLD = 80; // pixels para confirmar swipe
 
   function onStart(e){
@@ -5245,18 +5245,37 @@ function initSwipeTouch(){
     const touch = e.touches ? e.touches[0] : e;
     startX = touch.clientX;
     startY = touch.clientY;
+    axisLocked = null;
     card.style.transition='none';
   }
 
   function onMove(e){
     if(!isDragging) return;
-    e.preventDefault();
     const touch = e.touches ? e.touches[0] : e;
     currentX = touch.clientX - startX;
-    const currentY = touch.clientY - startY;
+    const deltaY = touch.clientY - startY;
+
+    // Ainda não sabemos se é gesto horizontal (curtir/passar) ou vertical
+    // (rolar a página) — espera um deslocamento mínimo pra decidir e trava
+    // no eixo dominante pro resto do gesto.
+    if(axisLocked === null){
+      if(Math.abs(currentX) > 10 || Math.abs(deltaY) > 10){
+        axisLocked = Math.abs(currentX) > Math.abs(deltaY) ? 'x' : 'y';
+      } else {
+        return;
+      }
+    }
+
+    if(axisLocked === 'y'){
+      // Gesto vertical: não mexe no card e não intercepta — deixa a página
+      // rolar normalmente.
+      return;
+    }
+
+    e.preventDefault();
     const rotate = currentX * 0.08;
 
-    card.style.transform = `translateX(${currentX}px) translateY(${currentY*0.3}px) rotate(${rotate}deg)`;
+    card.style.transform = `translateX(${currentX}px) rotate(${rotate}deg)`;
 
     // Mostrar stamps conforme arrasta
     const likeS = document.getElementById('likeStamp');
@@ -5276,6 +5295,15 @@ function initSwipeTouch(){
   function onEnd(e){
     if(!isDragging) return;
     isDragging=false;
+
+    if(axisLocked !== 'x'){
+      // Não foi um swipe horizontal (foi rolagem, ou o dedo mal se moveu) —
+      // só reseta o estado, sem mexer no card nem disparar curtir/passar.
+      axisLocked=null;
+      currentX=0;
+      return;
+    }
+
     card.style.transition='transform .3s ease';
 
     if(currentX > SWIPE_THRESHOLD){
@@ -5289,6 +5317,7 @@ function initSwipeTouch(){
       document.getElementById('nopeStamp').style.opacity='0';
     }
     currentX=0;
+    axisLocked=null;
   }
 
   // Remover listeners antigos
