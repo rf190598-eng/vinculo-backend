@@ -99,9 +99,67 @@ app.use(cors({
 }));
 
 // ===== SEGURANÇA: Headers de segurança =====
+// CSP em MODO RELATÓRIO (achado IMPORTANTE da auditoria, 5.4): reportOnly:true
+// significa que o navegador só REPORTA violação pro endpoint abaixo, nunca
+// bloqueia nada — zero risco de quebrar o app enquanto ainda não sabemos o
+// domínio exato usado pelo Card Payment Brick (iframe interno) e pelo
+// WebSocket direto do FaceLivenessDetector com o Rekognition Streaming da AWS
+// (esses dois não dão pra confirmar só lendo código-fonte). Depois de uns dias
+// de relatório sem achado inesperado, troca reportOnly pra false pra virar
+// bloqueio de verdade.
+//
+// useDefaults:false de propósito: o Helmet mescla suas próprias diretivas
+// padrão por baixo quando useDefaults fica true (o default), e uma delas é
+// `script-src-attr 'none'` — isso bloquearia os 328 `onclick=` do
+// prototipo.html mesmo com 'unsafe-inline' no script-src, porque
+// script-src-attr tem prioridade sobre script-src pra atributo de evento
+// inline em navegador que entende CSP nível 3. Com useDefaults:false só entra
+// em vigor exatamente o que está listado aqui embaixo.
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' }, // necessário para servir imagens de /uploads
-  contentSecurityPolicy: false // o prototipo.html usa script/onclick inline; CSP padrão bloqueava tudo
+  contentSecurityPolicy: {
+    useDefaults: false,
+    reportOnly: true,
+    directives: {
+      defaultSrc: ["'self'"],
+      // 'unsafe-inline' é necessário pro prototipo.html (328 onclick inline);
+      // scriptSrcAttr replicado pro mesmo valor por causa do default do Helmet
+      // explicado acima.
+      scriptSrc: ["'self'", "'unsafe-inline'", 'https://sdk.mercadopago.com'],
+      scriptSrcAttr: ["'unsafe-inline'"],
+      // 'unsafe-inline' necessário pros 1211 style="..." + 3 <style> inline.
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdn.jsdelivr.net'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      // vinculo-backend-production é host separado do domínio real do app
+      // (ver APP_URL no .env) — precisa estar explícito aqui, 'self' sozinho
+      // não cobre. blob: cobre preview de foto/vídeo local antes do upload.
+      imgSrc: ["'self'", 'data:', 'blob:', 'https://vinculo-backend-production.up.railway.app'],
+      mediaSrc: ["'self'", 'blob:', 'https://vinculo-backend-production.up.railway.app'],
+      // cognito-identity + amazonaws.com/wss cobrem o FaceLivenessDetector
+      // (Cognito Identity Pool em us-east-2 + WebSocket direto pro
+      // Rekognition Streaming em us-east-1) — o host exato do WebSocket não
+      // dá pra confirmar sem tráfego real, por isso o wildcard por enquanto.
+      // api.mercadopago.com é o Card Payment Brick chamando a própria API.
+      connectSrc: [
+        "'self'",
+        'https://vinculo-backend-production.up.railway.app',
+        'https://sdk.mercadopago.com',
+        'https://api.mercadopago.com',
+        'https://cognito-identity.us-east-2.amazonaws.com',
+        'https://*.amazonaws.com',
+        'wss://*.amazonaws.com'
+      ],
+      // Card Payment Brick abre iframe próprio pra captura segura do cartão —
+      // host exato (www.mercadopago.com) é o padrão conhecido da Mercado Pago,
+      // mas também é candidato a ajuste depois de ver o relatório real.
+      frameSrc: ['https://sdk.mercadopago.com', 'https://www.mercadopago.com'],
+      objectSrc: ["'none'"], // nenhum <object>/<embed> encontrado no projeto
+      baseUri: ["'self'"],
+      frameAncestors: ["'self'"],
+      formAction: ["'self'"], // nenhum <form action> encontrado, mas por consistência
+      reportUri: ['/api/csp-report']
+    }
+  }
 }));
 
 // ===== SEGURANÇA: Limite de tamanho de payload (evita DoS por payload gigante) =====
@@ -344,6 +402,26 @@ app.use('/api/admin/painel', painelAdminRoutes);
 app.use('/api/admin/parceiros', parceiroRotasAdmin);
 app.use('/api/admin/comissoes', rotasAdminComissoes);
 app.use('/api/admin/metas', rotasAdminMetas);
+
+// ===== Coleta de relatórios de violação da CSP (modo Report-Only) =====
+// Pública e sem autenticação de propósito: quem manda esse POST é o PRÓPRIO
+// NAVEGADOR do usuário reagindo a uma violação de CSP, nunca uma chamada feita
+// pelo front-end da aplicação — não tem token pra mandar. O corpo chega com
+// Content-Type 'application/csp-report' (formato legado do `report-uri`,
+// usado aqui) — por isso o parser de JSON dedicado só nesta rota, em vez de
+// alargar o express.json() global (que só aceita 'application/json').
+// Só loga (mesmo padrão de console.warn com tag já usado em outros pontos do
+// projeto, ex. '[webhook-mp]', '[status]') — aparece direto no log do Railway,
+// sem precisar de nenhum serviço externo. limit baixo porque um relatório de
+// violação é sempre pequeno; corpo maior que isso é lixo/abuso, não relatório
+// de verdade.
+app.post('/api/csp-report',
+  express.json({ type: ['application/csp-report', 'application/reports+json', 'application/json'], limit: '20kb' }),
+  (req, res) => {
+    console.warn('[csp-report]', JSON.stringify(req.body));
+    res.status(204).end();
+  }
+);
 
 // ===== Rota não encontrada =====
 app.use((req, res) => {
