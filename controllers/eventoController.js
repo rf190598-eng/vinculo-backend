@@ -2,6 +2,10 @@ const Evento = require('../models/Evento');
 const EventoConfirmacao = require('../models/EventoConfirmacao');
 const Usuario = require('../models/Usuario');
 
+// Mesmo padrão já usado em perfilController/duplaController (achado IMPORTANTE
+// da auditoria, 5.1: nome/local/preço de Evento eram gravados sem sanitizar).
+const removerTagsHtml = (texto) => String(texto).replace(/<[^>]*>/g, '').trim();
+
 const listarEventos = async (req, res) => {
   try {
     const { Op } = require('sequelize');
@@ -40,7 +44,21 @@ const criarEvento = async (req, res) => {
     if (!nome || !local || !data_hora) {
       return res.status(400).json({ erro: 'Nome, local e data são obrigatórios' });
     }
-    const evento = await Evento.create({ nome, descricao, local, data_hora, preco, emoji });
+    // nome/local/preco só são exibidos escapados no admin (admin-painel.html já
+    // usa esc()); o risco real é no prototipo.html, consumido por qualquer
+    // usuário comum via innerHTML sem escape (ver correção do lado do cliente).
+    // descricao não é renderizada em nenhum lugar hoje, mas sanitizada por
+    // consistência — mesmo padrão do resto do app (defesa em profundidade).
+    // preco/descricao só são sanitizados quando enviados — omitidos, mantêm o
+    // defaultValue/allowNull do model.
+    const evento = await Evento.create({
+      nome: removerTagsHtml(nome),
+      descricao: descricao !== undefined ? removerTagsHtml(descricao) : descricao,
+      local: removerTagsHtml(local),
+      data_hora,
+      preco: preco !== undefined ? removerTagsHtml(preco) : preco,
+      emoji
+    });
     res.status(201).json({ mensagem: 'Evento criado!', evento });
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao criar evento: ' + erro.message });
