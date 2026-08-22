@@ -612,30 +612,6 @@ const verificarPremium = async (req, res) => {
   }
 };
 
-const ativarPremiumTeste = async (req, res) => {
-  try {
-    const { plano } = req.body;
-    const usuario_id = req.usuarioId;
-
-    if (!planos[plano]) {
-      return res.status(400).json({ erro: 'Plano inválido' });
-    }
-
-    // Mesmo caminho do webhook, pra que o ambiente de teste produza o mesmo
-    // estado (inclusive criando a indicação do Programa de Parceiros).
-    const premium_ate = await ativarPlanoDoUsuario(usuario_id, plano);
-
-    res.json({
-      mensagem: 'Premium ativado para teste!',
-      plano: planos[plano].nome,
-      premium_ate
-    });
-
-  } catch (erro) {
-    res.status(500).json({ erro: 'Erro ao ativar premium: ' + erro.message });
-  }
-};
-
 /**
  * Varre assinaturas vencidas e encerra o plano de quem passou da data.
  *
@@ -744,7 +720,6 @@ module.exports = {
   criarAssinaturaCartao,
   webhook,
   verificarPremium,
-  ativarPremiumTeste,
   ativarPlanoDoUsuario,
   encerrarPlanoDoUsuario,
   verificarAssinaturasVencidas,
