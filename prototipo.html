@@ -316,6 +316,13 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
    (black-translucent), exigindo puxar a tela pra baixo pra revelar. */
 .topbar          { padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
 .discover-header { padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
+/* screen-myprofile não usa .topbar/.discover-header — a foto de capa
+   (.my-profile-photo) é o primeiro elemento da tela e fica sob a barra de
+   status/ilha dinâmica no modo standalone. Só a instância desta tela
+   específica (não a classe inteira: .my-profile-photo também é usada em
+   perfil-de-visita e em Editar Perfil, onde já fica abaixo de um .topbar
+   normal e não precisa desse ajuste). */
+#screen-myprofile > .my-profile-photo { padding-top: env(safe-area-inset-top, 0px); }
 /* Botões fixos no rodapé das telas de tour */
 .botao-fixo-rodape { bottom: calc(24px + env(safe-area-inset-bottom, 0px)) !important; }
 /* Topo e rodapé das telas de story em tela cheia */
