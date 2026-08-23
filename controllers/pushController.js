@@ -53,10 +53,16 @@ const desinscrever = async (req, res) => {
 // Expõe a chave pública VAPID pro frontend sem hardcodar no HTML — trocar a
 // chave no futuro não vai exigir deploy do frontend.
 const chavePublica = async (req, res) => {
-  if (!process.env.VAPID_PUBLIC_KEY) {
+  // .trim() defensivo: já achamos a VAPID_PUBLIC_KEY salva no Railway com
+  // quebras de linha coladas no final (efeito colateral de copiar/colar a
+  // saída do `web-push generate-vapid-keys`), o que quebrava o cálculo de
+  // padding do base64 no frontend. Limpando aqui, o endpoint nunca mais
+  // repassa lixo adiante, não importa o que estiver salvo na variável.
+  const chave = (process.env.VAPID_PUBLIC_KEY || '').trim();
+  if (!chave) {
     return res.status(503).json({ erro: 'Push não está configurado neste servidor.' });
   }
-  res.json({ chave: process.env.VAPID_PUBLIC_KEY });
+  res.json({ chave });
 };
 
 module.exports = { inscrever, desinscrever, chavePublica };

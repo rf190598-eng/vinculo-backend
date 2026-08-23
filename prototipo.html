@@ -5695,8 +5695,13 @@ function suportaPush(){
   return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 }
 function urlBase64ParaUint8Array(base64String){
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  // Defesa em profundidade: mesmo com o backend já limpando a chave, nunca
+  // confiar que o valor que chegou está limpo — calcular o padding a partir
+  // de espaço em branco sobrando (quebra de linha, etc.) gera um base64
+  // malformado que o atob() do navegador rejeita com InvalidCharacterError.
+  const chaveLimpa = String(base64String).trim();
+  const padding = '='.repeat((4 - chaveLimpa.length % 4) % 4);
+  const base64 = (chaveLimpa + padding).replace(/-/g, '+').replace(/_/g, '/');
   const rawData = window.atob(base64);
   const outputArray = new Uint8Array(rawData.length);
   for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
@@ -5801,6 +5806,10 @@ async function alternarNotificacoesPush(){
     switchEl.classList.add('on');
     statusEl.textContent = 'Ativadas neste aparelho.';
   }catch(e){
+    // Loga o erro real no console — antes disso, qualquer falha (chave
+    // malformada, permissão negada, subscribe rejeitado, etc.) virava só
+    // essa mensagem genérica, sem pista nenhuma pra diagnosticar depois.
+    console.error('[push] Falha ao ativar notificações:', e);
     erroEl.textContent = 'Não foi possível ativar as notificações agora.';
   }
 }
