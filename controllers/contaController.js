@@ -24,7 +24,17 @@ const SessaoSeguranca = require('../models/SessaoSeguranca');
 const Denuncia = require('../models/Denuncia');
 const Bloqueio = require('../models/Bloqueio');
 const SolicitacaoParceria = require('../models/SolicitacaoParceria');
+const Parceiro = require('../models/Parceiro');
+const Indicacao = require('../models/Indicacao');
+const Comissao = require('../models/Comissao');
+const BonusMeta = require('../models/BonusMeta');
 const { caminhoArquivoLiveness } = require('./livenessController');
+
+// Lançado dentro da cascata quando a regra de negócio impede a exclusão
+// (ex: comissões pendentes do Programa de Parceiros) — distinto de um erro
+// inesperado, pra quem chama poder devolver 409 com mensagem clara em vez
+// do 500 genérico.
+class ExclusaoContaBloqueada extends Error {}
 
 // Apaga um arquivo físico de /uploads de forma silenciosa (ignora se já não existir).
 function apagarArquivoUpload(urlRelativa) {
@@ -163,6 +173,31 @@ async function executarCascataExclusaoConta(usuario, t) {
     { where: { usuario_id: usuarioId }, transaction: t }
   );
 
+  // ===== 15.1. Indicação recebida (este usuário foi indicado por um parceiro) =====
+  await Indicacao.destroy({ where: { usuario_indicado_id: usuarioId }, transaction: t });
+
+  // ===== 15.2. Se este usuário É parceiro do Programa de Parceiros =====
+  // Defesa em profundidade: não depende só da constraint do banco (ver
+  // FIX_CASCADE_PARCEIROS.sql) — apaga explicitamente aqui também. Se
+  // houver comissão pendente (dinheiro que a empresa ainda deve ao
+  // parceiro), bloqueia a exclusão em vez de apagar o registro em silêncio.
+  const parceiro = await Parceiro.findOne({ where: { usuario_id: usuarioId }, transaction: t });
+  if (parceiro) {
+    const comissaoPendente = await Comissao.findOne({
+      where: { parceiro_id: parceiro.id, status_pagamento: 'pendente' },
+      transaction: t
+    });
+    if (comissaoPendente) {
+      throw new ExclusaoContaBloqueada(
+        'Você tem comissões pendentes no Programa de Parceiros. Entre em contato com o suporte antes de excluir sua conta.'
+      );
+    }
+    await BonusMeta.destroy({ where: { parceiro_id: parceiro.id }, transaction: t });
+    await Comissao.destroy({ where: { parceiro_id: parceiro.id }, transaction: t });
+    await Indicacao.destroy({ where: { parceiro_id: parceiro.id }, transaction: t });
+    await parceiro.destroy({ transaction: t });
+  }
+
   // ===== 16. Por fim, o próprio usuário =====
   const fotoUrl = usuario.foto_url;
   const fotoReferenciaLiveness = usuario.foto_referencia_liveness;
@@ -214,9 +249,12 @@ const excluirConta = async (req, res) => {
     return res.json({ mensagem: 'Conta excluída com sucesso.' });
   } catch (erro) {
     await t.rollback();
+    if (erro instanceof ExclusaoContaBloqueada) {
+      return res.status(409).json({ erro: erro.message });
+    }
     console.error('Erro ao excluir conta:', erro);
     return res.status(500).json({ erro: 'Não foi possível excluir a conta. Tente novamente em instantes.' });
   }
 };
 
-module.exports = { excluirConta, executarCascataExclusaoConta, apagarArquivosDaContaExcluida };
+module.exports = { excluirConta, executarCascataExclusaoConta, apagarArquivosDaContaExcluida, ExclusaoContaBloqueada };

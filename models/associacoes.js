@@ -31,26 +31,32 @@ function registrarAssociacoes() {
   jaRegistrado = true;
 
   // ===== Parceiro <-> Usuario (a conta dona do parceiro) =====
+  // onDelete: 'CASCADE' adicionado aqui depois do incidente em que a FK real
+  // no banco (criada por um sync() anterior ao PROGRAMA_PARCEIROS.sql) não
+  // tinha CASCADE — bloqueava excluirConta pra qualquer parceiro. Continua
+  // sendo só documentação em produção (sync roda sem alter), mas garante que
+  // uma instalação NOVA do zero já nasça certa. A correção de verdade do
+  // banco existente está em FIX_CASCADE_PARCEIROS.sql.
   Parceiro.belongsTo(Usuario, { foreignKey: 'usuario_id', as: 'usuario' });
-  Usuario.hasOne(Parceiro, { foreignKey: 'usuario_id', as: 'parceiro' });
+  Usuario.hasOne(Parceiro, { foreignKey: 'usuario_id', as: 'parceiro', onDelete: 'CASCADE' });
 
   // ===== Indicacao =====
   Indicacao.belongsTo(Parceiro, { foreignKey: 'parceiro_id', as: 'parceiro' });
-  Parceiro.hasMany(Indicacao, { foreignKey: 'parceiro_id', as: 'indicacoes' });
+  Parceiro.hasMany(Indicacao, { foreignKey: 'parceiro_id', as: 'indicacoes', onDelete: 'CASCADE' });
 
   Indicacao.belongsTo(Usuario, { foreignKey: 'usuario_indicado_id', as: 'usuarioIndicado' });
-  Usuario.hasOne(Indicacao, { foreignKey: 'usuario_indicado_id', as: 'indicacaoRecebida' });
+  Usuario.hasOne(Indicacao, { foreignKey: 'usuario_indicado_id', as: 'indicacaoRecebida', onDelete: 'CASCADE' });
 
   // ===== Comissao =====
   Comissao.belongsTo(Parceiro, { foreignKey: 'parceiro_id', as: 'parceiro' });
-  Parceiro.hasMany(Comissao, { foreignKey: 'parceiro_id', as: 'comissoes' });
+  Parceiro.hasMany(Comissao, { foreignKey: 'parceiro_id', as: 'comissoes', onDelete: 'CASCADE' });
 
   Comissao.belongsTo(Indicacao, { foreignKey: 'indicacao_id', as: 'indicacao' });
-  Indicacao.hasMany(Comissao, { foreignKey: 'indicacao_id', as: 'comissoes' });
+  Indicacao.hasMany(Comissao, { foreignKey: 'indicacao_id', as: 'comissoes', onDelete: 'CASCADE' });
 
   // ===== BonusMeta =====
   BonusMeta.belongsTo(Parceiro, { foreignKey: 'parceiro_id', as: 'parceiro' });
-  Parceiro.hasMany(BonusMeta, { foreignKey: 'parceiro_id', as: 'bonusMetas' });
+  Parceiro.hasMany(BonusMeta, { foreignKey: 'parceiro_id', as: 'bonusMetas', onDelete: 'CASCADE' });
 
   // Comissão de bônus aponta pra meta que a originou (tipo='bonus_meta').
   Comissao.belongsTo(BonusMeta, { foreignKey: 'bonus_meta_id', as: 'bonusMeta' });

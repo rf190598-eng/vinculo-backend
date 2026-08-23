@@ -13,7 +13,7 @@ const AlertaSeguranca = require('../models/AlertaSeguranca');
 const Mensagem = require('../models/Mensagem');
 const { primeiroDiaDoMes } = require('./parceiroController');
 const { registrarLogAuditoria } = require('./auditoriaController');
-const { executarCascataExclusaoConta, apagarArquivosDaContaExcluida } = require('./contaController');
+const { executarCascataExclusaoConta, apagarArquivosDaContaExcluida, ExclusaoContaBloqueada } = require('./contaController');
 
 function somaDecimal(valor) {
   return Number(valor || 0);
@@ -661,6 +661,9 @@ const excluirContaUsuario = async (req, res) => {
     res.json({ ok: true, mensagem: 'Conta excluída com sucesso.' });
   } catch (erro) {
     await t.rollback();
+    if (erro instanceof ExclusaoContaBloqueada) {
+      return res.status(409).json({ erro: erro.message });
+    }
     console.error('Erro ao excluir conta de usuário no painel administrativo:', erro);
     res.status(500).json({ erro: 'Não foi possível excluir a conta. Tente novamente em instantes.' });
   }
