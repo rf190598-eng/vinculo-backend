@@ -857,15 +857,15 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         </div>
       </div>
       <div id="emptyStateAcoesNormais">
-        <button class="btn btn-primary" onclick="abrirModalFiltros()" style="margin-bottom:10px">&#128205; Ajustar raio de busca</button>
-        <button style="background:none;border:none;color:#907080;font-size:13px;cursor:pointer;padding:6px;font-family:inherit" onclick="resetDiscoverDeck()">Ver perfis novamente do início</button>
+        <button class="btn btn-primary" onclick="abrirModalFiltrosDistancia()" style="margin-bottom:10px">&#128205; Ajustar raio de busca</button>
+        <button style="background:none;border:none;color:#907080;font-size:13px;cursor:pointer;padding:6px;font-family:inherit" onclick="resetDiscoverDeck()">Buscar perfis novos</button>
       </div>
       <div id="emptyStateErro" style="display:none">
         <button class="btn btn-primary" onclick="carregarPerfis()">Tentar de novo</button>
       </div>
     </div>
     <div class="swipe-card card-back" id="card2">
-      <div class="card-photo">&#128104;
+      <div class="card-photo"><span class="card-photo-placeholder">&#128104;</span>
         <div class="card-photo-gradient"></div>
         <div class="card-verified">&#10003; Verificado</div>
         <div class="card-distance">&#128205; 5 km</div>
@@ -882,7 +882,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div class="swipe-card card-front" id="card1">
       <div class="like-stamp" id="likeStamp">CURTIU</div>
       <div class="nope-stamp" id="nopeStamp">NOPE</div>
-      <div class="card-photo" ondblclick="doubleTapLike()" id="cardPhotoArea">&#128100;
+      <div class="card-photo" ondblclick="doubleTapLike()" id="cardPhotoArea"><span class="card-photo-placeholder">&#128100;</span>
         <div class="card-photo-gradient"></div>
         <div class="card-verified">&#10003; Verificada</div>
         <div class="card-distance">&#128205; 3 km</div>
@@ -1500,7 +1500,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div style="font-size:11px;font-weight:700;color:#f0a0b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">&#128064; Aguardando você agora</div>
       <div style="font-family:'Cormorant Garamond',serif;font-size:52px;font-weight:700;line-height:1;color:#fdf6f2" id="assinaturaContagemCurtidas">0</div>
       <div style="font-size:14px;color:#e0c0d0;margin-top:4px;font-weight:600">pessoas já curtiram seu perfil</div>
-      <div style="font-size:11.5px;color:#f0a0b8;margin-top:6px">&#128274; Desbloqueie para ver quem são</div>
+      <div id="assinaturaTextoDesbloqueio" style="font-size:11.5px;color:#f0a0b8;margin-top:6px">&#128274; Desbloqueie para ver quem são</div>
     </div>
 
     <!-- Perfis borrados com urgência -->
@@ -1515,7 +1515,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div style="padding:0 18px 24px">
 
     <!-- BLOCO 1 — Ver quem curtiu você -->
-    <div style="background:linear-gradient(135deg,rgba(212,131,154,.15),rgba(201,160,107,.08));border:1.5px solid rgba(212,131,154,.3);border-radius:18px;padding:18px;margin:16px 0 12px">
+    <div id="assinaturaBlocoCurtidas" style="background:linear-gradient(135deg,rgba(212,131,154,.15),rgba(201,160,107,.08));border:1.5px solid rgba(212,131,154,.3);border-radius:18px;padding:18px;margin:16px 0 12px">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
         <div style="font-size:32px">&#128150;</div>
         <div>
@@ -2280,6 +2280,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <option value="grisalho">Grisalho</option>
       <option value="outro">Outro</option>
     </select>
+    <div style="font-size:11.5px;color:#a07080;margin-top:-4px;margin-bottom:8px;line-height:1.5">Esses dados ajudam outras pessoas com Premium a te encontrar em buscas mais específicas — preencher é opcional e gratuito.</div>
 
     <div class="edit-section-title">Prompts para te ajudar &#10024;</div>
     <div class="prompt-card">
@@ -2550,7 +2551,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title serif">Filtros de busca</div>
-    <div class="filter-section">
+    <div class="filter-section" id="filterSecaoIdade">
       <div class="filter-section-title">Faixa etária</div>
       <!-- Valor de idade exibido em tempo real -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -2596,7 +2597,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <input type="range" class="range-slider" id="filterDist" min="1" max="150" value="20" oninput="document.getElementById('filterDistVal').textContent=this.value"/>
       <div class="range-val"><span>1 km</span><span>150 km</span></div>
     </div>
-    <div class="filter-section">
+    <div class="filter-section" id="filterSecaoTipo">
       <div class="filter-section-title">Tipo de conexão</div>
       <div id="filterObjetivoGrupo">
         <span class="tag-chip on" data-valor="serio">Relacionamento sério</span>
@@ -5278,10 +5279,15 @@ function preencherCard(elId, perfil){
   const verificadoEl = el.querySelector('.card-verified');
   if(verificadoEl) verificadoEl.style.display = perfil.verificado ? '' : 'none';
   const fotoEl = el.querySelector('.card-photo');
+  const placeholderEl = el.querySelector('.card-photo-placeholder');
   if(fotoEl && perfil.foto_url){
     fotoEl.style.backgroundImage = `url(${API_URL}${perfil.foto_url})`;
     fotoEl.style.backgroundSize = 'cover';
     fotoEl.style.backgroundPosition = 'center';
+    if(placeholderEl) placeholderEl.style.display = 'none';
+  } else if(fotoEl){
+    fotoEl.style.backgroundImage = '';
+    if(placeholderEl) placeholderEl.style.display = '';
   }
 }
 
@@ -5467,7 +5473,7 @@ async function resetDiscoverDeck(){
   totalSwipes=0;
   await carregarPerfis();
   const perfilCarregado = !!document.getElementById('card1').dataset.perfilId;
-  showToastVinculo(perfilCarregado ? 'Novos perfis carregados!' : 'Nenhum perfil novo por enquanto.');
+  showToastVinculo(perfilCarregado ? 'Novos perfis carregados!' : 'Nenhum perfil novo desde sua última visita.');
 }
 
 function openNotifications(){
@@ -9443,6 +9449,16 @@ async function finalizarOnboarding(){
 }
 
 function abrirModalFiltros(){
+  // Defensivo: sempre reexibe idade/tipo aqui, porque
+  // abrirModalFiltrosDistancia() (chamada a partir do fim do Descobrir)
+  // esconde essas seções depois de abrir o modal completo — sem isso, o
+  // modal cheio ficaria com essas seções sumidas na próxima vez que
+  // alguém abrisse os filtros por um caminho normal.
+  const secaoIdade = document.getElementById('filterSecaoIdade');
+  if(secaoIdade) secaoIdade.style.display = '';
+  const secaoTipo = document.getElementById('filterSecaoTipo');
+  if(secaoTipo) secaoTipo.style.display = '';
+
   if(usuarioAtual){
     document.getElementById('ageMin').value = usuarioAtual.pref_idade_min || 18;
     document.getElementById('ageMax').value = usuarioAtual.pref_idade_max || 99;
@@ -9470,6 +9486,19 @@ function abrirModalFiltros(){
     }
   }
   openModal('filters');
+}
+
+// Versão mínima do modal de filtros, usada só a partir do fim da fila do
+// Descobrir ("Ajustar raio de busca" na tela de "acabaram os perfis") —
+// ali a intenção da pessoa é só ampliar o raio, não configurar idade/tipo
+// nem ver o upsell de filtros Premium (achado: esse upsell cheio não fazia
+// sentido logo depois de "acabaram os perfis").
+function abrirModalFiltrosDistancia(){
+  abrirModalFiltros();
+  ['filterSecaoIdade', 'filterSecaoTipo', 'filtrosAvancadosPremium', 'filtrosAvancadosUpsell'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.style.display = 'none';
+  });
 }
 
 async function aplicarFiltrosReal(){
@@ -9709,6 +9738,15 @@ function aplicarContagemCurtidasNaTela(total){
 
   const subtitulo = document.getElementById('assinaturaSubtituloCurtidas');
   if(subtitulo) subtitulo.style.display = temCurtidas ? 'block' : 'none';
+
+  // Mesma lógica dos avatares acima: esses dois elementos prometiam "gente
+  // esperando" mesmo com 0 curtidas — mesma classe de bug já corrigida
+  // antes na tela "Quem curtiu você", só que faltava aqui na Assinatura.
+  const textoDesbloqueio = document.getElementById('assinaturaTextoDesbloqueio');
+  if(textoDesbloqueio) textoDesbloqueio.style.display = temCurtidas ? 'block' : 'none';
+
+  const blocoCurtidas = document.getElementById('assinaturaBlocoCurtidas');
+  if(blocoCurtidas) blocoCurtidas.style.display = temCurtidas ? 'block' : 'none';
 
   // Achado MÉDIA da auditoria de UX: usa o preço do plano ATUALMENTE
   // selecionado, em vez de sempre escrever o preço semanal fixo — antes,
@@ -10108,6 +10146,10 @@ let promptInstalacaoAndroid = null;
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();
   promptInstalacaoAndroid = event;
+  // Alguns navegadores/WebViews Android disparam esse evento mesmo já
+  // rodando como app instalado — sem essa checagem, o item "Instalar
+  // aplicativo" aparecia na tela de perfil pra quem já tinha o app.
+  if (pwaInstalado()) return;
   const item = document.getElementById('menuInstalarApp');
   if(item) item.style.display = 'flex';
 });

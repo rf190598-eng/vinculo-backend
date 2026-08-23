@@ -8,7 +8,7 @@ const BonusMeta = require('../models/BonusMeta');
 // Base do link curto de parceiro. Configurável por env porque o domínio final
 // pode mudar antes do lançamento — e o link vai impresso/compartilhado por aí,
 // então não pode depender de hardcode espalhado.
-const LINK_BASE_PARCEIRO = process.env.APP_LINK_BASE || 'https://app.vinculoapp.com.br';
+const LINK_BASE_PARCEIRO = process.env.APP_LINK_BASE || 'https://vinculo-backend-production.up.railway.app';
 
 // Valor inicial da coluna comissao_base em parceiros novos. NÃO é mais o que
 // define quanto o parceiro recebe — quem manda nisso é COMISSOES_POR_PLANO,
