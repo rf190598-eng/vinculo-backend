@@ -310,6 +310,12 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 .bottomnav { padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
 .demo-bar  { padding-top: calc(5px + env(safe-area-inset-top, 0px)); }
 .app       { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+/* .topbar (21 telas) e .discover-header (Descobrir) — mesmo problema que o
+   comentário acima já descrevia, mas nunca tinha sido corrigido de fato:
+   ficavam cobertos pela barra de status/ilha dinâmica no modo standalone
+   (black-translucent), exigindo puxar a tela pra baixo pra revelar. */
+.topbar          { padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
+.discover-header { padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
 /* Botões fixos no rodapé das telas de tour */
 .botao-fixo-rodape { bottom: calc(24px + env(safe-area-inset-bottom, 0px)) !important; }
 /* Topo e rodapé das telas de story em tela cheia */
