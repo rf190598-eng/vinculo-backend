@@ -28,3 +28,37 @@ self.addEventListener('fetch', (event) => {
     fetch(event.request).catch(() => caches.match(event.request))
   );
 });
+
+// ===== Web Push =====
+// Payload chega como JSON (title, body, url, icon opcional) enviado pelo
+// backend via utils/pushNotificacoes.js.
+self.addEventListener('push', (event) => {
+  let dados = {};
+  try { dados = event.data ? event.data.json() : {}; } catch (e) { dados = {}; }
+
+  const titulo = dados.title || 'Vínculo';
+  const opcoes = {
+    body: dados.body || '',
+    icon: dados.icon || '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    data: { url: dados.url || '/prototipo' }
+  };
+
+  event.waitUntil(self.registration.showNotification(titulo, opcoes));
+});
+
+// Clique na notificação: foca uma aba já aberta do app se existir, senão
+// abre uma nova na URL indicada pelo payload (ex: direto no chat do match).
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/prototipo';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((janelas) => {
+      for (const janela of janelas) {
+        if (janela.url.includes('/prototipo') && 'focus' in janela) return janela.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+    })
+  );
+});

@@ -20,6 +20,7 @@ const Indicacao = require('./Indicacao');
 const Comissao = require('./Comissao');
 const BonusMeta = require('./BonusMeta');
 const PagamentoAssinaturaProcessado = require('./PagamentoAssinaturaProcessado');
+const InscricaoPush = require('./InscricaoPush');
 
 let jaRegistrado = false;
 
@@ -71,6 +72,10 @@ function registrarAssociacoes() {
   // bloqueava excluirConta pra quem já pagou por cartão recorrente).
   PagamentoAssinaturaProcessado.belongsTo(Usuario, { foreignKey: 'usuario_id', as: 'usuario' });
   Usuario.hasMany(PagamentoAssinaturaProcessado, { foreignKey: 'usuario_id', as: 'pagamentosAssinatura', onDelete: 'CASCADE' });
+
+  // ===== InscricaoPush (Web Push / VAPID) =====
+  InscricaoPush.belongsTo(Usuario, { foreignKey: 'usuario_id', as: 'usuario' });
+  Usuario.hasMany(InscricaoPush, { foreignKey: 'usuario_id', as: 'inscricoesPush', onDelete: 'CASCADE' });
 }
 
 module.exports = { registrarAssociacoes };

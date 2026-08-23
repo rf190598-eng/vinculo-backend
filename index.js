@@ -42,6 +42,7 @@ const BonusMeta = require('./models/BonusMeta');
 const Fundador = require('./models/Fundador');
 const PagamentoProcessado = require('./models/PagamentoProcessado');
 const LogAuditoria = require('./models/LogAuditoria');
+const InscricaoPush = require('./models/InscricaoPush');
 const { registrarAssociacoes } = require('./models/associacoes');
 const authRoutes = require('./routes/auth');
 const swipeRoutes = require('./routes/swipe');
@@ -56,6 +57,7 @@ const duplaRoutes = require('./routes/dupla');
 const statusRoutes = require('./routes/status');
 const estatisticasRoutes = require('./routes/estatisticas');
 const usuarioRoutes = require('./routes/usuario');
+const pushRoutes = require('./routes/push');
 const {
   router: parceiroRoutes,
   rotasAdmin: parceiroRotasAdmin,
@@ -395,6 +397,7 @@ app.use('/api/estatisticas', estatisticasRoutes);
 app.use('/api/denuncia', denunciaRoutes);
 app.use('/api/bloqueio', bloqueioRoutes);
 app.use('/api/usuario', usuarioRoutes);
+app.use('/api/push', pushRoutes);
 app.use('/api/parceiros', parceiroRoutes);
 app.use('/api/fundadores', fundadorRoutes);
 app.use('/api/admin/fundadores', fundadorRotasAdmin);

@@ -1277,6 +1277,13 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <div class="switch" id="prefNotifPromo" onclick="alternarPreferencia(this,'notif','promo')"></div>
       </div>
     </div>
+    <div class="sec-card">
+      <div class="toggle-row">
+        <div><div class="tl">Notificações push neste aparelho</div><div class="ts" id="pushStatusTexto">Verificando suporte...</div></div>
+        <div class="switch" id="pushSwitch" onclick="alternarNotificacoesPush()"></div>
+      </div>
+      <div id="pushErro" style="color:#ff8fa3;font-size:12.5px;margin-top:6px;min-height:14px"></div>
+    </div>
     <div style="font-size:11.5px;color:#a07080;padding:10px 4px;line-height:1.6">Essas preferências ficam salvas neste aparelho.</div>
   </div>
 </div>
@@ -3043,6 +3050,7 @@ function goTo(name){
     carregarMeuPerfil();
   }
   if(name==='notif-prefs'){ carregarPreferenciasNaTela('notif', {matches:'prefNotifMatches',mensagens:'prefNotifMensagens',curtidas:'prefNotifCurtidas',promo:'prefNotifPromo'}); }
+  if(name==='notif-prefs'){ verificarStatusNotificacoesPush(); }
   if(name==='privacy-prefs'){ carregarPreferenciasNaTela('priv', {mostrarIdade:'prefPrivIdade',incognito:'prefPrivIncognito'}); }
   if(name==='match') setTimeout(launchConfetti, 300);
 }
@@ -5618,6 +5626,130 @@ function carregarPreferenciasNaTela(categoria, mapeamento){
     const el = document.getElementById(mapeamento[chave]);
     if(el) el.classList.toggle('on', !!valorPreferencia(categoria, chave));
   });
+}
+
+// ===== Notificações Push (Web Push / VAPID) =====
+// "Interruptor mestre" do aparelho — diferente dos 4 toggles de conteúdo
+// acima (que hoje são só localStorage; passam a valer de verdade no Lote 3).
+
+function ehIOS(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+function pwaInstalado(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+function suportaPush(){
+  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+}
+function urlBase64ParaUint8Array(base64String){
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function verificarStatusNotificacoesPush(){
+  const statusEl = document.getElementById('pushStatusTexto');
+  const switchEl = document.getElementById('pushSwitch');
+  const erroEl = document.getElementById('pushErro');
+  if(!statusEl || !switchEl) return;
+  erroEl.textContent = '';
+
+  if(!suportaPush()){
+    statusEl.textContent = 'Este navegador não suporta notificações push.';
+    switchEl.style.opacity = '0.4';
+    switchEl.style.pointerEvents = 'none';
+    return;
+  }
+  if(ehIOS() && !pwaInstalado()){
+    statusEl.textContent = 'No iPhone/iPad, adicione o Vínculo à Tela de Início primeiro (Compartilhar → Adicionar à Tela de Início) para poder ativar notificações.';
+    switchEl.style.opacity = '0.4';
+    switchEl.style.pointerEvents = 'none';
+    return;
+  }
+  switchEl.style.opacity = '';
+  switchEl.style.pointerEvents = '';
+
+  if(Notification.permission === 'denied'){
+    statusEl.textContent = 'Notificações bloqueadas nas configurações do navegador/sistema.';
+    switchEl.classList.remove('on');
+    return;
+  }
+
+  try{
+    const registration = await navigator.serviceWorker.ready;
+    const inscricaoAtual = await registration.pushManager.getSubscription();
+    switchEl.classList.toggle('on', !!inscricaoAtual);
+    statusEl.textContent = inscricaoAtual ? 'Ativadas neste aparelho.' : 'Desativadas neste aparelho.';
+  }catch(e){
+    statusEl.textContent = 'Não foi possível verificar o status das notificações.';
+  }
+}
+
+async function alternarNotificacoesPush(){
+  const switchEl = document.getElementById('pushSwitch');
+  const statusEl = document.getElementById('pushStatusTexto');
+  const erroEl = document.getElementById('pushErro');
+  if(!switchEl || switchEl.style.pointerEvents === 'none') return;
+  erroEl.textContent = '';
+
+  try{
+    const registration = await navigator.serviceWorker.ready;
+    const inscricaoAtual = await registration.pushManager.getSubscription();
+
+    if(inscricaoAtual){
+      await fetch(`${API_URL}/api/push/inscrever`, {
+        method: 'DELETE',
+        headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
+        body: JSON.stringify({ endpoint: inscricaoAtual.endpoint })
+      }).catch(()=>{});
+      await inscricaoAtual.unsubscribe();
+      switchEl.classList.remove('on');
+      statusEl.textContent = 'Desativadas neste aparelho.';
+      return;
+    }
+
+    const permissao = await Notification.requestPermission();
+    if(permissao !== 'granted'){
+      statusEl.textContent = 'Permissão não concedida.';
+      return;
+    }
+
+    const respChave = await fetch(`${API_URL}/api/push/chave-publica`);
+    const dadosChave = await respChave.json();
+    if(!respChave.ok || !dadosChave.chave){
+      erroEl.textContent = 'Notificações push não estão configuradas no servidor ainda.';
+      return;
+    }
+
+    const novaInscricao = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ParaUint8Array(dadosChave.chave)
+    });
+
+    const resp = await fetch(`${API_URL}/api/push/inscrever`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
+      body: JSON.stringify({
+        endpoint: novaInscricao.endpoint,
+        keys: novaInscricao.toJSON().keys,
+        user_agent: navigator.userAgent
+      })
+    });
+    if(!resp.ok){
+      const dados = await resp.json().catch(()=>({}));
+      erroEl.textContent = dados.erro || 'Não foi possível salvar a inscrição.';
+      await novaInscricao.unsubscribe().catch(()=>{});
+      return;
+    }
+
+    switchEl.classList.add('on');
+    statusEl.textContent = 'Ativadas neste aparelho.';
+  }catch(e){
+    erroEl.textContent = 'Não foi possível ativar as notificações agora.';
+  }
 }
 
 let codigoIndicacaoUsado = new URLSearchParams(window.location.search).get('ref') || null;
