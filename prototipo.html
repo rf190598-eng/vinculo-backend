@@ -2427,6 +2427,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div class="edit-section-title">Estado civil</div>
     <div class="edit-lifestyle-grid" id="grupoEstadoCivil">
       <div class="ls-chip" data-valor="solteiro" onclick="toggleLsRadio(this)">Solteiro(a)</div>
+      <div class="ls-chip" data-valor="casado" onclick="toggleLsRadio(this)">Casado(a)</div>
       <div class="ls-chip" data-valor="divorciado" onclick="toggleLsRadio(this)">Divorciado(a)</div>
       <div class="ls-chip" data-valor="viuvo" onclick="toggleLsRadio(this)">Viúvo(a)</div>
       <div class="ls-chip" data-valor="separado" onclick="toggleLsRadio(this)">Separado(a)</div>
@@ -5082,7 +5083,7 @@ async function fotoPerfilSelecionada(event){
 const SIGNO_LABELS = {aries:'Áries',touro:'Touro',gemeos:'Gêmeos',cancer:'Câncer',leao:'Leão',virgem:'Virgem',libra:'Libra',escorpiao:'Escorpião',sagitario:'Sagitário',capricornio:'Capricórnio',aquario:'Aquário',peixes:'Peixes'};
 const INTERESSE_LABELS = {natureza:'🌿 Natureza',leitura:'📚 Leitura',cafe:'☕ Café',gastronomia:'🍽️ Gastronomia',trilhas:'🏃 Trilhas',musica:'🎶 Música',esportes:'⚽ Esportes',viagens:'✈️ Viagens',cinema:'🎬 Cinema',arte:'🎨 Arte',games:'🎮 Games',vinhos:'🍷 Vinhos',fotografia:'📷 Fotografia',danca:'💃 Dança',aventura:'🧗 Aventura/radical',series:'📺 Séries'};
 const ESCOLARIDADE_LABELS = {medio:'Ensino médio', superior_incompleto:'Superior incompleto', superior_completo:'Superior completo', pos_graduacao:'Pós-graduação'};
-const ESTADO_CIVIL_LABELS = {solteiro:'Solteiro(a)', divorciado:'Divorciado(a)', viuvo:'Viúvo(a)', separado:'Separado(a)'};
+const ESTADO_CIVIL_LABELS = {solteiro:'Solteiro(a)', casado:'Casado(a)', divorciado:'Divorciado(a)', viuvo:'Viúvo(a)', separado:'Separado(a)'};
 
 // Reaproveitado por verPerfilCompleto/verPerfilDeCurtida/verPerfilDeMatch —
 // as 3 telas de "perfil completo" do app. Cada campo some (display:none)

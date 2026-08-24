@@ -44,7 +44,7 @@ const upload = multer({
 const GENEROS_VALIDOS = ['masculino', 'feminino', 'nao-binario'];
 const PREF_GENERO_VALIDOS = ['masculino', 'feminino', 'todos'];
 const ESCOLARIDADE_VALIDAS = ['medio', 'superior_incompleto', 'superior_completo', 'pos_graduacao'];
-const ESTADO_CIVIL_VALIDOS = ['solteiro', 'divorciado', 'viuvo', 'separado'];
+const ESTADO_CIVIL_VALIDOS = ['solteiro', 'casado', 'divorciado', 'viuvo', 'separado'];
 
 const removerTagsHtml = (texto) => String(texto).replace(/<[^>]*>/g, '').trim();
 
