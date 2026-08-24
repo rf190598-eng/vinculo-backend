@@ -1493,7 +1493,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <!-- HERO — urgência emocional -->
   <div style="background:linear-gradient(160deg,#6a1830,#3a0f20,#1a0810);padding:28px 20px 24px;text-align:center;position:relative;overflow:hidden;">
     <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(212,131,154,.2),transparent 70%);pointer-events:none"></div>
-    <div class="icon-btn" onclick="goTo('discover')" style="position:absolute;top:14px;left:14px">&#8592;</div>
+    <div class="icon-btn" onclick="goTo('discover')" style="position:absolute;top:calc(14px + env(safe-area-inset-top, 0px));left:14px">&#8592;</div>
 
     <!-- Contador de curtidas — gatilho emocional principal -->
     <div style="background:rgba(212,131,154,.12);border:1.5px solid rgba(212,131,154,.35);border-radius:20px;padding:14px 20px;margin-bottom:18px;position:relative">
@@ -1526,6 +1526,26 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div style="font-size:13px;color:#e0c8d8;line-height:1.6">Veja quem já curtiu você e dê match na hora — antes de desperdiçar tempo com quem não está interessado.</div>
     </div>
 
+    <!-- O que é grátis vs Premium — auditoria de honestidade: lista simples e
+         recolhida por padrão (mesmo padrão da Central de Recursos de Apoio),
+         pra quem quer decidir com clareza antes de escolher um plano. -->
+    <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;margin:16px 0;overflow:hidden">
+      <div onclick="alternarComparativoGratisPremium()" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer">
+        <div style="font-size:13px;font-weight:700;color:#fdf6f2">O que é grátis vs. o que é Premium</div>
+        <span id="comparativoChevron" style="font-size:14px;color:#d0a8b8;transition:transform .2s">&#9660;</span>
+      </div>
+      <div id="comparativoConteudo" style="display:none;padding:0 16px 16px">
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;color:#6dcc6d;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Sempre grátis</div>
+          <div style="font-size:12.5px;color:#e0c8d8;line-height:1.6">&#10003; Curtir e dar match (até 20 curtidas por dia)<br>&#10003; Conversar com seus matches, sem limite<br>&#10003; Modo Dupla, Stories, Eventos e os recursos de segurança</div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#d4839a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Só no Premium</div>
+          <div style="font-size:12.5px;color:#e0c8d8;line-height:1.6">&#128274; Ver quem já curtiu você, antes de dar match<br>&#128274; Ver quem visitou seu perfil<br>&#128274; Curtidas ilimitadas, sem o limite de 20/dia<br>&#128274; Filtrar por altura, peso e cor de cabelo</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Planos -->
     <div style="font-size:11px;font-weight:700;color:#d0a8b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Escolha seu plano</div>
 
@@ -1536,7 +1556,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <div class="plan-price">R$ 9<span style="font-size:16px;font-weight:500">,90</span></div>
         <div class="plan-period">por semana</div>
       </div>
-      <div style="font-size:12px;color:#e0c8d8;margin-top:4px">Acesso completo por 7 dias · Renove só se quiser continuar</div>
+      <div style="font-size:12px;color:#e0c8d8;margin-top:4px">Acesso completo por 7 dias</div>
     </div>
 
     <!-- MENSAL -->
@@ -1549,7 +1569,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <div class="plan-price">R$ 24<span style="font-size:16px;font-weight:500">,90</span></div>
         <div class="plan-period">por mês</div>
       </div>
-      <div style="font-size:12px;color:#e0c8d8;margin-top:4px">Equivale a R$6,22/semana · Renove só se quiser continuar</div>
+      <div style="font-size:12px;color:#e0c8d8;margin-top:4px">Equivale a R$6,22/semana</div>
     </div>
 
     <!-- ANUAL -->
@@ -1566,7 +1586,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 16px;margin:14px 0">
       <div style="font-size:11px;font-weight:700;color:#d0a8b8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Também incluído</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px">
-        <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:6px 12px;font-size:12px;color:#e0d0e8">&#127919; Filtros avançados</span>
+        <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:6px 12px;font-size:12px;color:#e0d0e8">&#127919; Filtre por altura, peso e cor de cabelo</span>
         <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:6px 12px;font-size:12px;color:#e0d0e8">&#128204; Curtidas ilimitadas</span>
       </div>
     </div>
@@ -1575,7 +1595,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       Assinar — a partir de R$ 9,90
     </button>
     <div style="text-align:center;color:#b0909a;font-size:12px;margin-top:10px;line-height:1.7">
-      Pagamento via Pix · Acesso imediato<br>Sem renovação automática — você só paga de novo se quiser continuar
+      Pix ou Cartão de crédito<br>Você confirma o método e os detalhes de renovação na próxima tela
     </div>
     <button class="btn btn-ghost" style="margin-top:10px;color:#907080;border-color:rgba(255,255,255,.12)" onclick="goTo('discover')">Continuar sem assinar</button>
   </div>
@@ -2994,8 +3014,9 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12px;color:#e0c8d8">
         <span id="modal-plan-sub">Acesso por 30 dias</span>
-        <span>Pagamento único</span>
+        <span id="modal-plan-forma">Pagamento único</span>
       </div>
+      <div id="modal-plan-renovacao" style="font-size:11.5px;color:#d0a0b8;margin-top:6px;line-height:1.4"></div>
     </div>
     <div class="metodo-toggle">
       <button type="button" id="btnMetodoPix" class="ativo" onclick="selecionarMetodoPagamento('pix')">Pix</button>
@@ -5886,6 +5907,15 @@ function formatarReais(valor){
 
 // Abre/fecha uma pergunta do FAQ. Recebe o cabeçalho clicado; a resposta é o
 // irmão seguinte, então não precisa de id em cada bloco.
+function alternarComparativoGratisPremium(){
+  const conteudo = document.getElementById('comparativoConteudo');
+  const chevron = document.getElementById('comparativoChevron');
+  if(!conteudo) return;
+  const abrindo = conteudo.style.display === 'none';
+  conteudo.style.display = abrindo ? 'block' : 'none';
+  if(chevron) chevron.style.transform = abrindo ? 'rotate(180deg)' : '';
+}
+
 function alternarFaqGuia(cabecalho){
   const resposta = cabecalho.nextElementSibling;
   const seta = cabecalho.querySelector('.faq-seta');
@@ -9764,6 +9794,29 @@ function aplicarContagemCurtidasNaTela(total){
   if(cta) cta.innerHTML = textoCTAAssinatura(PRECOS_ASSINATURA_TEXTO[planoSelecionado] || PRECOS_ASSINATURA_TEXTO.mensal);
 }
 
+const DIAS_POR_PLANO = { semanal: 7, mensal: 30, anual: 365 };
+const PERIODO_RENOVACAO_CARTAO = { semanal: 'a cada 7 dias', mensal: 'a cada mês', anual: 'a cada ano' };
+let metodoPagamentoSelecionado = 'pix';
+
+// Único lugar que decide o texto de renovação — chamado tanto ao trocar de
+// plano quanto ao trocar de método, pra nunca ficar um combinando com o
+// método errado. Achado da auditoria: antes esse texto era fixo ("Pagamento
+// único"), escrito quando só existia Pix — ficou errado desde que o Cartão
+// recorrente (Fatia 5) foi adicionado, e ninguém tinha voltado aqui.
+function atualizarResumoRenovacaoModal(){
+  const formaEl = document.getElementById('modal-plan-forma');
+  const renovEl = document.getElementById('modal-plan-renovacao');
+  if(!formaEl || !renovEl) return;
+  const dias = DIAS_POR_PLANO[planoSelecionado] || DIAS_POR_PLANO.mensal;
+  if(metodoPagamentoSelecionado === 'cartao'){
+    formaEl.textContent = 'Renova automaticamente';
+    renovEl.textContent = `Cobrança recorrente no cartão ${PERIODO_RENOVACAO_CARTAO[planoSelecionado] || PERIODO_RENOVACAO_CARTAO.mensal} — para cancelar, escreva pra contato@vinculoapp.com.br`;
+  } else {
+    formaEl.textContent = 'Pagamento único';
+    renovEl.textContent = `Acesso por ${dias} dias · pague de novo se quiser continuar — sem renovação automática`;
+  }
+}
+
 function selectPlan(plan){
   planoSelecionado = plan;
   document.querySelectorAll('.plan-card[id^="plan-"]').forEach(c=>{c.classList.remove('selected','popular');c.style.borderColor='rgba(255,255,255,.15)';});
@@ -9773,8 +9826,8 @@ function selectPlan(plan){
   if(cta){
     cta.innerHTML = textoCTAAssinatura(PRECOS_ASSINATURA_TEXTO[plan] || PRECOS_ASSINATURA_TEXTO.mensal);
   }
-  // Atualizar modal de confirmação. "Acesso por N dias" em vez de "Renovação
-  // automática": o pagamento é Pix avulso, nada renova sozinho.
+  // "Acesso por N dias" no resumo do modal — o texto de renovação/método
+  // (Pix vs Cartão) é decidido à parte, por atualizarResumoRenovacaoModal().
   const vals={
     'semanal':['Vínculo Premium Semanal','R$ 9,90','Acesso por 7 dias'],
     'mensal':['Vínculo Premium Mensal','R$ 24,90','Acesso por 30 dias'],
@@ -9787,6 +9840,7 @@ function selectPlan(plan){
   if(nm)nm.textContent=v[0];
   if(np)np.textContent=v[1];
   if(ns)ns.textContent=v[2];
+  atualizarResumoRenovacaoModal();
 }
 
 // Telefone digitado no modal, enviado junto do POST que gera o Pix (ou a
@@ -9849,6 +9903,7 @@ function iniciarPagamentoAssinatura(metodo){
 }
 
 function selecionarMetodoPagamento(metodo){
+  metodoPagamentoSelecionado = metodo;
   // Achado BAIXA da auditoria de UX: lembra a última forma de pagamento
   // escolhida, pra não reabrir sempre em Pix pra quem sempre paga de cartão.
   localStorage.setItem('vinculo_metodo_pagamento_pref', metodo);
@@ -9856,6 +9911,7 @@ function selecionarMetodoPagamento(metodo){
   document.getElementById('btnMetodoCartao').classList.toggle('ativo', metodo==='cartao');
   document.getElementById('blocoMetodoPix').style.display = metodo==='pix' ? 'block' : 'none';
   document.getElementById('blocoMetodoCartao').style.display = metodo==='cartao' ? 'block' : 'none';
+  atualizarResumoRenovacaoModal();
   if(metodo==='cartao') iniciarPagamentoAssinatura('cartao');
 }
 
