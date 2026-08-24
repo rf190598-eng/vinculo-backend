@@ -9929,6 +9929,15 @@ async function renderizarBrickCartaoAssinatura(){
     brickCartaoAssinatura = null;
   }
 
+  // Espera o navegador terminar de exibir o modal/aba de Cartão antes de
+  // montar o Brick. Sem isso, quando o modal é aberto e a aba Cartão fica
+  // visível no MESMO ciclo síncrono em que o Brick é criado (caminho:
+  // confirmar telefone → reabrir modal → selecionar Cartão), o SDK pode
+  // medir o container ainda com display:none/tamanho zero e o formulário
+  // não aparece — sem lançar nenhum erro. Dois requestAnimationFrame
+  // garantem que o layout já foi calculado e pintado.
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
   const valor = planosValores[planoSelecionado] || planosValores.mensal;
 
   try{
