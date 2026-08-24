@@ -5,10 +5,24 @@ const Indicacao = require('../models/Indicacao');
 const Comissao = require('../models/Comissao');
 const BonusMeta = require('../models/BonusMeta');
 
+// Garante que a base do link sempre tenha protocolo explícito (https://).
+// Achado do incidente do "domínio duplicado no Compartilhar": se
+// APP_LINK_BASE vier sem esquema (ex: "app.vinculoapp.com.br", como estava
+// configurado), o link final é uma URL RELATIVA — o "Copiar" só copia o
+// texto cru e nunca mostra o problema, mas o "Compartilhar"
+// (navigator.share) resolve `url` relativo à origem da página atual,
+// colando o domínio duas vezes. Normalizar aqui corrige os dois caminhos
+// de uma vez, na fonte, não importa como a env var venha preenchida.
+function normalizarBaseLinkParceiro(valorBruto) {
+  const valor = String(valorBruto || '').trim().replace(/\/+$/, '');
+  if (!valor) return 'https://vinculo-backend-production.up.railway.app';
+  return /^https?:\/\//i.test(valor) ? valor : `https://${valor}`;
+}
+
 // Base do link curto de parceiro. Configurável por env porque o domínio final
 // pode mudar antes do lançamento — e o link vai impresso/compartilhado por aí,
 // então não pode depender de hardcode espalhado.
-const LINK_BASE_PARCEIRO = process.env.APP_LINK_BASE || 'https://vinculo-backend-production.up.railway.app';
+const LINK_BASE_PARCEIRO = normalizarBaseLinkParceiro(process.env.APP_LINK_BASE);
 
 // Valor inicial da coluna comissao_base em parceiros novos. NÃO é mais o que
 // define quanto o parceiro recebe — quem manda nisso é COMISSOES_POR_PLANO,
