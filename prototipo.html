@@ -1033,6 +1033,30 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:#d8b0c4;margin-bottom:8px">Interesses</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap" id="pvInteresses"></div>
     </div>
+
+    <!-- Formação e trabalho -->
+    <div style="margin-top:16px;display:none" id="pvFormacaoWrap">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:#d8b0c4;margin-bottom:8px">Formação e trabalho</div>
+      <div style="font-size:13.5px;line-height:1.8;color:#e8d8de" id="pvFormacao"></div>
+    </div>
+
+    <!-- Estado civil e cidade -->
+    <div style="margin-top:16px;display:flex;gap:24px;flex-wrap:wrap">
+      <div id="pvEstadoCivilWrap" style="display:none">
+        <div style="font-size:11px;color:#a88090;text-transform:uppercase;letter-spacing:.5px">Estado civil</div>
+        <div style="font-size:13.5px;color:#e8d8de;margin-top:2px" id="pvEstadoCivil">—</div>
+      </div>
+      <div id="pvCidadeWrap" style="display:none">
+        <div style="font-size:11px;color:#a88090;text-transform:uppercase;letter-spacing:.5px">Cidade</div>
+        <div style="font-size:13.5px;color:#e8d8de;margin-top:2px" id="pvCidade">—</div>
+      </div>
+    </div>
+
+    <!-- Prompts -->
+    <div style="margin-top:16px;display:none" id="pvPromptsWrap">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:#d8b0c4;margin-bottom:8px">Prompts</div>
+      <div id="pvPrompts"></div>
+    </div>
   </div>
 
   <!-- Galeria de fotos (múltiplas, além da principal) -->
@@ -2311,6 +2335,32 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div class="prompt-q">Nao vivo sem...</div>
       <input class="inp" id="editPrompt2" style="margin-bottom:0" placeholder="Sua resposta..."/>
     </div>
+    <div class="prompt-card">
+      <div class="prompt-q">Quando estou em casa de boa, gosto de...</div>
+      <div class="edit-lifestyle-grid" id="grupoPromptCasa">
+        <div class="ls-chip" data-valor="Maratonar séries" onclick="toggleLsRadio(this)">&#128250; Maratonar séries</div>
+        <div class="ls-chip" data-valor="Cozinhar algo novo" onclick="toggleLsRadio(this)">&#127859; Cozinhar algo novo</div>
+        <div class="ls-chip" data-valor="Jogar video game" onclick="toggleLsRadio(this)">&#127918; Jogar video game</div>
+        <div class="ls-chip" data-valor="Ler um livro" onclick="toggleLsRadio(this)">&#128218; Ler um livro</div>
+        <div class="ls-chip" data-valor="Ouvir música/podcast" onclick="toggleLsRadio(this)">&#127911; Ouvir música/podcast</div>
+        <div class="ls-chip" data-valor="Não fazer nada mesmo" onclick="toggleLsRadio(this)">&#128524; Não fazer nada mesmo</div>
+        <div class="ls-chip" data-valor="Chamar amigos pra jantar" onclick="toggleLsRadio(this)">&#127869; Chamar amigos pra jantar</div>
+        <div class="ls-chip" data-valor="Cuidar da casa/plantas" onclick="toggleLsRadio(this)">&#127796; Cuidar da casa/plantas</div>
+      </div>
+    </div>
+    <div class="prompt-card">
+      <div class="prompt-q">Esporte que mais amo e...</div>
+      <div class="edit-lifestyle-grid" id="grupoPromptEsporte">
+        <div class="ls-chip" data-valor="Futebol" onclick="toggleLsRadio(this)">&#9917; Futebol</div>
+        <div class="ls-chip" data-valor="Musculação" onclick="toggleLsRadio(this)">&#127947; Musculação</div>
+        <div class="ls-chip" data-valor="Corrida" onclick="toggleLsRadio(this)">&#127939; Corrida</div>
+        <div class="ls-chip" data-valor="Vôlei" onclick="toggleLsRadio(this)">&#127959; Vôlei</div>
+        <div class="ls-chip" data-valor="Natação" onclick="toggleLsRadio(this)">&#127946; Natação</div>
+        <div class="ls-chip" data-valor="Yoga/Pilates" onclick="toggleLsRadio(this)">&#129497; Yoga/Pilates</div>
+        <div class="ls-chip" data-valor="Ciclismo" onclick="toggleLsRadio(this)">&#128692; Ciclismo</div>
+        <div class="ls-chip" data-valor="Não curto muito esporte" onclick="toggleLsRadio(this)">&#128587; Não curto muito esporte</div>
+      </div>
+    </div>
 
     <div class="edit-section-title">Estilo de vida</div>
     <div class="edit-lifestyle-grid" id="grupoEstiloVida">
@@ -2322,6 +2372,13 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div class="ls-chip" data-valor="tenho_pets" onclick="toggleLs(this)">&#128021; Tenho pets</div>
       <div class="ls-chip" data-valor="tenho_filhos" onclick="toggleLs(this)">&#128141; Tenho filhos</div>
       <div class="ls-chip" data-valor="pratico_religiao" onclick="toggleLs(this)">&#9962; Pratico religião</div>
+      <div class="ls-chip" data-valor="vegetariano_vegano" onclick="toggleLs(this)">&#127793; Vegetariano/Vegano</div>
+      <div class="ls-chip" data-valor="medito_pratico_yoga" onclick="toggleLs(this)">&#129497; Pratico meditação/yoga</div>
+      <div class="ls-chip" data-valor="moro_sozinho" onclick="toggleLs(this)">&#127968; Moro sozinho(a)</div>
+      <div class="ls-chip" data-valor="tenho_carro" onclick="toggleLs(this)">&#128663; Tenho carro</div>
+      <div class="ls-chip" data-valor="trabalho_remoto" onclick="toggleLs(this)">&#128187; Trabalho remoto</div>
+      <div class="ls-chip" data-valor="sou_noturno" onclick="toggleLs(this)">&#127769; Sou noturno(a)</div>
+      <div class="ls-chip" data-valor="sou_matutino" onclick="toggleLs(this)">&#9728;&#65039; Sou matutino(a)</div>
     </div>
 
     <div class="edit-section-title">O que você busca</div>
@@ -2343,6 +2400,36 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div class="ls-chip" data-valor="esportes" onclick="toggleLs(this)">&#9917; Esportes</div>
       <div class="ls-chip" data-valor="viagens" onclick="toggleLs(this)">&#9992; Viagens</div>
       <div class="ls-chip" data-valor="cinema" onclick="toggleLs(this)">&#127916; Cinema</div>
+      <div class="ls-chip" data-valor="arte" onclick="toggleLs(this)">&#127912; Arte</div>
+      <div class="ls-chip" data-valor="games" onclick="toggleLs(this)">&#127918; Games</div>
+      <div class="ls-chip" data-valor="vinhos" onclick="toggleLs(this)">&#127863; Vinhos</div>
+      <div class="ls-chip" data-valor="fotografia" onclick="toggleLs(this)">&#128248; Fotografia</div>
+      <div class="ls-chip" data-valor="danca" onclick="toggleLs(this)">&#128131; Dança</div>
+      <div class="ls-chip" data-valor="aventura" onclick="toggleLs(this)">&#129496; Aventura/radical</div>
+      <div class="ls-chip" data-valor="series" onclick="toggleLs(this)">&#128250; Séries</div>
+    </div>
+
+    <div class="edit-section-title">Cidade</div>
+    <input class="inp" id="editCidade" placeholder="Sua cidade"/>
+
+    <div class="edit-section-title">Formação e trabalho</div>
+    <select class="inp" id="editEscolaridade">
+      <option value="">Escolaridade</option>
+      <option value="medio">Ensino médio</option>
+      <option value="superior_incompleto">Superior incompleto</option>
+      <option value="superior_completo">Superior completo</option>
+      <option value="pos_graduacao">Pós-graduação</option>
+    </select>
+    <input class="inp" id="editOndeEstudou" placeholder="Onde estudou/estuda"/>
+    <input class="inp" id="editProfissao" placeholder="Profissão/Cargo"/>
+    <input class="inp" id="editOndeTrabalha" placeholder="Onde trabalha"/>
+
+    <div class="edit-section-title">Estado civil</div>
+    <div class="edit-lifestyle-grid" id="grupoEstadoCivil">
+      <div class="ls-chip" data-valor="solteiro" onclick="toggleLsRadio(this)">Solteiro(a)</div>
+      <div class="ls-chip" data-valor="divorciado" onclick="toggleLsRadio(this)">Divorciado(a)</div>
+      <div class="ls-chip" data-valor="viuvo" onclick="toggleLsRadio(this)">Viúvo(a)</div>
+      <div class="ls-chip" data-valor="separado" onclick="toggleLsRadio(this)">Separado(a)</div>
     </div>
 
     <button class="btn btn-primary" style="margin-top:20px" onclick="salvarEdicaoPerfil()">Salvar alteracoes</button>
@@ -4821,15 +4908,26 @@ async function salvarEdicaoPerfil(){
   const pesoInput = document.getElementById('editPeso').value.trim();
   const peso = pesoInput ? parseInt(pesoInput, 10) : null;
   const cor_cabelo = document.getElementById('editCorCabelo').value || null;
+  const cidade = document.getElementById('editCidade').value.trim();
+  const escolaridade = document.getElementById('editEscolaridade').value || null;
+  const onde_estudou = document.getElementById('editOndeEstudou').value.trim();
+  const profissao = document.getElementById('editProfissao').value.trim();
+  const onde_trabalha = document.getElementById('editOndeTrabalha').value.trim();
 
   const estilo_vida = Array.from(document.querySelectorAll('#grupoEstiloVida .ls-chip.on')).map(el => el.dataset.valor);
   const interesses = Array.from(document.querySelectorAll('#grupoInteresses .ls-chip.on')).map(el => el.dataset.valor);
   const objetivoChip = document.querySelector('#grupoObjetivo .ls-chip.on');
   const objetivo = objetivoChip ? objetivoChip.dataset.valor : null;
+  const estadoCivilChip = document.querySelector('#grupoEstadoCivil .ls-chip.on');
+  const estado_civil = estadoCivilChip ? estadoCivilChip.dataset.valor : null;
+  const promptCasaChip = document.querySelector('#grupoPromptCasa .ls-chip.on');
+  const promptEsporteChip = document.querySelector('#grupoPromptEsporte .ls-chip.on');
 
   const prompts = [
     { pergunta: 'Meu fim de semana ideal e...', resposta: document.getElementById('editPrompt1').value.trim() },
-    { pergunta: 'Nao vivo sem...', resposta: document.getElementById('editPrompt2').value.trim() }
+    { pergunta: 'Nao vivo sem...', resposta: document.getElementById('editPrompt2').value.trim() },
+    { pergunta: 'Quando estou em casa de boa, gosto de...', resposta: promptCasaChip ? promptCasaChip.dataset.valor : '' },
+    { pergunta: 'Esporte que mais amo e...', resposta: promptEsporteChip ? promptEsporteChip.dataset.valor : '' }
   ].filter(p => p.resposta);
 
   if(!nome){ showToastVinculo('O nome não pode ficar vazio.'); return; }
@@ -4846,7 +4944,7 @@ async function salvarEdicaoPerfil(){
     const resp = await fetch(`${API_URL}/api/perfil/editar`, {
       method:'PUT',
       headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
-      body: JSON.stringify({ nome, bio, genero, signo, altura, peso, cor_cabelo, estilo_vida, interesses, objetivo, prompts })
+      body: JSON.stringify({ nome, bio, genero, signo, altura, peso, cor_cabelo, cidade, escolaridade, onde_estudou, profissao, onde_trabalha, estado_civil, estilo_vida, interesses, objetivo, prompts })
     });
     const dados = await resp.json();
     if(!resp.ok){ showToastVinculo(dados.erro || 'Erro ao salvar.'); return; }
@@ -4885,11 +4983,36 @@ function preencherEdicaoPerfilComDadosSalvos(){
   const corCabeloEl = document.getElementById('editCorCabelo');
   if (corCabeloEl) corCabeloEl.value = usuarioAtual.cor_cabelo || '';
 
+  const cidadeEl = document.getElementById('editCidade');
+  if (cidadeEl) cidadeEl.value = usuarioAtual.cidade || '';
+
+  const escolaridadeEl = document.getElementById('editEscolaridade');
+  if (escolaridadeEl) escolaridadeEl.value = usuarioAtual.escolaridade || '';
+
+  const ondeEstudouEl = document.getElementById('editOndeEstudou');
+  if (ondeEstudouEl) ondeEstudouEl.value = usuarioAtual.onde_estudou || '';
+
+  const profissaoEl = document.getElementById('editProfissao');
+  if (profissaoEl) profissaoEl.value = usuarioAtual.profissao || '';
+
+  const ondeTrabalhaEl = document.getElementById('editOndeTrabalha');
+  if (ondeTrabalhaEl) ondeTrabalhaEl.value = usuarioAtual.onde_trabalha || '';
+
   const promptsSalvos = Array.isArray(usuarioAtual.prompts) ? usuarioAtual.prompts : [];
   const prompt1El = document.getElementById('editPrompt1');
   const prompt2El = document.getElementById('editPrompt2');
   if (prompt1El) prompt1El.value = (promptsSalvos[0] && promptsSalvos[0].resposta) || '';
   if (prompt2El) prompt2El.value = (promptsSalvos[1] && promptsSalvos[1].resposta) || '';
+
+  const promptCasaSalvo = promptsSalvos.find(p => p.pergunta === 'Quando estou em casa de boa, gosto de...');
+  document.querySelectorAll('#grupoPromptCasa .ls-chip').forEach(el => {
+    el.classList.toggle('on', !!promptCasaSalvo && promptCasaSalvo.resposta === el.dataset.valor);
+  });
+
+  const promptEsporteSalvo = promptsSalvos.find(p => p.pergunta === 'Esporte que mais amo e...');
+  document.querySelectorAll('#grupoPromptEsporte .ls-chip').forEach(el => {
+    el.classList.toggle('on', !!promptEsporteSalvo && promptEsporteSalvo.resposta === el.dataset.valor);
+  });
 
   const estiloSalvo = Array.isArray(usuarioAtual.estilo_vida) ? usuarioAtual.estilo_vida : [];
   document.querySelectorAll('#grupoEstiloVida .ls-chip').forEach(el => {
@@ -4903,6 +5026,10 @@ function preencherEdicaoPerfilComDadosSalvos(){
 
   document.querySelectorAll('#grupoObjetivo .ls-chip').forEach(el => {
     el.classList.toggle('on', usuarioAtual.objetivo === el.dataset.valor);
+  });
+
+  document.querySelectorAll('#grupoEstadoCivil .ls-chip').forEach(el => {
+    el.classList.toggle('on', usuarioAtual.estado_civil === el.dataset.valor);
   });
 }
 
@@ -4953,7 +5080,9 @@ async function fotoPerfilSelecionada(event){
 }
 
 const SIGNO_LABELS = {aries:'Áries',touro:'Touro',gemeos:'Gêmeos',cancer:'Câncer',leao:'Leão',virgem:'Virgem',libra:'Libra',escorpiao:'Escorpião',sagitario:'Sagitário',capricornio:'Capricórnio',aquario:'Aquário',peixes:'Peixes'};
-const INTERESSE_LABELS = {natureza:'🌿 Natureza',leitura:'📚 Leitura',cafe:'☕ Café',gastronomia:'🍽️ Gastronomia',trilhas:'🏃 Trilhas',musica:'🎶 Música',esportes:'⚽ Esportes',viagens:'✈️ Viagens',cinema:'🎬 Cinema'};
+const INTERESSE_LABELS = {natureza:'🌿 Natureza',leitura:'📚 Leitura',cafe:'☕ Café',gastronomia:'🍽️ Gastronomia',trilhas:'🏃 Trilhas',musica:'🎶 Música',esportes:'⚽ Esportes',viagens:'✈️ Viagens',cinema:'🎬 Cinema',arte:'🎨 Arte',games:'🎮 Games',vinhos:'🍷 Vinhos',fotografia:'📷 Fotografia',danca:'💃 Dança',aventura:'🧗 Aventura/radical',series:'📺 Séries'};
+const ESCOLARIDADE_LABELS = {medio:'Ensino médio', superior_incompleto:'Superior incompleto', superior_completo:'Superior completo', pos_graduacao:'Pós-graduação'};
+const ESTADO_CIVIL_LABELS = {solteiro:'Solteiro(a)', divorciado:'Divorciado(a)', viuvo:'Viúvo(a)', separado:'Separado(a)'};
 
 // Reaproveitado por verPerfilCompleto/verPerfilDeCurtida/verPerfilDeMatch —
 // as 3 telas de "perfil completo" do app. Cada campo some (display:none)
@@ -4983,6 +5112,39 @@ function preencherDetalhesEGaleria(p){
     interessesWrap.style.display = '';
     interessesEl.innerHTML = p.interesses.map(i => `<div class="card-tag" style="padding:6px 12px;font-size:12px">${escapeHtml(INTERESSE_LABELS[i] || i)}</div>`).join('');
   } else { interessesWrap.style.display = 'none'; }
+
+  const formacaoWrap = document.getElementById('pvFormacaoWrap');
+  const formacaoLinhas = [];
+  if(p.escolaridade && ESCOLARIDADE_LABELS[p.escolaridade]) formacaoLinhas.push(ESCOLARIDADE_LABELS[p.escolaridade]);
+  if(p.onde_estudou) formacaoLinhas.push(`Estudou em ${p.onde_estudou}`);
+  if(p.profissao) formacaoLinhas.push(p.profissao);
+  if(p.onde_trabalha) formacaoLinhas.push(`Trabalha em ${p.onde_trabalha}`);
+  if(formacaoLinhas.length){
+    formacaoWrap.style.display = '';
+    document.getElementById('pvFormacao').innerHTML = formacaoLinhas.map(l => escapeHtml(l)).join('<br>');
+  } else { formacaoWrap.style.display = 'none'; }
+
+  const estadoCivilWrap = document.getElementById('pvEstadoCivilWrap');
+  if(p.estado_civil && ESTADO_CIVIL_LABELS[p.estado_civil]){
+    estadoCivilWrap.style.display = '';
+    document.getElementById('pvEstadoCivil').textContent = ESTADO_CIVIL_LABELS[p.estado_civil];
+  } else { estadoCivilWrap.style.display = 'none'; }
+
+  const cidadeWrap = document.getElementById('pvCidadeWrap');
+  if(p.cidade_confirmada_pelo_usuario && p.cidade){
+    cidadeWrap.style.display = '';
+    document.getElementById('pvCidade').textContent = p.cidade;
+  } else { cidadeWrap.style.display = 'none'; }
+
+  const promptsWrap = document.getElementById('pvPromptsWrap');
+  const promptsEl = document.getElementById('pvPrompts');
+  const promptsRespondidos = (Array.isArray(p.prompts) ? p.prompts : []).filter(pr => pr && pr.resposta && String(pr.resposta).trim());
+  if(promptsRespondidos.length){
+    promptsWrap.style.display = '';
+    promptsEl.innerHTML = promptsRespondidos.map(pr =>
+      `<div class="prompt-card"><div class="prompt-q">${escapeHtml(pr.pergunta)}</div><div style="font-size:13.5px;color:#e8d8de">${escapeHtml(pr.resposta)}</div></div>`
+    ).join('');
+  } else { promptsWrap.style.display = 'none'; }
 
   const galeriaWrap = document.getElementById('pvGaleriaWrap');
   const galeriaEl = document.getElementById('pvGaleria');
@@ -8773,12 +8935,28 @@ function configurarTapZonasStory(){
 }
 
 function calcularCompletudePerfil(usuario, totalFotos){
+  // Achado ao expandir o perfil: estilo_vida, interesses e os campos novos
+  // (formação/trabalho, estado civil, cidade, prompts) NÃO contavam pra
+  // completude antes — só bio/foto/signo/objetivo/7-fotos, 20% cada. Pesos
+  // redistribuídos abaixo pra incluir tudo, somando 100 igual antes. Perfis
+  // já existentes podem recalcular pra um % mais baixo — esperado.
+  const temEstiloVida = Array.isArray(usuario.estilo_vida) && usuario.estilo_vida.length > 0;
+  const temInteresses = Array.isArray(usuario.interesses) && usuario.interesses.length > 0;
+  const temFormacaoTrabalho = !!(usuario.escolaridade || usuario.onde_estudou || usuario.profissao || usuario.onde_trabalha);
+  const temPromptRespondido = Array.isArray(usuario.prompts) && usuario.prompts.some(p => p && p.resposta && String(p.resposta).trim());
+
   const itens = [
-    { label: 'Escrever sua bio', feito: !!usuario.bio, peso: 20 },
-    { label: 'Adicionar foto de perfil', feito: !!usuario.foto_url, peso: 20 },
-    { label: 'Escolher seu signo', feito: !!usuario.signo, peso: 20 },
-    { label: 'Dizer o que você busca', feito: !!usuario.objetivo, peso: 20 },
-    { label: `Adicionar 7 fotos (tem ${totalFotos||0})`, feito: (totalFotos||0) >= 7, peso: 20 }
+    { label: 'Escrever sua bio', feito: !!usuario.bio, peso: 10 },
+    { label: 'Adicionar foto de perfil', feito: !!usuario.foto_url, peso: 10 },
+    { label: 'Escolher seu signo', feito: !!usuario.signo, peso: 10 },
+    { label: 'Dizer o que você busca', feito: !!usuario.objetivo, peso: 10 },
+    { label: `Adicionar 7 fotos (tem ${totalFotos||0})`, feito: (totalFotos||0) >= 7, peso: 10 },
+    { label: 'Escolher estilo de vida', feito: temEstiloVida, peso: 10 },
+    { label: 'Escolher interesses', feito: temInteresses, peso: 10 },
+    { label: 'Contar formação e trabalho', feito: temFormacaoTrabalho, peso: 10 },
+    { label: 'Contar estado civil', feito: !!usuario.estado_civil, peso: 10 },
+    { label: 'Confirmar sua cidade', feito: !!usuario.cidade_confirmada_pelo_usuario, peso: 5 },
+    { label: 'Responder um prompt', feito: temPromptRespondido, peso: 5 }
   ];
   const percentual = itens.reduce((soma, item) => soma + (item.feito ? item.peso : 0), 0);
   return { percentual, itens };

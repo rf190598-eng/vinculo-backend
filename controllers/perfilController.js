@@ -43,6 +43,8 @@ const upload = multer({
 
 const GENEROS_VALIDOS = ['masculino', 'feminino', 'nao-binario'];
 const PREF_GENERO_VALIDOS = ['masculino', 'feminino', 'todos'];
+const ESCOLARIDADE_VALIDAS = ['medio', 'superior_incompleto', 'superior_completo', 'pos_graduacao'];
+const ESTADO_CIVIL_VALIDOS = ['solteiro', 'divorciado', 'viuvo', 'separado'];
 
 const removerTagsHtml = (texto) => String(texto).replace(/<[^>]*>/g, '').trim();
 
@@ -51,6 +53,7 @@ const editarPerfil = async (req, res) => {
           const {
                   nome, bio, genero, data_nascimento, cidade, objetivo, signo,
                   altura, peso, cor_cabelo, instagram_handle, estilo_vida, interesses, prompts,
+                  escolaridade, onde_estudou, profissao, onde_trabalha, estado_civil,
                   pref_genero, pref_idade_min, pref_idade_max, pref_distancia_km,
                   pref_altura_min, pref_altura_max, pref_peso_min, pref_peso_max, pref_cor_cabelo,
                   pref_apenas_verificados, pref_objetivo
@@ -77,7 +80,18 @@ const editarPerfil = async (req, res) => {
       }
 
       if (data_nascimento) dados.data_nascimento = data_nascimento;
-          if (cidade !== undefined) dados.cidade = removerTagsHtml(cidade).slice(0, 100) || null;
+          if (cidade !== undefined) {
+                  const cidadeLimpa = removerTagsHtml(cidade).slice(0, 100);
+                  // Só grava e marca como confirmada quando vem texto de verdade — cidade
+                  // vazia não deve apagar o valor padrão (geolocalização) nem desligar uma
+                  // confirmação anterior. O front sempre manda essa chave no PUT (mesmo que
+                  // vazia), então "cidade !== undefined" sozinho não distingue "usuário
+                  // confirmou" de "não mexeu no campo".
+                  if (cidadeLimpa) {
+                        dados.cidade = cidadeLimpa;
+                        dados.cidade_confirmada_pelo_usuario = true;
+                  }
+          }
           if (objetivo !== undefined) dados.objetivo = objetivo || null;
           if (signo !== undefined) dados.signo = signo || null;
           if (estilo_vida !== undefined) dados.estilo_vida = estilo_vida;
@@ -92,6 +106,22 @@ const editarPerfil = async (req, res) => {
       if (altura !== undefined) dados.altura = altura || null;
           if (peso !== undefined) dados.peso = peso || null;
           if (cor_cabelo !== undefined) dados.cor_cabelo = cor_cabelo || null;
+
+      if (escolaridade !== undefined) {
+              if (escolaridade && !ESCOLARIDADE_VALIDAS.includes(escolaridade)) {
+                        return res.status(400).json({ erro: 'Escolaridade inválida.' });
+              }
+              dados.escolaridade = escolaridade || null;
+      }
+          if (onde_estudou !== undefined) dados.onde_estudou = removerTagsHtml(onde_estudou).slice(0, 150) || null;
+          if (profissao !== undefined) dados.profissao = removerTagsHtml(profissao).slice(0, 100) || null;
+          if (onde_trabalha !== undefined) dados.onde_trabalha = removerTagsHtml(onde_trabalha).slice(0, 150) || null;
+          if (estado_civil !== undefined) {
+                  if (estado_civil && !ESTADO_CIVIL_VALIDOS.includes(estado_civil)) {
+                          return res.status(400).json({ erro: 'Estado civil inválido.' });
+                  }
+                  dados.estado_civil = estado_civil || null;
+          }
 
       if (instagram_handle !== undefined) {
               if (!instagram_handle) {

@@ -148,6 +148,40 @@ cor_cabelo: {
     type: DataTypes.STRING,
     allowNull: true
   },
+  // Perfil expandido ("Formação e trabalho" + Estado civil): todos opcionais,
+  // contam para a % de completude do perfil (calcularCompletudePerfil, no
+  // prototipo.html). escolaridade é 'medio'|'superior_incompleto'|
+  // 'superior_completo'|'pos_graduacao'.
+  escolaridade: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  onde_estudou: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  profissao: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  onde_trabalha: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  // 'solteiro'|'divorciado'|'viuvo'|'separado'.
+  estado_civil: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  // true só depois que o usuário salva o campo cidade explicitamente (com
+  // texto não vazio) na edição de perfil. cidade em si já nasce preenchida
+  // com um valor padrão pra TODO usuário (geolocalização), então não dá pra
+  // usar "cidade truthy" sozinho como sinal de completude — precisa dessa
+  // flag separada (ver perfilController.editarPerfil).
+  cidade_confirmada_pelo_usuario: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
   instagram_handle: {
     type: DataTypes.STRING,
     allowNull: true
