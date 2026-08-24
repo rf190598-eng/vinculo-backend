@@ -824,7 +824,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
           <span style="font-size:22px">&#128172;</span>
           <div>
             <div style="font-size:13.5px;font-weight:700;color:#fdf6f2">Match = vocês se curtiram</div>
-            <div style="font-size:12px;color:#d0a8b8">Assine o Premium para conversar</div>
+            <div style="font-size:12px;color:#d0a8b8">A conversa abre automaticamente — grátis</div>
           </div>
         </div>
       </div>
@@ -2672,7 +2672,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
     <!-- Barra de progresso (montada dinamicamente por montarBarraProgressoStory()) -->
     <div id="viewStoryBarraProgresso" style="display:flex;gap:3px;padding:12px 14px 8px;position:absolute;top:26px;left:0;right:0;z-index:10"></div>
     <!-- Header -->
-    <div class="topo-seguro" style="position:absolute;top:42px;left:0;right:0;z-index:10;display:flex;align-items:center;gap:10px;padding:0 14px">
+    <div class="topo-seguro" style="position:absolute;top:42px;left:0;right:0;z-index:10;display:flex;align-items:center;gap:10px;padding-left:14px;padding-right:14px">
       <div id="viewStoryFotoPerfil" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7a2a4a,#4a1428);display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid rgba(255,255,255,.4)">&#128100;</div>
       <div>
         <div style="display:flex;align-items:baseline;gap:6px">
@@ -2751,7 +2751,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       </div>
 
       <!-- Topo: fechar + badge da pergunta do dia (dispensável) + atalho "Aa" pro modo texto -->
-      <div class="topo-seguro" style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:flex-start;justify-content:space-between;padding:16px 14px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
+      <div class="topo-seguro" style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:flex-start;justify-content:space-between;padding-left:14px;padding-right:14px;padding-bottom:16px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
         <div onclick="fecharComposerStory()" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff;flex-shrink:0">&#10005;</div>
 
         <div onclick="abrirModoTextoComposer()" style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;cursor:pointer;color:#fff">Aa</div>
@@ -4074,7 +4074,7 @@ async function carregarVisitantesPerfil(reiniciar){
     if(totalReal === 0){
       if(reiniciar) grid.innerHTML = '';
       renderizarEstadoLista(vazio, { temErro:false, mensagemVazia: 'Ninguém visitou seu perfil nos últimos 30 dias ainda.' });
-      bannerEl.style.display = souPremium ? 'none' : 'block';
+      bannerEl.style.display = 'none';
       btnMais.style.display = 'none';
       return;
     }
@@ -8763,7 +8763,10 @@ async function carregarMeuPerfil(){
   document.getElementById('meuPerfilBadgePremium').style.display = usuarioAtual.premium ? 'flex' : 'none';
 
   const faixaPremiumEl = document.getElementById('faixaPremiumPerfil');
-  if (faixaPremiumEl) faixaPremiumEl.style.display = usuarioAtual.premium ? 'none' : 'flex';
+  // Só decide se mostra depois de saber a contagem real de visitas — evita
+  // prometer "ver quem visitou" quando ninguém visitou ainda (mesma classe
+  // de bug já corrigida em "Quem curtiu você" e na tela de Assinatura).
+  if (faixaPremiumEl) faixaPremiumEl.style.display = 'none';
 
   const igInputEl = document.getElementById('editInstagram');
   const igStatusEl = document.getElementById('igStatusTexto');
@@ -8813,6 +8816,10 @@ async function carregarMeuPerfil(){
     document.getElementById('meuPerfilStatMatches').textContent = (dadosMatches.matches || []).length;
     const elVis = document.getElementById('meuPerfilStatVisualizacoes');
     if(elVis) elVis.textContent = dadosVisualizacoes.visualizacoes ?? 0;
+
+    if (faixaPremiumEl && !usuarioAtual.premium) {
+      faixaPremiumEl.style.display = (dadosVisualizacoes.visualizacoes > 0) ? 'flex' : 'none';
+    }
   } catch(e){
     // Achado MÉDIA da auditoria de UX: sem isso, os cards ficavam mostrando
     // "0" (valor inicial do HTML) em vez de deixar claro que é falha de
