@@ -145,7 +145,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 /* DISCOVER */
 .discover-header{display:flex;align-items:center;justify-content:space-between;padding:10px 18px 6px;}
 .card-area{position:relative;height:530px;margin:0 16px 14px;}
-.swipe-card{position:absolute;inset:0;background:linear-gradient(180deg,#2a0f1e 0%,#1a0810 100%);border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.8);border:1px solid rgba(255,255,255,.12);cursor:grab;}
+.swipe-card{position:absolute;inset:0;background:linear-gradient(180deg,#2a0f1e 0%,#1a0810 100%);border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.8);border:1px solid rgba(255,255,255,.12);cursor:grab;display:flex;flex-direction:column;}
 .swipe-card.swipe-left{animation:swipeLeft .4s ease forwards;}
 .swipe-card.swipe-right{animation:swipeRight .4s ease forwards;}
 @keyframes swipeLeft{to{transform:translateX(-150%) rotate(-20deg);opacity:0;}}
@@ -156,17 +156,21 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 .nope-stamp{position:absolute;top:30px;right:20px;border:3px solid #e05252;color:#e05252;border-radius:8px;padding:4px 14px;font-size:22px;font-weight:900;letter-spacing:2px;opacity:0;transform:rotate(15deg);transition:.15s;}
 
 /* CARD FOTO — sem opacity para ícone aparecer */
-.card-photo{height:74%;background:linear-gradient(160deg,#8a2a4a,#4a1428,#2a0810);position:relative;display:flex;align-items:center;justify-content:center;font-size:72px;}
+.card-photo{height:74%;flex-shrink:0;background:linear-gradient(160deg,#8a2a4a,#4a1428,#2a0810);position:relative;display:flex;align-items:center;justify-content:center;font-size:72px;}
 .card-photo-gradient{position:absolute;bottom:0;left:0;right:0;height:65%;background:linear-gradient(to top,#1a0810 0%,rgba(26,8,16,.8) 40%,transparent 100%);}
 .card-verified{position:absolute;top:14px;right:14px;background:rgba(10,3,6,.9);border:1.5px solid #c9a06b;border-radius:20px;padding:5px 12px;font-size:10.5px;color:#d4b87a;font-weight:700;}
 .card-distance{position:absolute;top:14px;left:14px;background:rgba(10,3,6,.85);border-radius:20px;padding:5px 12px;font-size:10.5px;color:#fdf6f2;font-weight:600;}
 .card-online{position:absolute;top:50px;left:14px;display:flex;align-items:center;gap:5px;background:rgba(10,3,6,.85);border-radius:20px;padding:4px 10px;font-size:10px;color:#6dcc6d;font-weight:600;}
 .card-online::before{content:'';width:6px;height:6px;border-radius:50%;background:#6dcc6d;display:inline-block;}
-.card-info{padding:14px 18px 12px;background:linear-gradient(to bottom,#1a0810,#120508);}
+.card-info{padding:14px 18px 16px;background:linear-gradient(to bottom,#1a0810,#120508);flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
 .card-name{font-family:'Cormorant Garamond',serif;font-size:27px;font-weight:700;display:flex;align-items:baseline;gap:9px;color:#fdf6f2;}
 .card-age{color:#e0b8c8;font-size:19px;font-weight:500;}
 .card-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;}
 .card-tag{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:5px 11px;font-size:10.5px;color:#e8d0da;font-weight:500;}
+.card-expand-title{font-size:11px;font-weight:800;color:#d4b87a;text-transform:uppercase;letter-spacing:.6px;margin:14px 0 6px;}
+.card-scroll-affordance{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:1px;color:#fdf6f2;opacity:.85;cursor:pointer;text-shadow:0 1px 4px rgba(0,0,0,.6);animation:cardScrollBounce 1.8s ease-in-out infinite;}
+.card-scroll-affordance div{font-size:9px;font-weight:700;letter-spacing:.4px;}
+@keyframes cardScrollBounce{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,5px)}}
 
 /* BOTÕES DE SWIPE */
 .swipe-btns{display:flex;justify-content:center;align-items:center;gap:14px;padding:0 24px;}
@@ -869,6 +873,9 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <div class="card-photo-gradient"></div>
         <div class="card-verified">&#10003; Verificado</div>
         <div class="card-distance">&#128205; 5 km</div>
+        <div class="card-scroll-affordance" onclick="event.stopPropagation(); const ci=this.closest('.swipe-card').querySelector('.card-info'); if(ci) ci.scrollBy({top:160,behavior:'smooth'});">
+          <span style="font-size:16px">&#8964;</span><div>PERFIL COMPLETO</div>
+        </div>
       </div>
       <div class="card-info">
         <div class="card-name">Rafael <span class="card-age">31</span></div>
@@ -877,6 +884,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
           <div class="card-tag">&#127929; Musica</div>
           <div class="card-tag">&#9749; Cafe</div>
         </div>
+        <div class="card-expand"></div>
       </div>
     </div>
     <div class="swipe-card card-front" id="card1">
@@ -886,10 +894,12 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <div class="card-photo-gradient"></div>
         <div class="card-verified">&#10003; Verificada</div>
         <div class="card-distance">&#128205; 3 km</div>
-        
+        <div class="card-scroll-affordance" onclick="event.stopPropagation(); const ci=this.closest('.swipe-card').querySelector('.card-info'); if(ci) ci.scrollBy({top:160,behavior:'smooth'});">
+          <span style="font-size:16px">&#8964;</span><div>PERFIL COMPLETO</div>
+        </div>
         <div id="bigHeartAnim" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:90px;opacity:0;pointer-events:none">&#128150;</div>
       </div>
-      <div class="card-info" onclick="verPerfilCompleto()" style="cursor:pointer">
+      <div class="card-info">
         <div class="card-name">Carregando<span class="card-age"></span></div>
         <div class="card-tags">
           <div class="card-tag">&#127807; Natureza</div>
@@ -897,6 +907,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
           <div class="card-tag">&#9749; Cafe</div>
           <div class="card-tag">&#127869; Gastronomia</div>
         </div>
+        <div class="card-expand"></div>
       </div>
     </div>
     <div class="swipe-card card-skeleton" id="cardSkeleton">
@@ -5460,6 +5471,10 @@ function preencherCard(elId, perfil){
   if(tagsEl){
    tagsEl.innerHTML = perfil.bio ? `<div class="card-tag">${escapeHtml(perfil.bio.slice(0,60))}</div>` : '<div class="card-tag" style="opacity:.6">Perfil ainda sem bio</div>';
   }
+  const expandEl = el.querySelector('.card-expand');
+  if(expandEl) expandEl.innerHTML = montarConteudoExpandidoCard(perfil);
+  const infoScrollEl = el.querySelector('.card-info');
+  if(infoScrollEl) infoScrollEl.scrollTop = 0;
   const verificadoEl = el.querySelector('.card-verified');
   if(verificadoEl) verificadoEl.style.display = perfil.verificado ? '' : 'none';
   const fotoEl = el.querySelector('.card-photo');
@@ -5473,6 +5488,54 @@ function preencherCard(elId, perfil){
     fotoEl.style.backgroundImage = '';
     if(placeholderEl) placeholderEl.style.display = '';
   }
+}
+
+// Reaproveita os mesmos mapas de label do perfil expandido (INTERESSE_LABELS,
+// ESCOLARIDADE_LABELS, ESTADO_CIVIL_LABELS, definidos mais abaixo no arquivo)
+// pra montar o conteúdo que aparece ao rolar o card no Descobrir — sem
+// duplicar a lógica de exibição que já existe nas telas de "ver perfil
+// completo". Cada seção some se o dado não existir, mesmo padrão de lá.
+function montarConteudoExpandidoCard(perfil){
+  const partes = [];
+
+  if(Array.isArray(perfil.interesses) && perfil.interesses.length){
+    partes.push(`<div class="card-expand-title">Interesses</div><div style="display:flex;gap:6px;flex-wrap:wrap">${perfil.interesses.map(i => `<div class="card-tag">${escapeHtml(INTERESSE_LABELS[i] || i)}</div>`).join('')}</div>`);
+  }
+
+  const formacaoLinhas = [];
+  if(perfil.escolaridade && ESCOLARIDADE_LABELS[perfil.escolaridade]) formacaoLinhas.push(ESCOLARIDADE_LABELS[perfil.escolaridade]);
+  if(perfil.onde_estudou) formacaoLinhas.push(`Estudou em ${perfil.onde_estudou}`);
+  if(perfil.profissao) formacaoLinhas.push(perfil.profissao);
+  if(perfil.onde_trabalha) formacaoLinhas.push(`Trabalha em ${perfil.onde_trabalha}`);
+  if(formacaoLinhas.length){
+    partes.push(`<div class="card-expand-title">Formação e trabalho</div><div style="font-size:13px;line-height:1.7;color:#e8d8de">${formacaoLinhas.map(l => escapeHtml(l)).join('<br>')}</div>`);
+  }
+
+  if(perfil.estado_civil && ESTADO_CIVIL_LABELS[perfil.estado_civil]){
+    partes.push(`<div class="card-expand-title">Estado civil</div><div style="font-size:13px;color:#e8d8de">${escapeHtml(ESTADO_CIVIL_LABELS[perfil.estado_civil])}</div>`);
+  }
+
+  const promptsRespondidos = (Array.isArray(perfil.prompts) ? perfil.prompts : []).filter(pr => pr && pr.resposta && String(pr.resposta).trim());
+  if(promptsRespondidos.length){
+    partes.push(`<div class="card-expand-title">Prompts</div>` + promptsRespondidos.map(pr =>
+      `<div class="prompt-card"><div class="prompt-q">${escapeHtml(pr.pergunta)}</div><div style="font-size:13px;color:#e8d8de">${escapeHtml(pr.resposta)}</div></div>`
+    ).join(''));
+  }
+
+  if(Array.isArray(perfil.galeria) && perfil.galeria.length){
+    partes.push(`<div class="card-expand-title">Fotos</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">${perfil.galeria.map(f => `<div style="border-radius:10px;overflow:hidden;height:90px;background-image:url(${API_URL}${f.url});background-size:cover;background-position:center"></div>`).join('')}</div>`);
+  }
+
+  if(!partes.length){
+    partes.push('<div style="font-size:12.5px;color:#a07080;padding:10px 0">Sem mais detalhes por enquanto.</div>');
+  }
+
+  // Link discreto pra tela de perfil completo em tela cheia — é onde ficam
+  // bloquear/denunciar, então precisa continuar fácil de achar mesmo com o
+  // conteúdo expandido direto no card.
+  partes.push('<div style="text-align:center;margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)"><span onclick="event.stopPropagation(); verPerfilCompleto()" style="font-size:12px;color:#f0a0b8;font-weight:600;cursor:pointer">Ver perfil completo em tela cheia &#8250;</span></div>');
+
+  return partes.join('');
 }
 
 async function carregarPerfis(){
