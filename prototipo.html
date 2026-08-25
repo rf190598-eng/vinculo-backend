@@ -6112,8 +6112,8 @@ async function alternarNotificacoesPush(){
 let codigoIndicacaoUsado = new URLSearchParams(window.location.search).get('ref') || null;
 
 function montarLinkIndicacao(){
-  if(!usuarioAtual || !usuarioAtual.codigo_indicacao) return `${API_URL}/prototipo`;
-  return `${API_URL}/prototipo?ref=${usuarioAtual.codigo_indicacao}`;
+  if(!usuarioAtual || !usuarioAtual.codigo_indicacao) return `${API_URL}/`;
+  return `${API_URL}/?ref=${usuarioAtual.codigo_indicacao}`;
 }
 
 // Link do Programa de Parceiros. Diferente de montarLinkIndicacao(), que monta

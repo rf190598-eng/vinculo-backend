@@ -58,6 +58,7 @@ const statusRoutes = require('./routes/status');
 const estatisticasRoutes = require('./routes/estatisticas');
 const usuarioRoutes = require('./routes/usuario');
 const pushRoutes = require('./routes/push');
+const vicRoutes = require('./routes/vic');
 const {
   router: parceiroRoutes,
   rotasAdmin: parceiroRotasAdmin,
@@ -199,7 +200,15 @@ app.use('/api/auth', limiteAuth);
 // de verdade — sem isso, o link seria só um texto bonito que dá 404.
 app.get('/r/:codigo', (req, res) => {
   const codigo = String(req.params.codigo || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 40);
-  res.redirect(302, '/prototipo?ref=' + encodeURIComponent(codigo));
+  res.redirect(302, '/?ref=' + encodeURIComponent(codigo));
+});
+
+// Caminho canônico do app (sem sufixo /prototipo). /prototipo abaixo continua
+// existindo como alias — não pode ser removido, já foi compartilhado em
+// links reais (indicação de parceiros, Comunidade de Fundadores).
+app.get('/', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.sendFile(path.join(__dirname, 'prototipo.html'));
 });
 
 app.get('/prototipo', (req, res) => {
@@ -299,10 +308,6 @@ app.use('/uploads/privado', (req, res) => {
 // salvo direto nesta pasta — tem que ir para uploads/privado/, bloqueada acima.
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-app.get('/', (req, res) => {
-  res.json({ status: 'online', app: 'Vinculo Backend', versao: '1.0.0', mensagem: 'Servidor funcionando!' });
-});
-
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
@@ -398,6 +403,7 @@ app.use('/api/denuncia', denunciaRoutes);
 app.use('/api/bloqueio', bloqueioRoutes);
 app.use('/api/usuario', usuarioRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/vic', vicRoutes);
 app.use('/api/parceiros', parceiroRoutes);
 app.use('/api/fundadores', fundadorRoutes);
 app.use('/api/admin/fundadores', fundadorRotasAdmin);

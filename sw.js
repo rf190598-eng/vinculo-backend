@@ -3,8 +3,8 @@
 // instalabilidade de PWA em alguns navegadores (junto com o manifest.json).
 // Estratégia: network-first, com fallback pro cache do "app shell" só se a
 // rede cair na navegação (não cacheia respostas de API nem dados pessoais).
-const CACHE_NAME = 'vinculo-shell-v1';
-const APP_SHELL = ['/prototipo', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
+const CACHE_NAME = 'vinculo-shell-v2';
+const APP_SHELL = ['/', '/prototipo', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -41,7 +41,7 @@ self.addEventListener('push', (event) => {
     body: dados.body || '',
     icon: dados.icon || '/icons/icon-192.png',
     badge: '/icons/icon-192.png',
-    data: { url: dados.url || '/prototipo' }
+    data: { url: dados.url || '/' }
   };
 
   event.waitUntil(self.registration.showNotification(titulo, opcoes));
@@ -51,12 +51,12 @@ self.addEventListener('push', (event) => {
 // abre uma nova na URL indicada pelo payload (ex: direto no chat do match).
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || '/prototipo';
+  const url = (event.notification.data && event.notification.data.url) || '/';
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((janelas) => {
       for (const janela of janelas) {
-        if (janela.url.includes('/prototipo') && 'focus' in janela) return janela.focus();
+        if ((janela.url.includes('/prototipo') || new URL(janela.url).pathname === '/') && 'focus' in janela) return janela.focus();
       }
       if (self.clients.openWindow) return self.clients.openWindow(url);
     })

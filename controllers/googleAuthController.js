@@ -34,7 +34,7 @@ function clienteGoogle() {
 // Fragmento não é enviado ao servidor, não aparece em log de acesso nem no
 // header Referer — importante porque aqui trafega token de sessão.
 function voltarParaApp(res, fragmento) {
-  return res.redirect(302, '/prototipo#' + fragmento);
+  return res.redirect(302, '/#' + fragmento);
 }
 
 function erroParaApp(res, mensagem) {

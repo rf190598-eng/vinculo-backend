@@ -242,7 +242,7 @@ const criarAssinaturaCartao = async (req, res) => {
         external_reference: `cartao:${usuario_id}:${plano}`,
         payer_email: usuario.email,
         card_token_id,
-        back_url: 'https://app.vinculoapp.com.br/prototipo',
+        back_url: 'https://app.vinculoapp.com.br/',
         status: 'authorized',
         auto_recurring: {
           frequency: recorrencia.frequency,
@@ -679,7 +679,7 @@ async function verificarLembretesRenovacao() {
 
   if (!candidatos.length) return { enviados: 0, sem_telefone: 0, falhas: 0 };
 
-  const linkRenovacao = (process.env.APP_LINK_BASE || 'https://app.vinculoapp.com.br') + '/prototipo';
+  const linkRenovacao = (process.env.APP_LINK_BASE || 'https://app.vinculoapp.com.br') + '/';
   let enviados = 0;
   let semTelefone = 0;
   let falhas = 0;

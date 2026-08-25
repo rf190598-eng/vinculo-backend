@@ -2,7 +2,7 @@
   "name": "Vínculo",
   "short_name": "Vínculo",
   "description": "Vínculo — conexões reais, com segurança.",
-  "start_url": "/prototipo?fonte=pwa",
+  "start_url": "/?fonte=pwa",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
