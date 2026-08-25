@@ -35,7 +35,6 @@ button,.btn,.icon-btn,.navbtn,.sw-btn,.send-btn,.panic-btn,.topbar,.bottomnav,.l
 body{font-family:'Karla',system-ui,sans-serif;background:#1a0810;max-width:430px;margin:0 auto;min-height:100vh;color:#fdf6f2;overflow-x:hidden;}
 input,textarea,select{font-size:16px!important;font-family:inherit;}
 .serif{font-family:'Cormorant Garamond',serif;}
-.demo-bar{background:#1a0a0e;color:#e8c0cc;text-align:center;padding:5px 10px;font-size:10px;letter-spacing:.5px;position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;z-index:999;border-bottom:1px solid #5c1a2e;}
 .app{min-height:100vh;padding-top:26px;padding-bottom:80px;background:#1a0810;}
 
 /* SKELETON LOADING — blocos com brilho passando, paleta escura do app.
@@ -316,7 +315,6 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
    Sem isso, a barra inferior fica sob o indicador do iPhone e os botões viram
    alvo de toque impreciso; a barra do topo some sob a ilha dinâmica. */
 .bottomnav { padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
-.demo-bar  { padding-top: calc(5px + env(safe-area-inset-top, 0px)); }
 .app       { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
 /* .topbar (21 telas) e .discover-header (Descobrir) — mesmo problema que o
    comentário acima já descrevia, mas nunca tinha sido corrigido de fato:
@@ -407,7 +405,6 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 <script src="https://sdk.mercadopago.com/js/v2"></script>
 </head>
 <body>
-<div class="demo-bar">&#128274; PROTOTIPO VISUAL &mdash; Vinculo App</div>
 <div class="app">
 
 <!-- LANDING PAGE -->
