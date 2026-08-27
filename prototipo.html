@@ -5547,8 +5547,14 @@ async function carregarPerfis(){
   }
   if(skeleton) skeleton.style.display = 'none';
   document.getElementById('emptyState').style.display='none';
-  document.getElementById('card1').style.display='block';
-  document.getElementById('card2').style.display='block';
+  // 'flex' e nao 'block': .swipe-card e display:flex no CSS (a foto tem altura
+  // fixa e .card-info ocupa o resto com flex:1 + overflow-y:auto). Com
+  // display:block inline, o flex era sobrescrito, .card-info crescia ate a
+  // altura do proprio conteudo (~625px num card de 530px) e ficava cortada
+  // pelo overflow:hidden — scrollHeight == clientHeight, ou seja, nada pra
+  // rolar. Era essa a causa do "PERFIL COMPLETO" nao funcionar.
+  document.getElementById('card1').style.display='flex';
+  document.getElementById('card2').style.display='flex';
   document.querySelector('.swipe-btns').style.opacity='1';
   document.querySelector('.swipe-btns').style.pointerEvents='auto';
   preencherCard('card1', filaPerfis.shift());
