@@ -2389,14 +2389,6 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div class="ls-chip" data-valor="sou_matutino" onclick="toggleLs(this)">&#9728;&#65039; Sou matutino(a)</div>
     </div>
 
-    <div class="edit-section-title">O que você busca</div>
-    <div class="edit-lifestyle-grid" id="grupoObjetivo">
-      <div class="ls-chip on" data-valor="serio" onclick="toggleLsRadio(this)">&#128141; Relacionamento sério</div>
-      <div class="ls-chip" data-valor="amizade" onclick="toggleLsRadio(this)">&#128107; Amizade</div>
-      <div class="ls-chip" data-valor="casual" onclick="toggleLsRadio(this)">&#128293; Algo casual</div>
-      <div class="ls-chip" data-valor="aberto" onclick="toggleLsRadio(this)">&#10024; Deixa rolar</div>
-    </div>
-
     <div class="edit-section-title">Interesses</div>
     <div class="edit-lifestyle-grid" id="grupoInteresses">
       <div class="ls-chip on" data-valor="natureza" onclick="toggleLs(this)">&#127807; Natureza</div>
@@ -3305,13 +3297,16 @@ let tokenAtual = localStorage.getItem('vinculo_token') || null;
 // (Achado do streamline: a tela "welcome"/"Conta criada!" foi cortada do
 // fluxo — cadastro vai direto pra liveness — então saiu dessa lista.)
 const telasSemVerificacaoObrigatoria = ['landing','auth','login','liveness'];
-// Telas liberadas no estágio intermediário (liveness já aprovado, mas ainda sem
-// foto de perfil confirmada) e também quando falta só completar o perfil (bio etc).
-const telasSemPerfilCompletoObrigatorio = ['landing','auth','login','liveness','edit-profile','myprofile'];
 // Achado do streamline: a tela "O que você busca?" (screen-onboarding) já
 // existia pronta mas nunca era usada — reconectada aqui como um degrau
-// obrigatório (uma vez só, igual ao tour) entre completar o perfil e o tour.
-const telasSemObjetivoObrigatorio = telasSemPerfilCompletoObrigatorio.concat(['onboarding']);
+// obrigatório (uma vez só, igual ao tour), disparando assim que o liveness
+// for aprovado — ANTES de completar o perfil.
+const telasSemObjetivoObrigatorio = telasSemVerificacaoObrigatoria.concat(['onboarding']);
+// Telas liberadas no estágio intermediário (liveness já aprovado, mas ainda sem
+// foto de perfil confirmada) e também quando falta só completar o perfil (bio
+// etc). 'onboarding' entra aqui pra essa tela não ser bloqueada por essas
+// mesmas exigências enquanto o objetivo ainda não foi escolhido.
+const telasSemPerfilCompletoObrigatorio = ['landing','auth','login','liveness','edit-profile','myprofile','onboarding'];
 // Achado ALTA da auditoria de UX: telas que não obrigam ter visto o tour de
 // segurança pós-cadastro (senão ninguém conseguiria nem chegar até ele).
 // (Streamline: tour2/3/4 deixaram de existir — as 3 mensagens agora vivem
@@ -3387,6 +3382,18 @@ goTo = function(name){
     setTimeout(iniciarLivenessCheck, 50);
     return;
   }
+  // a2) Liveness já aprovado, mas ainda não escolheu "o que busca" — pergunta
+  // isso numa tela dedicada (screen-onboarding) logo após o liveness, ANTES
+  // de completar o perfil (achado do streamline: a tela dedicada já existia
+  // pronta, só nunca era usada). Igual ao guard do tour: força uma vez só
+  // (cobre também contas antigas sem objetivo), nunca mais depois que a
+  // pessoa escolhe ou pula (pularOnboarding() salva 'aberto', não deixa em
+  // branco).
+  if (usuarioAtual && usuarioAtual.liveness_aprovado
+      && !usuarioAtual.objetivo && !telasSemObjetivoObrigatorio.includes(name)) {
+    goToBase('onboarding');
+    return;
+  }
   // b) Liveness já aprovado, mas ainda sem foto de perfil confirmada (verificado
   // só vira true depois que a 1ª foto bater com a referência do liveness).
   // Não chama iniciarLivenessCheck de novo — essa etapa já passou.
@@ -3397,18 +3404,6 @@ goTo = function(name){
   // c) Já verificado, mas ainda falta completar o perfil (ex: bio).
   if (usuarioAtual && usuarioAtual.verificado === true && perfilIncompleto() && !telasSemPerfilCompletoObrigatorio.includes(name)) {
     goToBase('edit-profile');
-    return;
-  }
-  // c2) Perfil completo, mas ainda não escolheu "o que busca" — pergunta
-  // isso numa tela dedicada (screen-onboarding) em vez de deixar escondido
-  // nos chips do fim de "Completar perfil", que ninguém reparava (achado
-  // do streamline: a tela dedicada já existia pronta, só nunca era usada).
-  // Igual ao guard do tour logo abaixo: força uma vez só (cobre também
-  // contas antigas sem objetivo), nunca mais depois que a pessoa escolhe
-  // ou pula (pularOnboarding() salva 'aberto', não deixa em branco).
-  if (usuarioAtual && usuarioAtual.verificado === true && !perfilIncompleto()
-      && !usuarioAtual.objetivo && !telasSemObjetivoObrigatorio.includes(name)) {
-    goToBase('onboarding');
     return;
   }
   // d) Perfil completo, mas ainda não viu o tour de segurança — última porta
@@ -4925,8 +4920,6 @@ async function salvarEdicaoPerfil(){
 
   const estilo_vida = Array.from(document.querySelectorAll('#grupoEstiloVida .ls-chip.on')).map(el => el.dataset.valor);
   const interesses = Array.from(document.querySelectorAll('#grupoInteresses .ls-chip.on')).map(el => el.dataset.valor);
-  const objetivoChip = document.querySelector('#grupoObjetivo .ls-chip.on');
-  const objetivo = objetivoChip ? objetivoChip.dataset.valor : null;
   const estadoCivilChip = document.querySelector('#grupoEstadoCivil .ls-chip.on');
   const estado_civil = estadoCivilChip ? estadoCivilChip.dataset.valor : null;
   const promptCasaChip = document.querySelector('#grupoPromptCasa .ls-chip.on');
@@ -4953,7 +4946,7 @@ async function salvarEdicaoPerfil(){
     const resp = await fetch(`${API_URL}/api/perfil/editar`, {
       method:'PUT',
       headers: {'Content-Type':'application/json','Authorization':`Bearer ${tokenAtual}`},
-      body: JSON.stringify({ nome, bio, genero, signo, altura, peso, cor_cabelo, cidade, escolaridade, onde_estudou, profissao, onde_trabalha, estado_civil, estilo_vida, interesses, objetivo, prompts })
+      body: JSON.stringify({ nome, bio, genero, signo, altura, peso, cor_cabelo, cidade, escolaridade, onde_estudou, profissao, onde_trabalha, estado_civil, estilo_vida, interesses, prompts })
     });
     const dados = await resp.json();
     if(!resp.ok){ showToastVinculo(dados.erro || 'Erro ao salvar.'); return; }
@@ -5031,10 +5024,6 @@ function preencherEdicaoPerfilComDadosSalvos(){
   const interessesSalvos = Array.isArray(usuarioAtual.interesses) ? usuarioAtual.interesses : [];
   document.querySelectorAll('#grupoInteresses .ls-chip').forEach(el => {
     el.classList.toggle('on', interessesSalvos.includes(el.dataset.valor));
-  });
-
-  document.querySelectorAll('#grupoObjetivo .ls-chip').forEach(el => {
-    el.classList.toggle('on', usuarioAtual.objetivo === el.dataset.valor);
   });
 
   document.querySelectorAll('#grupoEstadoCivil .ls-chip').forEach(el => {
@@ -5568,8 +5557,9 @@ async function carregarPerfis(){
 function initSwipeTouch(){
   const card = document.getElementById('card1');
   if(!card || card.id==='emptyState') return;
+  const infoEl = card.querySelector('.card-info');
 
-  let startX=0, startY=0, currentX=0, isDragging=false, axisLocked=null;
+  let startX=0, startY=0, lastY=0, currentX=0, isDragging=false, axisLocked=null;
   const SWIPE_THRESHOLD = 80; // pixels para confirmar swipe
 
   function onStart(e){
@@ -5578,6 +5568,7 @@ function initSwipeTouch(){
     const touch = e.touches ? e.touches[0] : e;
     startX = touch.clientX;
     startY = touch.clientY;
+    lastY = touch.clientY;
     axisLocked = null;
     card.style.transition='none';
   }
@@ -5600,8 +5591,15 @@ function initSwipeTouch(){
     }
 
     if(axisLocked === 'y'){
-      // Gesto vertical: não mexe no card e não intercepta — deixa a página
-      // rolar normalmente.
+      // .card-info é IRMÃ de .card-photo (não ancestral) — quando o arrasto
+      // começa em cima da foto (74% do card, onde fica a seta "PERFIL
+      // COMPLETO"), o navegador nunca encontra um elemento rolável nativo
+      // entre o ponto do toque e a raiz, então a rolagem nativa simplesmente
+      // não acontece. Por isso pilotamos manualmente aqui, aplicando o
+      // deslocamento vertical do dedo direto no scrollTop de .card-info.
+      e.preventDefault();
+      if(infoEl) infoEl.scrollTop -= (touch.clientY - lastY);
+      lastY = touch.clientY;
       return;
     }
 
