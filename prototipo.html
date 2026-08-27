@@ -161,7 +161,15 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 .card-distance{position:absolute;top:14px;left:14px;background:rgba(10,3,6,.85);border-radius:20px;padding:5px 12px;font-size:10.5px;color:#fdf6f2;font-weight:600;}
 .card-online{position:absolute;top:50px;left:14px;display:flex;align-items:center;gap:5px;background:rgba(10,3,6,.85);border-radius:20px;padding:4px 10px;font-size:10px;color:#6dcc6d;font-weight:600;}
 .card-online::before{content:'';width:6px;height:6px;border-radius:50%;background:#6dcc6d;display:inline-block;}
-.card-info{padding:14px 18px 16px;background:linear-gradient(to bottom,#1a0810,#120508);flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+/* .card-info e posicionada de forma absoluta (nao mais flex:1) de proposito:
+   assim a altura dela nao depende do card ser um flex container, o que a
+   torna imune a um display inline sobrescrevendo o flex — exatamente o bug
+   que quebrou a rolagem interna em silencio antes. O 'top' animavel e o que
+   faz o painel subir sobre a foto quando expandido. */
+.card-info{position:absolute;left:0;right:0;bottom:0;top:74%;padding:14px 18px 16px;background:linear-gradient(to bottom,#1a0810,#120508);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;transition:top .3s cubic-bezier(.22,.61,.36,1);}
+.swipe-card.info-expandida .card-info{top:16%;box-shadow:0 -14px 34px rgba(0,0,0,.55);}
+.swipe-card.info-expandida .card-info::before{content:'';position:sticky;top:0;display:block;width:38px;height:4px;margin:0 auto 10px;border-radius:2px;background:rgba(255,255,255,.3);}
+.swipe-card.info-expandida .card-scroll-affordance{opacity:0;pointer-events:none;}
 .card-name{font-family:'Cormorant Garamond',serif;font-size:27px;font-weight:700;display:flex;align-items:baseline;gap:9px;color:#fdf6f2;}
 .card-age{color:#e0b8c8;font-size:19px;font-weight:500;}
 .card-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;}
@@ -870,7 +878,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <div class="card-photo-gradient"></div>
         <div class="card-verified">&#10003; Verificado</div>
         <div class="card-distance">&#128205; 5 km</div>
-        <div class="card-scroll-affordance" onclick="event.stopPropagation(); const ci=this.closest('.swipe-card').querySelector('.card-info'); if(ci) ci.scrollBy({top:160,behavior:'smooth'});">
+        <div class="card-scroll-affordance" onclick="event.stopPropagation(); expandirInfoCard(this.closest('.swipe-card'), true);">
           <span style="font-size:16px">&#8964;</span><div>PERFIL COMPLETO</div>
         </div>
       </div>
@@ -891,7 +899,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
         <div class="card-photo-gradient"></div>
         <div class="card-verified">&#10003; Verificada</div>
         <div class="card-distance">&#128205; 3 km</div>
-        <div class="card-scroll-affordance" onclick="event.stopPropagation(); const ci=this.closest('.swipe-card').querySelector('.card-info'); if(ci) ci.scrollBy({top:160,behavior:'smooth'});">
+        <div class="card-scroll-affordance" onclick="event.stopPropagation(); expandirInfoCard(this.closest('.swipe-card'), true);">
           <span style="font-size:16px">&#8964;</span><div>PERFIL COMPLETO</div>
         </div>
         <div id="bigHeartAnim" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:90px;opacity:0;pointer-events:none">&#128150;</div>
@@ -5459,6 +5467,10 @@ function preencherCard(elId, perfil){
   }
   const expandEl = el.querySelector('.card-expand');
   if(expandEl) expandEl.innerHTML = montarConteudoExpandidoCard(perfil);
+  // Cada perfil novo comeca com o painel recolhido e no topo — senao o card
+  // seguinte herdaria o estado expandido do anterior (os nos de #card1/#card2
+  // sao reaproveitados a cada swipe, so trocam de id entre si).
+  el.classList.remove('info-expandida');
   const infoScrollEl = el.querySelector('.card-info');
   if(infoScrollEl) infoScrollEl.scrollTop = 0;
   const verificadoEl = el.querySelector('.card-verified');
@@ -5557,6 +5569,17 @@ async function carregarPerfis(){
   }
 }
 
+// Abre/fecha o painel de perfil expandido sobre a foto do card. Em repouso
+// o painel mostra so nome + tags (a foto fica inteira, pro swipe rapido);
+// expandido ele sobe e cobre a foto, deixando uma faixa dela visivel no topo
+// pra pessoa continuar sabendo de quem e o perfil que esta lendo.
+function expandirInfoCard(cardEl, expandir){
+  if(!cardEl) return;
+  cardEl.classList.toggle('info-expandida', !!expandir);
+  const info = cardEl.querySelector('.card-info');
+  if(info && !expandir) info.scrollTop = 0;
+}
+
 // ============================================================
 // SWIPE POR TOQUE — arrastar com o dedo
 // ============================================================
@@ -5604,7 +5627,19 @@ function initSwipeTouch(){
       // não acontece. Por isso pilotamos manualmente aqui, aplicando o
       // deslocamento vertical do dedo direto no scrollTop de .card-info.
       e.preventDefault();
-      if(infoEl) infoEl.scrollTop -= (touch.clientY - lastY);
+      const expandida = card.classList.contains('info-expandida');
+      if(!expandida){
+        // Primeiro arrasto pra cima abre o painel em vez de rolar 137px.
+        if(deltaY < -20) expandirInfoCard(card, true);
+      } else if(infoEl){
+        // Ja aberto: arrastar pra baixo com o conteudo no topo recolhe;
+        // caso contrario, rola o conteudo normalmente.
+        if(infoEl.scrollTop <= 0 && deltaY > 50){
+          expandirInfoCard(card, false);
+        } else {
+          infoEl.scrollTop -= (touch.clientY - lastY);
+        }
+      }
       lastY = touch.clientY;
       return;
     }
