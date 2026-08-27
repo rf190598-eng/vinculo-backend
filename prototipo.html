@@ -3163,13 +3163,6 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   </div>
 </div>
 
-<!-- ===== HUD TEMPORÁRIO DE DEPURAÇÃO — investigação do bug de rolagem
-     vertical no card do Descobrir no Safari iOS. REMOVER depois que o
-     diagnóstico terminar (junto com o bloco JS marcado com o mesmo aviso,
-     dentro de initSwipeTouch()). Fica FORA de .app de propósito, pra não
-     ser escondido pelo display:none!important das telas. -->
-<div id="swipeDebugHud" style="display:none;position:fixed;top:6px;left:6px;right:6px;z-index:99999;background:rgba(0,0,0,.85);color:#6dcc6d;font:10px/1.4 monospace;padding:6px 8px;border-radius:6px;pointer-events:none;white-space:pre-wrap;word-break:break-word"></div>
-
 <script>
 const noNav=['landing','auth','login','onboarding','tour1','liveness','match','profile-view','chatroom','edit-profile','notifications','assinatura','esqueci-senha','redefinir-senha'];
 let swipeCount=0, timerInterval=null, timerSec=0;
@@ -5572,18 +5565,6 @@ function initSwipeTouch(){
   if(!card || card.id==='emptyState') return;
   const infoEl = card.querySelector('.card-info');
 
-  // ===== HUD TEMPORÁRIO DE DEPURAÇÃO — remover junto com o bloco HTML
-  // #swipeDebugHud quando o diagnóstico do bug de rolagem no Safari iOS
-  // terminar. Não afeta o comportamento real, só exibe o que o gesto está
-  // fazendo, ao vivo, na tela do próprio celular.
-  const __hud = document.getElementById('swipeDebugHud');
-  function __debugHud(texto){
-    if(!__hud) return;
-    __hud.style.display = 'block';
-    __hud.textContent = texto;
-  }
-  // =====
-
   let startX=0, startY=0, lastY=0, currentX=0, isDragging=false, axisLocked=null;
   const SWIPE_THRESHOLD = 80; // pixels para confirmar swipe
 
@@ -5596,10 +5577,6 @@ function initSwipeTouch(){
     lastY = touch.clientY;
     axisLocked = null;
     card.style.transition='none';
-    const __sh = infoEl ? infoEl.scrollHeight : '?';
-    const __ch = infoEl ? infoEl.clientHeight : '?';
-    const __podeRolar = infoEl ? (infoEl.scrollHeight > infoEl.clientHeight) : '?';
-    __debugHud(`[HUD] toque INICIADO em (${touch.clientX.toFixed(0)}, ${touch.clientY.toFixed(0)}) | .card-info: ${!!infoEl} | scrollHeight=${__sh} clientHeight=${__ch} podeRolar=${__podeRolar}`);
   }
 
   function onMove(e){
@@ -5614,7 +5591,6 @@ function initSwipeTouch(){
     if(axisLocked === null){
       if(Math.abs(currentX) > 10 || Math.abs(deltaY) > 10){
         axisLocked = Math.abs(currentX) > Math.abs(deltaY) ? 'x' : 'y';
-        __debugHud(`[HUD] eixo travado: "${axisLocked}" | currentX=${currentX.toFixed(0)} deltaY=${deltaY.toFixed(0)}`);
       } else {
         return;
       }
@@ -5628,11 +5604,8 @@ function initSwipeTouch(){
       // não acontece. Por isso pilotamos manualmente aqui, aplicando o
       // deslocamento vertical do dedo direto no scrollTop de .card-info.
       e.preventDefault();
-      const __scrollAntes = infoEl ? infoEl.scrollTop : null;
       if(infoEl) infoEl.scrollTop -= (touch.clientY - lastY);
-      const __scrollDepois = infoEl ? infoEl.scrollTop : null;
       lastY = touch.clientY;
-      __debugHud(`[HUD] eixo=y | .card-info: ${!!infoEl} | scrollTop antes=${__scrollAntes} depois=${__scrollDepois} | defaultPrevented=${e.defaultPrevented}`);
       return;
     }
 
@@ -5659,7 +5632,6 @@ function initSwipeTouch(){
   function onEnd(e){
     if(!isDragging) return;
     isDragging=false;
-    __debugHud(`[HUD] toque TERMINADO | eixo final="${axisLocked}" | .card-info.scrollTop agora=${infoEl ? infoEl.scrollTop : 'n/a'}`);
 
     if(axisLocked !== 'x'){
       // Não foi um swipe horizontal (foi rolagem, ou o dedo mal se moveu) —
@@ -5746,27 +5718,6 @@ function showEmptyState(comErro){
 }
 
 async function resetDiscoverDeck(){
-  // ===== TEMPORÁRIO — só pra facilitar teste manual enquanto não sobram
-  // perfis novos pra avaliar. REMOVER DEPOIS DOS TESTES (junto com a rota
-  // POST /api/swipe/resetar-meus-swipes e resetarMeusSwipes no backend).
-  // Apaga de verdade todo o histórico de curtir/passar do PRÓPRIO usuário
-  // logado, trazendo de volta todo mundo já avaliado — não é o
-  // comportamento final de "Buscar perfis novos".
-  const querResetar = await confirmarAcao(
-    'Isso vai apagar TODO o seu histórico de curtir/passar e trazer de volta todo mundo que você já avaliou. É só pra facilitar teste — não vai existir depois.',
-    { titulo: 'Resetar meus swipes (temporário)', textoBotao: 'Apagar e recarregar' }
-  );
-  if(!querResetar) return;
-  try{
-    await fetch(`${API_URL}/api/swipe/resetar-meus-swipes`, {
-      method:'POST',
-      headers: {'Authorization':`Bearer ${tokenAtual}`}
-    });
-  }catch(e){
-    showToastVinculo('Erro de conexão ao resetar — tenta de novo.');
-    return;
-  }
-  // ===== FIM DO TEMPORÁRIO =====
   totalSwipes=0;
   await carregarPerfis();
   const perfilCarregado = !!document.getElementById('card1').dataset.perfilId;

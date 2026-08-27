@@ -394,39 +394,8 @@ const obterPerfilMatch = async (req, res) => {
   }
 };
 
-// ===== TEMPORÁRIO — só pra facilitar teste manual, REMOVER DEPOIS DOS
-// TESTES. Apaga TODOS os swipes (curtir/passar) do próprio usuário
-// autenticado, trazendo de volta pra fila todo mundo que ele já avaliou.
-// Só apaga swipes do req.usuarioId da sessão logada — nunca aceita um id
-// vindo do corpo/query, então é impossível apagar swipe de outra pessoa.
-const resetarMeusSwipes = async (req, res) => {
-  try {
-    const usuario_id = req.usuarioId;
-    // Precisa apagar nos DOIS sentidos: swipes que EU dei (usuario_id) e
-    // swipes que OUTRAS PESSOAS deram EM MIM (alvo_id) — senão quem já me
-    // curtiu continua escondido do meu Descobrir (listarPerfis() tira quem
-    // já me curtiu de lá, pra aparecer só na aba Curtidas), mesmo depois de
-    // eu resetar só os meus próprios swipes — foi exatamente esse buraco
-    // que escondeu um perfil do Descobrir mesmo após o reset. Também apaga
-    // qualquer Match já criado comigo, pra poder testar o fluxo de match de
-    // novo do zero. Sempre e só pelo req.usuarioId da sessão — nunca aceita
-    // id vindo de fora, então só mexe em registros que envolvem a própria
-    // conta logada (nunca em duas OUTRAS pessoas).
-    const swipesApagados = await Swipe.destroy({
-      where: { [Op.or]: [{ usuario_id }, { alvo_id: usuario_id }] }
-    });
-    const matchesApagados = await Match.destroy({
-      where: { [Op.or]: [{ usuario1_id: usuario_id }, { usuario2_id: usuario_id }] }
-    });
-    res.json({ ok: true, swipesApagados, matchesApagados });
-  } catch (erro) {
-    res.status(500).json({ erro: 'Erro ao resetar swipes: ' + erro.message });
-  }
-};
-// ===== FIM DO TEMPORÁRIO =====
-
 // anexarGaleria e obterIdsBloqueados também são reaproveitados por
 // listarVisitantesPerfil (estatisticasController.js) — mesma razão de
 // utils/premium.js: duplicar a lógica de bloqueio, em especial, arriscaria os
 // dois lados desatualizarem e um deles vazar perfil de gente bloqueada.
-module.exports = { darSwipe, listarPerfis, listarMatches, listarCurtidasRecebidas, obterPerfilMatch, anexarGaleria, obterIdsBloqueados, resetarMeusSwipes };
+module.exports = { darSwipe, listarPerfis, listarMatches, listarCurtidasRecebidas, obterPerfilMatch, anexarGaleria, obterIdsBloqueados };

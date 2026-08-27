@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { darSwipe, listarPerfis, listarMatches, listarCurtidasRecebidas, obterPerfilMatch, resetarMeusSwipes } = require('../controllers/swipeController');
+const { darSwipe, listarPerfis, listarMatches, listarCurtidasRecebidas, obterPerfilMatch } = require('../controllers/swipeController');
 const { autenticar } = require('../controllers/authMiddleware');
 const { limitarTaxa } = require('../utils/limitadorTaxa');
 router.get('/perfis', autenticar, listarPerfis);
@@ -11,8 +11,4 @@ router.post('/dar', autenticar, limitarTaxa({ chave: 'swipe', porUsuario: true, 
 router.get('/matches', autenticar, listarMatches);
 router.get('/curtidas-recebidas', autenticar, listarCurtidasRecebidas);
 router.get('/perfil-match/:id', autenticar, obterPerfilMatch);
-// ===== TEMPORÁRIO — só pra facilitar teste manual, REMOVER DEPOIS DOS
-// TESTES (junto com resetarMeusSwipes no swipeController.js).
-router.post('/resetar-meus-swipes', autenticar, resetarMeusSwipes);
-// ===== FIM DO TEMPORÁRIO =====
 module.exports = router;
