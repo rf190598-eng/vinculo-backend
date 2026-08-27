@@ -5590,7 +5590,10 @@ function initSwipeTouch(){
     lastY = touch.clientY;
     axisLocked = null;
     card.style.transition='none';
-    __debugHud(`[HUD] toque INICIADO em (${touch.clientX.toFixed(0)}, ${touch.clientY.toFixed(0)}) | .card-info encontrado: ${!!infoEl}`);
+    const __sh = infoEl ? infoEl.scrollHeight : '?';
+    const __ch = infoEl ? infoEl.clientHeight : '?';
+    const __podeRolar = infoEl ? (infoEl.scrollHeight > infoEl.clientHeight) : '?';
+    __debugHud(`[HUD] toque INICIADO em (${touch.clientX.toFixed(0)}, ${touch.clientY.toFixed(0)}) | .card-info: ${!!infoEl} | scrollHeight=${__sh} clientHeight=${__ch} podeRolar=${__podeRolar}`);
   }
 
   function onMove(e){
