@@ -394,8 +394,25 @@ const obterPerfilMatch = async (req, res) => {
   }
 };
 
+// ===== TEMPORÁRIO — só pra facilitar teste manual, REMOVER DEPOIS DOS
+// TESTES. Apaga TODOS os swipes (curtir/passar) do próprio usuário
+// autenticado, trazendo de volta pra fila todo mundo que ele já avaliou.
+// Só apaga swipes do req.usuarioId da sessão logada — nunca aceita um id
+// vindo do corpo/query, então é impossível apagar swipe de outra pessoa.
+// Não mexe em Match: matches já criados continuam intactos.
+const resetarMeusSwipes = async (req, res) => {
+  try {
+    const usuario_id = req.usuarioId;
+    const apagados = await Swipe.destroy({ where: { usuario_id } });
+    res.json({ ok: true, apagados });
+  } catch (erro) {
+    res.status(500).json({ erro: 'Erro ao resetar swipes: ' + erro.message });
+  }
+};
+// ===== FIM DO TEMPORÁRIO =====
+
 // anexarGaleria e obterIdsBloqueados também são reaproveitados por
 // listarVisitantesPerfil (estatisticasController.js) — mesma razão de
 // utils/premium.js: duplicar a lógica de bloqueio, em especial, arriscaria os
 // dois lados desatualizarem e um deles vazar perfil de gente bloqueada.
-module.exports = { darSwipe, listarPerfis, listarMatches, listarCurtidasRecebidas, obterPerfilMatch, anexarGaleria, obterIdsBloqueados };
+module.exports = { darSwipe, listarPerfis, listarMatches, listarCurtidasRecebidas, obterPerfilMatch, anexarGaleria, obterIdsBloqueados, resetarMeusSwipes };

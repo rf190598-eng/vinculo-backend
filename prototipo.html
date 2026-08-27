@@ -5737,6 +5737,27 @@ function showEmptyState(comErro){
 }
 
 async function resetDiscoverDeck(){
+  // ===== TEMPORÁRIO — só pra facilitar teste manual enquanto não sobram
+  // perfis novos pra avaliar. REMOVER DEPOIS DOS TESTES (junto com a rota
+  // POST /api/swipe/resetar-meus-swipes e resetarMeusSwipes no backend).
+  // Apaga de verdade todo o histórico de curtir/passar do PRÓPRIO usuário
+  // logado, trazendo de volta todo mundo já avaliado — não é o
+  // comportamento final de "Buscar perfis novos".
+  const querResetar = await confirmarAcao(
+    'Isso vai apagar TODO o seu histórico de curtir/passar e trazer de volta todo mundo que você já avaliou. É só pra facilitar teste — não vai existir depois.',
+    { titulo: 'Resetar meus swipes (temporário)', textoBotao: 'Apagar e recarregar' }
+  );
+  if(!querResetar) return;
+  try{
+    await fetch(`${API_URL}/api/swipe/resetar-meus-swipes`, {
+      method:'POST',
+      headers: {'Authorization':`Bearer ${tokenAtual}`}
+    });
+  }catch(e){
+    showToastVinculo('Erro de conexão ao resetar — tenta de novo.');
+    return;
+  }
+  // ===== FIM DO TEMPORÁRIO =====
   totalSwipes=0;
   await carregarPerfis();
   const perfilCarregado = !!document.getElementById('card1').dataset.perfilId;
