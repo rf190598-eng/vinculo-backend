@@ -131,6 +131,22 @@ const criarPagamentoPix = async (req, res) => {
     const usuario = await Usuario.findByPk(usuario_id);
     const planoEscolhido = planos[plano];
 
+    // O fluxo de cartão já cancela a assinatura antiga antes de criar a nova;
+    // o de Pix não tinha proteção equivalente e deixava a pessoa pagar duas
+    // vezes pelo mesmo período. Pior: ativarPlanoDoUsuario grava
+    // premium_ate = agora + dias (não soma ao que resta), então pagar cedo
+    // DESTRÓI os dias restantes. Enquanto não houver soma de períodos,
+    // bloquear é a única resposta honesta.
+    if (temPremiumAtivo(usuario)) {
+      return res.status(400).json({
+        erro: usuario.premium_ate
+          ? `Você já tem acesso Premium ativo até ${new Date(usuario.premium_ate).toLocaleDateString('pt-BR')}. Renove a partir dessa data.`
+          : 'Você já tem acesso Premium ativo — não precisa pagar.',
+        ja_tem_acesso: true,
+        acesso_ate: usuario.premium_ate
+      });
+    }
+
     // Telefone é obrigatório para assinar: é por ele que o lembrete de
     // renovação chega. Só é pedido de quem ainda não tem — quem já assinou
     // antes (ou já preencheu numa tentativa anterior) passa direto.
@@ -583,10 +599,30 @@ const webhook = async (req, res) => {
         if (statusEncerram.includes(pagamento.status)) {
           const { usuario_id, plano } = pagamento.metadata || {};
           if (usuario_id) {
-            const usuario = await Usuario.findByPk(usuario_id, { attributes: ['id', 'plano_atual'] });
-            if (usuario && usuario.plano_atual === plano) {
-              await encerrarPlanoDoUsuario(usuario_id);
-              console.log(`Usuario ${usuario_id} teve o plano ${plano} encerrado (status ${pagamento.status})`);
+            // Comparar plano_atual === plano NÃO basta: dois Pix do mesmo
+            // plano são indistinguíveis por nome, então um Pix gerado e
+            // ABANDONADO (que expira com status 'cancelled') derrubava o
+            // acesso pago pelo Pix anterior. Aconteceu de verdade: assinatura
+            // paga em 24/08, válida até 31/08, encerrada em 28/08 por um
+            // segundo Pix que nunca foi pago.
+            //
+            // O ledger só registra pagamento APROVADO. Então: se este
+            // pagamento não está lá, ele nunca sustentou acesso nenhum e não
+            // pode encerrar nada. Estorno/chargeback de pagamento real
+            // continua encerrando normalmente.
+            const sustentouAcesso = await PagamentoProcessado.findOne({
+              where: { mercadopago_payment_id: String(pagamento.id) },
+              attributes: ['id']
+            });
+            if (!sustentouAcesso) {
+              console.log(`[webhook] pagamento ${pagamento.id} (status ${pagamento.status})` +
+                ` nunca foi aprovado — plano do usuario ${usuario_id} preservado.`);
+            } else {
+              const usuario = await Usuario.findByPk(usuario_id, { attributes: ['id', 'plano_atual'] });
+              if (usuario && usuario.plano_atual === plano) {
+                await encerrarPlanoDoUsuario(usuario_id);
+                console.log(`Usuario ${usuario_id} teve o plano ${plano} encerrado (status ${pagamento.status})`);
+              }
             }
           }
         }
@@ -722,7 +758,13 @@ const obterMinhaAssinatura = async (req, res) => {
       plano: usuario.plano_atual,
       plano_nome: planoInfo ? planoInfo.nome : null,
       valor: planoInfo ? planoInfo.valor : null,
-      metodo: usuario.mercadopago_subscription_id ? 'cartao' : 'pix',
+      // Como o acesso ATUAL foi pago — vem do último pagamento aprovado no
+      // ledger, não da mera existência de um mercadopago_subscription_id, que
+      // pode ser resíduo de um teste antigo, de uma assinatura cancelada ou de
+      // um preapproval que nunca chegou a cobrar. Era isso que fazia uma conta
+      // que só pagou por Pix aparecer como "cartão, renova automaticamente".
+      metodo: pagamentos.length ? pagamentos[0].metodo : 'pix',
+      recorrente_ativa: false,
       acesso_ate: usuario.premium_ate,
       vitalicio: !!(usuario.premium && !usuario.premium_ate),
       cancelada: false,
@@ -745,21 +787,30 @@ const obterMinhaAssinatura = async (req, res) => {
 
       if (!consulta.ok || !dados) throw new Error('resposta inválida do Mercado Pago');
 
-      retrato.cancelada = dados.status === 'cancelled';
-      // Só oferece cancelar o que de fato ainda pode cobrar.
-      retrato.pode_cancelar = dados.status === 'authorized' && ativo;
+      // Só é "assinatura de cartão renovando" se o MP disser authorized E o
+      // acesso atual tiver mesmo vindo de cartão.
+      retrato.recorrente_ativa = dados.status === 'authorized' && retrato.metodo === 'cartao';
+      // "Cancelada" só faz sentido se o acesso atual veio desse cartão.
+      retrato.cancelada = dados.status === 'cancelled' && retrato.metodo === 'cartao';
+      // Oferece cancelar QUALQUER preapproval que ainda possa cobrar —
+      // inclusive um 'pending' esquecido numa conta que hoje usa Pix. Deixar
+      // isso escondido é deixar uma cobrança futura em aberto.
+      retrato.pode_cancelar = dados.status !== 'cancelled';
       // next_payment_date é a data real da próxima cobrança. Nem toda resposta
       // traz esse campo, então cai para premium_ate, que é a nossa melhor
       // estimativa (fim do ciclo já pago).
-      retrato.proxima_cobranca = retrato.cancelada
-        ? null
-        : (dados.next_payment_date || usuario.premium_ate);
+      retrato.proxima_cobranca = retrato.recorrente_ativa
+        ? (dados.next_payment_date || usuario.premium_ate)
+        : null;
     } catch (erroMP) {
       console.error(`[minha-assinatura] não foi possível ler a assinatura` +
         ` ${usuario.mercadopago_subscription_id} do usuario ${req.usuarioId}:`, erroMP.message);
       retrato.status_confirmado = false;
-      retrato.pode_cancelar = ativo; // deixa tentar; o cancelamento valida de novo
-      retrato.proxima_cobranca = usuario.premium_ate;
+      // Sem resposta do MP, o melhor palpite local é o método do último
+      // pagamento: quem pagou por cartão provavelmente ainda está renovando.
+      retrato.recorrente_ativa = retrato.metodo === 'cartao' && ativo;
+      retrato.pode_cancelar = true; // deixa tentar; o cancelamento valida de novo
+      retrato.proxima_cobranca = retrato.recorrente_ativa ? usuario.premium_ate : null;
     }
 
     res.json(retrato);

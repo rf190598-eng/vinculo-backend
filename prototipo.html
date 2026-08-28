@@ -10500,7 +10500,9 @@ async function carregarMinhaAssinatura(){
     html += `<div class="sec-card">`;
     html += linhaTitulo('Você não tem assinatura ativa');
     html += nota('Com o Premium você vê quem curtiu você, conversa com seus matches e usa filtros avançados.');
-    if(d.acesso_ate){
+    // Só diz "terminou" se a data JÁ passou — senão vira frase ilógica
+    // ("terminou em 31 de agosto" com hoje sendo 28 de agosto).
+    if(d.acesso_ate && new Date(d.acesso_ate) < new Date()){
       html += `<div style="font-size:12.5px;color:${T.apagado};margin-top:10px">Seu último acesso terminou em ${formatarDataAssinatura(d.acesso_ate)}.</div>`;
     }
     html += `<button class="btn btn-primary" style="margin-top:16px" onclick="goTo('assinatura')">Ver planos</button>`;
@@ -10527,8 +10529,11 @@ async function carregarMinhaAssinatura(){
     html += `<button class="btn btn-primary" style="margin-top:16px" onclick="goTo('assinatura')">Assinar de novo</button>`;
     html += `</div>`;
 
-  // ESTADO 3 — ativo via cartao (recorrente)
-  } else if(d.metodo === 'cartao'){
+  // ESTADO 3 — ativo via cartao (recorrente). Exige recorrente_ativa, e não
+  // só metodo==='cartao': um preapproval residual/pendente não faz o acesso
+  // atual ser recorrente (era isso que mostrava "cartão, renova
+  // automaticamente" pra quem só tinha pago por Pix).
+  } else if(d.recorrente_ativa){
     html += `<div class="sec-card">`;
     html += linhaTitulo(d.plano_nome || 'Vínculo Premium');
     html += `<div style="font-size:12.5px;color:#6dcc6d;font-weight:700">Ativo</div>`;
@@ -10553,8 +10558,19 @@ async function carregarMinhaAssinatura(){
     html += destaque(`Acesso até ${formatarDataAssinatura(d.acesso_ate)}`);
     if(dias) html += `<div style="font-size:13px;color:${T.suave}">Faltam ${dias} dia${dias>1?'s':''}.</div>`;
     html += nota('Pagamento único — não renova sozinho. Quando acabar, é só pagar de novo.');
-    html += `<button class="btn btn-primary" style="margin-top:16px" onclick="goTo('assinatura')">Renovar agora</button>`;
+    // Sem botão "Renovar agora" enquanto o acesso está ativo: o backend agora
+    // recusa pagamento novo nesse período (pagar cedo zeraria os dias que
+    // restam, já que premium_ate é reescrito como agora + dias). Oferecer um
+    // botão que só levaria a um erro seria pior que não oferecer.
+    if(d.acesso_ate){
+      html += `<div style="font-size:12.5px;color:${T.apagado};margin-top:12px">Você poderá renovar a partir de ${formatarDataAssinatura(d.acesso_ate)}.</div>`;
+    }
     html += `</div>`;
+    // Preapproval esquecido numa conta que hoje paga por Pix: pode cobrar no
+    // futuro sem a pessoa esperar. Melhor mostrar que esconder.
+    if(d.pode_cancelar){
+      html += `<div class="sec-card" style="border-color:rgba(224,96,122,.3)"><div style="font-size:12.5px;color:#e8b0a0;line-height:1.6">Existe uma assinatura de cartão pendente na sua conta, que pode gerar cobrança.</div><div style="margin-top:10px"><span onclick="cancelarMinhaAssinatura()" style="font-size:13px;color:#ff8fa3;text-decoration:underline;cursor:pointer">Cancelar assinatura de cartão</span></div></div>`;
+    }
   }
 
   // "O que inclui" só nos estados ativos: em quem não tem assinatura, o botão
