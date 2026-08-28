@@ -2882,7 +2882,10 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div class="topo-seguro" style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:flex-start;justify-content:space-between;padding-left:14px;padding-right:14px;padding-bottom:16px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
         <div onclick="fecharComposerStory()" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff;flex-shrink:0">&#10005;</div>
 
-        <div onclick="abrirModoTextoComposer()" style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;cursor:pointer;color:#fff">Aa</div>
+        <div style="display:flex;gap:8px;flex-shrink:0">
+          <div id="cameraStoryTrocarBtn" onclick="trocarCameraStory()" title="Trocar câmera" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff">&#128260;</div>
+          <div onclick="abrirModoTextoComposer()" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;cursor:pointer;color:#fff">Aa</div>
+        </div>
       </div>
 
       <!-- Card da pergunta do dia, em destaque no centro da tela da câmera.
@@ -6604,6 +6607,7 @@ async function abrirComposerStory(modoResposta){
 
 function resetarEstadoComposer(){
   cameraStoryModo = 'foto';
+  cameraStoryFacingMode = 'environment'; // toda vez que o composer abre do zero, volta pra traseira
   cameraStoryGravando = false;
   cameraStoryChunks = [];
   cameraStoryTempoDecorrido = 0;
@@ -6748,6 +6752,7 @@ function atualizarBarraFerramentasStory(){
 /* ===== Câmera ao vivo pro story (foto/vídeo), via getUserMedia ===== */
 let cameraStoryStream = null;
 let cameraStoryModo = 'foto'; // 'foto' ou 'video'
+let cameraStoryFacingMode = 'environment'; // 'environment' (traseira) ou 'user' (frontal)
 let cameraStoryGravando = false;
 let cameraStoryMediaRecorder = null;
 let cameraStoryChunks = [];
@@ -6779,7 +6784,7 @@ async function iniciarStreamCameraComposer(){
     // audio:true sempre — nesse fluxo não dá mais pra saber de antemão se o
     // usuário vai tirar foto ou gravar vídeo (não existe mais a etapa de
     // escolher o tipo antes de abrir a câmera).
-    cameraStoryStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: true });
+    cameraStoryStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: cameraStoryFacingMode }, audio: true });
     const video = document.getElementById('cameraStoryVideoPreview');
     video.srcObject = cameraStoryStream;
 
@@ -6798,6 +6803,18 @@ async function iniciarStreamCameraComposer(){
   } catch(e){
     mostrarErroCameraStory('Não conseguimos acessar sua câmera. Verifique a permissão do navegador e tente de novo.');
   }
+}
+
+// Alterna entre câmera traseira e frontal, reiniciando o stream com a nova
+// facingMode. Ignora o toque se não houver stream ativo ainda (câmera
+// carregando/com erro) ou se estiver gravando — trocar de câmera no meio de
+// uma gravação cortaria o vídeo de forma inesperada, então preferimos
+// simplesmente não fazer nada em vez de interromper.
+async function trocarCameraStory(){
+  if(!cameraStoryStream || cameraStoryGravando) return;
+  cameraStoryFacingMode = (cameraStoryFacingMode === 'environment') ? 'user' : 'environment';
+  pararStreamCameraStory();
+  await iniciarStreamCameraComposer();
 }
 
 function mostrarErroCameraStory(msg){
