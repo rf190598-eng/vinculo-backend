@@ -75,6 +75,49 @@ async function encerrarPlanoDoUsuario(usuario_id) {
   }
 }
 
+/**
+ * Cancela uma assinatura recorrente no Mercado Pago. Idempotente: se ela já
+ * está cancelada lá, devolve sucesso sem mandar PUT nenhum.
+ *
+ * NÃO mexe em premium/premium_ate de propósito: o acesso já pago continua
+ * valendo até a data que o ciclo comprou, e quem desliga é o job
+ * verificarAssinaturasVencidas quando essa data chegar — o que também mantém
+ * a indicação do Programa de Parceiros sincronizada no momento certo.
+ *
+ * Distingue "não consegui consultar" de "não consegui cancelar" porque os
+ * dois casos têm consequências diferentes para quem chama (ver uso em
+ * criarAssinaturaCartao logo abaixo).
+ */
+async function cancelarAssinaturaNoMercadoPago(subscriptionId) {
+  if (!subscriptionId) return { ok: false, erro: 'sem_assinatura' };
+
+  const consulta = await fetch(
+    `https://api.mercadopago.com/preapproval/${subscriptionId}`,
+    { headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` } }
+  );
+  const dados = await consulta.json().catch(() => null);
+
+  if (!consulta.ok) return { ok: false, erro: 'consulta_falhou', detalhe: dados };
+  if (dados && dados.status === 'cancelled') return { ok: true, jaEstavaCancelada: true };
+
+  const cancelamento = await fetch(
+    `https://api.mercadopago.com/preapproval/${subscriptionId}`,
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ status: 'cancelled' })
+    }
+  );
+  if (!cancelamento.ok) {
+    const detalhe = await cancelamento.json().catch(() => null);
+    return { ok: false, erro: 'cancelamento_falhou', detalhe };
+  }
+  return { ok: true, jaEstavaCancelada: false };
+}
+
 const criarPagamentoPix = async (req, res) => {
   try {
     const { plano, telefone } = req.body;
@@ -191,32 +234,19 @@ const criarAssinaturaCartao = async (req, res) => {
     // (cartão trocado, clique duplo, etc). Confere o status primeiro pra não
     // mandar PUT num recurso que já está cancelado.
     if (usuario.mercadopago_subscription_id) {
-      const assinaturaAtual = await fetch(
-        `https://api.mercadopago.com/preapproval/${usuario.mercadopago_subscription_id}`,
-        { headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` } }
-      );
-      const dadosAtual = await assinaturaAtual.json().catch(() => null);
+      const resultadoCancelamento = await cancelarAssinaturaNoMercadoPago(usuario.mercadopago_subscription_id);
 
-      if (assinaturaAtual.ok && dadosAtual.status !== 'cancelled') {
-        const cancelamento = await fetch(
-          `https://api.mercadopago.com/preapproval/${usuario.mercadopago_subscription_id}`,
-          {
-            method: 'PUT',
-            headers: {
-              Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ status: 'cancelled' })
-          }
-        );
-        if (!cancelamento.ok) {
-          const erroCancelamento = await cancelamento.json().catch(() => null);
-          console.error(`[assinatura-cartao] falha ao cancelar assinatura antiga` +
-            ` ${usuario.mercadopago_subscription_id} do usuario ${usuario_id}:`, JSON.stringify(erroCancelamento));
-          return res.status(500).json({
-            erro: 'Você já tem uma assinatura de cartão ativa e não consegui trocá-la agora. Tente novamente em alguns minutos.'
-          });
-        }
+      // Só aborta quando o PUT de cancelamento falhou de verdade. Se foi a
+      // CONSULTA que falhou, segue e cria a nova — é o comportamento que já
+      // existia aqui antes desta refatoração, mantido de propósito.
+      if (!resultadoCancelamento.ok && resultadoCancelamento.erro === 'cancelamento_falhou') {
+        console.error(`[assinatura-cartao] falha ao cancelar assinatura antiga` +
+          ` ${usuario.mercadopago_subscription_id} do usuario ${usuario_id}:`, JSON.stringify(resultadoCancelamento.detalhe));
+        return res.status(500).json({
+          erro: 'Você já tem uma assinatura de cartão ativa e não consegui trocá-la agora. Tente novamente em alguns minutos.'
+        });
+      }
+      if (resultadoCancelamento.ok && !resultadoCancelamento.jaEstavaCancelada) {
         console.log(`[assinatura-cartao] assinatura antiga ${usuario.mercadopago_subscription_id}` +
           ` cancelada antes de criar nova para usuario ${usuario_id}.`);
       }
@@ -574,10 +604,66 @@ const webhook = async (req, res) => {
   }
 };
 
+/**
+ * Cancelamento self-service da assinatura recorrente de cartão.
+ *
+ * Opera SEMPRE pelo req.usuarioId da sessão autenticada — nunca aceita id
+ * vindo do corpo/query, então ninguém cancela a assinatura de outra pessoa.
+ *
+ * Não toca em premium/premium_ate: quem já pagou o ciclo mantém o acesso até
+ * a data comprada, e o job verificarAssinaturasVencidas desliga na hora certa.
+ */
+const cancelarAssinaturaCartao = async (req, res) => {
+  try {
+    const usuario = await Usuario.findByPk(req.usuarioId);
+    if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado.' });
+
+    // CASO 1 — não tem assinatura recorrente (assinou por Pix, ou nunca assinou).
+    // Guardado ANTES do update lá embaixo, senão o log sairia com null.
+    const idAssinatura = usuario.mercadopago_subscription_id;
+    if (!idAssinatura) {
+      return res.status(400).json({
+        erro: 'Você não tem assinatura recorrente no cartão. Pagamentos por Pix não renovam sozinhos — não há o que cancelar.',
+        sem_assinatura: true
+      });
+    }
+
+    const resultado = await cancelarAssinaturaNoMercadoPago(idAssinatura);
+
+    // CASO 3 — falha na API do Mercado Pago. Nunca dizer "cancelado" sem ter
+    // cancelado: a pessoa relaxaria e seria cobrada de novo no próximo ciclo.
+    if (!resultado.ok) {
+      console.error(`[cancelar-assinatura] falha (${resultado.erro}) para usuario ${req.usuarioId},` +
+        ` assinatura ${idAssinatura}:`, JSON.stringify(resultado.detalhe));
+      return res.status(502).json({
+        erro: 'Não conseguimos cancelar agora. Tente de novo em alguns minutos — sua próxima cobrança ainda está agendada.'
+      });
+    }
+
+    // CASO 2 — já estava cancelada no Mercado Pago: cai aqui como sucesso.
+    // Limpa o vínculo local pra o botão parar de aparecer. premium e
+    // premium_ate ficam INTOCADOS (ver comentário do helper).
+    await usuario.update({ mercadopago_subscription_id: null });
+
+    console.log(`[cancelar-assinatura] usuario ${req.usuarioId} cancelou assinatura ${idAssinatura}` +
+      `${resultado.jaEstavaCancelada ? ' (já estava cancelada no MP)' : ''}.`);
+
+    res.json({
+      ok: true,
+      ja_estava_cancelada: resultado.jaEstavaCancelada,
+      premium_ate: usuario.premium_ate,
+      mensagem: 'Assinatura cancelada. Você não será cobrado de novo.'
+    });
+  } catch (erro) {
+    console.error('[cancelar-assinatura] erro inesperado:', erro);
+    res.status(500).json({ erro: 'Erro ao cancelar assinatura: ' + erro.message });
+  }
+};
+
 const verificarPremium = async (req, res) => {
   try {
     const usuario = await Usuario.findByPk(req.usuarioId, {
-      attributes: ['id', 'nome', 'premium', 'premium_ate']
+      attributes: ['id', 'nome', 'premium', 'premium_ate', 'mercadopago_subscription_id']
     });
 
     const agora = new Date();
@@ -600,6 +686,9 @@ const verificarPremium = async (req, res) => {
     res.json({
       premium: premium_ativo,
       premium_ate: usuario.premium_ate,
+      // Só o booleano, nunca o id cru: o frontend só precisa saber se mostra
+      // o botão de cancelar (quem pagou por Pix não tem o que cancelar).
+      assinatura_recorrente_ativa: !!usuario.mercadopago_subscription_id,
       planos: {
         semanal: { valor: 9.90, dias: 7 },
         mensal: { valor: 24.90, dias: 30 },
@@ -718,6 +807,7 @@ async function verificarLembretesRenovacao() {
 module.exports = {
   criarPagamentoPix,
   criarAssinaturaCartao,
+  cancelarAssinaturaCartao,
   webhook,
   verificarPremium,
   ativarPlanoDoUsuario,

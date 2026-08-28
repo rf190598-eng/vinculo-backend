@@ -2532,6 +2532,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div class="settings-item" onclick="goTo('indica')"><div class="settings-label"><span class="settings-ic">&#129309;</span>Parceiros Vínculo</div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item" id="menuPainelAdmin" onclick="goTo('admin')"><div class="settings-label"><span class="settings-ic">&#128202;</span><span style="color:#d4b87a">Painel Admin</span></div><span style="background:rgba(212,131,154,.2);border-radius:20px;padding:2px 8px;font-size:10px;color:#f0a0b8;font-weight:700">ADMIN</span></div>
   <div class="settings-item" onclick="goTo('landing')"><div class="settings-label"><span class="settings-ic">&#127968;</span>Ver landing page</div><span style="color:#d0a8b8">&#8250;</span></div>
+  <div class="settings-item" id="menuCancelarAssinatura" onclick="cancelarMinhaAssinatura()" style="display:none"><div class="settings-label"><span class="settings-ic">&#128179;</span><span style="color:#e8b0a0">Cancelar assinatura</span></div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item" onclick="sairDaConta()"><div class="settings-label"><span class="settings-ic">&#128682;</span><span style="color:#e8909e">Sair da conta</span></div></div>
   <div class="settings-item" onclick="abrirModalExcluirConta()" style="border-top:1px solid rgba(192,41,63,.3);margin-top:4px"><div class="settings-label"><span class="settings-ic">&#9888;&#65039;</span><span style="color:#ff8fa3;font-weight:700">Excluir minha conta</span></div><span style="color:#ff8fa3">&#8250;</span></div>
 </div>
@@ -3240,6 +3241,7 @@ function goTo(name){
   if(name==='myprofile'){
     const menuAdmin = document.getElementById('menuPainelAdmin');
     if(menuAdmin) menuAdmin.style.display = (usuarioAtual && usuarioAtual.is_admin) ? 'flex' : 'none';
+    verificarAssinaturaRecorrente();
     carregarMeuPerfil();
   }
   if(name==='notif-prefs'){ carregarPreferenciasNaTela('notif', {matches:'prefNotifMatches',mensagens:'prefNotifMensagens',curtidas:'prefNotifCurtidas',promo:'prefNotifPromo'}); }
@@ -10088,7 +10090,7 @@ function atualizarResumoRenovacaoModal(){
   const dias = DIAS_POR_PLANO[planoSelecionado] || DIAS_POR_PLANO.mensal;
   if(metodoPagamentoSelecionado === 'cartao'){
     formaEl.textContent = 'Renova automaticamente';
-    renovEl.textContent = `Cobrança recorrente no cartão ${PERIODO_RENOVACAO_CARTAO[planoSelecionado] || PERIODO_RENOVACAO_CARTAO.mensal} — para cancelar, escreva pra contato@vinculoapp.com.br`;
+    renovEl.textContent = `Cobrança recorrente no cartão ${PERIODO_RENOVACAO_CARTAO[planoSelecionado] || PERIODO_RENOVACAO_CARTAO.mensal} — cancele quando quiser em Perfil › Cancelar assinatura`;
   } else {
     formaEl.textContent = 'Pagamento único';
     renovEl.textContent = `Acesso por ${dias} dias · pague de novo se quiser continuar — sem renovação automática`;
@@ -10405,6 +10407,48 @@ async function verificarStatusPremium(silencioso){
     }
   } catch(e){
     if(!silencioso) statusEl.textContent = 'Erro ao verificar. Tenta de novo.';
+  }
+}
+
+// O botão de cancelar só existe pra quem tem assinatura recorrente de cartão.
+// Quem pagou por Pix não tem o que cancelar — o acesso simplesmente acaba na
+// data. Em caso de erro, esconde: melhor não oferecer do que oferecer algo
+// que vai falhar.
+async function verificarAssinaturaRecorrente(){
+  const item = document.getElementById('menuCancelarAssinatura');
+  if(!item) return;
+  try{
+    const resp = await fetch(`${API_URL}/api/pagamento/status`, {
+      headers: { 'Authorization': `Bearer ${tokenAtual}` }
+    });
+    const dados = await resp.json();
+    item.style.display = dados.assinatura_recorrente_ativa ? 'flex' : 'none';
+  }catch(e){
+    item.style.display = 'none';
+  }
+}
+
+async function cancelarMinhaAssinatura(){
+  const ok = await confirmarAcao(
+    'Você não será cobrado de novo. Seu acesso Premium continua até o fim do período que você já pagou.',
+    { titulo: 'Cancelar assinatura?', textoBotao: 'Sim, cancelar' }
+  );
+  if(!ok) return;
+  try{
+    const resp = await fetch(`${API_URL}/api/pagamento/cancelar-assinatura`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${tokenAtual}` }
+    });
+    const dados = await resp.json();
+    if(!resp.ok){
+      showToastVinculo(dados.erro || 'Não foi possível cancelar. Tenta de novo.');
+      return;
+    }
+    const item = document.getElementById('menuCancelarAssinatura');
+    if(item) item.style.display = 'none';
+    showToastVinculo('Assinatura cancelada. Você não será cobrado de novo.');
+  }catch(e){
+    showToastVinculo('Erro de conexão. Tenta de novo.');
   }
 }
 
