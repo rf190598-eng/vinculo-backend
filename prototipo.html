@@ -3138,7 +3138,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
           <div style="font-size:11px;color:#e0a0b0;font-weight:600">Aprovação rápida, geralmente em poucos segundos</div>
         </div>
       </div>
-      <div style="font-size:12px;color:#d8b0c4;margin-bottom:10px;text-align:center">Preencha o cartão abaixo e toque em "Pagar"</div>
+      <div style="font-size:12px;color:#d8b0c4;margin-bottom:10px;text-align:center">Preencha o cartão abaixo e toque em "Pagar"<br><span style="color:#e0a0b0;font-weight:600">Assinaturas aceitam apenas cartão de crédito</span></div>
       <div id="cardPaymentBrick_assinatura" style="min-height:200px"></div>
       <div id="cartaoAssinaturaErro" style="color:#ff8fa3;font-size:12.5px;margin:8px 0;min-height:14px"></div>
     </div>
@@ -10230,6 +10230,14 @@ async function renderizarBrickCartaoAssinatura(){
       customization: {
         paymentMethods: {
           types: { excluded: ['debit_card', 'prepaid_card'] }
+        },
+        // O titulo padrao do Brick e "Cartao de credito ou debito" — texto
+        // fixo da UI deles, que NAO acompanha o excluded acima (sao coisas
+        // separadas: excluded e comportamento, isto e cosmetico). Como
+        // assinatura so aceita credito, sobrescrevemos pra nao prometer
+        // debito e a pessoa tentar em vao.
+        visual: {
+          texts: { formTitle: 'Cartão de crédito' }
         }
       },
       callbacks: {
