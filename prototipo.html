@@ -10221,6 +10221,17 @@ async function renderizarBrickCartaoAssinatura(){
   try{
     brickCartaoAssinatura = await mpInstanciaAssinatura.bricks().create('cardPayment', 'cardPaymentBrick_assinatura', {
       initialization: { amount: valor },
+      // Assinatura recorrente (/preapproval) so funciona com cartao de CREDITO
+      // — confirmado em teste real: com debito a criacao da assinatura falha.
+      // prepaid_card entra na mesma exclusao pela mesma razao (nao e credito
+      // rotativo), ainda que por deducao, nao por teste. Excluir aqui e melhor
+      // que avisar em texto: a pessoa nem chega a digitar um cartao que nao
+      // funcionaria. Sem isso o Brick oferece credito e debito por padrao.
+      customization: {
+        paymentMethods: {
+          types: { excluded: ['debit_card', 'prepaid_card'] }
+        }
+      },
       callbacks: {
         onReady: () => {},
         onError: (erro) => {
