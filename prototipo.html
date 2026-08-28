@@ -10432,6 +10432,39 @@ function diasRestantesAssinatura(iso){
   return dias > 0 ? dias : null;
 }
 
+// Mesmo texto do bloco "Só no Premium" da tela de Assinatura — a lista vive
+// nos dois lugares, então mudou lá, muda aqui.
+const PREMIUM_INCLUI = [
+  'Ver quem já curtiu você, antes de dar match',
+  'Ver quem visitou seu perfil',
+  'Curtidas ilimitadas, sem o limite de 20/dia',
+  'Filtrar por altura, peso e cor de cabelo'
+];
+
+function cardPremiumInclui(){
+  const itens = PREMIUM_INCLUI.map(i =>
+    `<div style="font-size:12.5px;color:#e0c8d8;line-height:1.9">&#128274; ${i}</div>`
+  ).join('');
+  return `<div class="sec-card"><div style="font-size:11px;font-weight:700;color:#d4839a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Seu Premium inclui</div>${itens}</div>`;
+}
+
+// "Últimos pagamentos" e não "Histórico": a tabela pagamentos_processados só
+// existe a partir da data em que foi criada, então cobranças antigas de contas
+// veteranas não estão lá — o título não pode prometer completude.
+function cardUltimosPagamentos(pagamentos){
+  if(!Array.isArray(pagamentos) || !pagamentos.length) return '';
+  const linhas = pagamentos.map(p => {
+    const metodo = p.metodo === 'cartao' ? 'Cartão' : 'Pix';
+    const plano = p.plano ? (p.plano.charAt(0).toUpperCase() + p.plano.slice(1)) : '';
+    const valor = 'R$ ' + Number(p.valor || 0).toFixed(2).replace('.', ',');
+    return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)">`
+      + `<div><div style="font-size:13px;color:#fdf6f2">${formatarDataAssinatura(p.data)}</div>`
+      + `<div style="font-size:11.5px;color:#a07890">${plano} · ${metodo}</div></div>`
+      + `<div style="font-size:13px;font-weight:700;color:#d4b87a;white-space:nowrap">${valor}</div></div>`;
+  }).join('');
+  return `<div class="sec-card"><div style="font-size:11px;font-weight:700;color:#d0a8b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Últimos pagamentos</div>${linhas}</div>`;
+}
+
 // Renderiza a tela "Minha assinatura" em um de quatro estados: sem assinatura,
 // ativa por Pix, ativa por cartão, ou cancelada mas ainda dentro do período
 // pago. O backend já entrega o estado resolvido (inclusive consultando o
@@ -10473,6 +10506,16 @@ async function carregarMinhaAssinatura(){
     html += `<button class="btn btn-primary" style="margin-top:16px" onclick="goTo('assinatura')">Ver planos</button>`;
     html += `</div>`;
 
+  // ESTADO 5 — acesso concedido (fundador/cortesia): nunca houve pagamento,
+  // então não mostra valor nem método — era daqui que saía "R$ 0,00 · Pix".
+  } else if(d.concedido){
+    html += `<div class="sec-card">`;
+    html += linhaTitulo('Acesso concedido');
+    html += `<div style="font-size:12.5px;color:#6dcc6d;font-weight:700">Ativo · sem data de expiração</div>`;
+    html += `<div style="height:10px"></div>`;
+    html += nota('Este acesso foi concedido diretamente — não há cobrança nem renovação.');
+    html += `</div>`;
+
   // ESTADO 4 — cancelada, mas ainda dentro do periodo pago
   } else if(d.cancelada){
     const dias = diasRestantesAssinatura(d.acesso_ate);
@@ -10507,16 +10550,17 @@ async function carregarMinhaAssinatura(){
     html += linhaTitulo(d.plano_nome || 'Vínculo Premium');
     html += `<div style="font-size:12.5px;color:#6dcc6d;font-weight:700">Ativo</div>`;
     html += `<div style="font-size:13px;color:${T.suave};margin-top:8px">R$ ${(d.valor||0).toFixed(2).replace('.',',')} · pago por Pix</div>`;
-    if(d.vitalicio){
-      html += destaque('Acesso sem data de expiração');
-    } else {
-      html += destaque(`Acesso até ${formatarDataAssinatura(d.acesso_ate)}`);
-      if(dias) html += `<div style="font-size:13px;color:${T.suave}">Faltam ${dias} dia${dias>1?'s':''}.</div>`;
-      html += nota('Pagamento único — não renova sozinho. Quando acabar, é só pagar de novo.');
-      html += `<button class="btn btn-primary" style="margin-top:16px" onclick="goTo('assinatura')">Renovar agora</button>`;
-    }
+    html += destaque(`Acesso até ${formatarDataAssinatura(d.acesso_ate)}`);
+    if(dias) html += `<div style="font-size:13px;color:${T.suave}">Faltam ${dias} dia${dias>1?'s':''}.</div>`;
+    html += nota('Pagamento único — não renova sozinho. Quando acabar, é só pagar de novo.');
+    html += `<button class="btn btn-primary" style="margin-top:16px" onclick="goTo('assinatura')">Renovar agora</button>`;
     html += `</div>`;
   }
+
+  // "O que inclui" só nos estados ativos: em quem não tem assinatura, o botão
+  // "Ver planos" já leva à tela que tem o comparativo completo.
+  if(d.ativo) html += cardPremiumInclui();
+  html += cardUltimosPagamentos(d.pagamentos);
 
   el.innerHTML = html;
 }

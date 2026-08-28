@@ -686,8 +686,39 @@ const obterMinhaAssinatura = async (req, res) => {
     const planoInfo = usuario.plano_atual ? planos[usuario.plano_atual] : null;
     const ativo = temPremiumAtivo(usuario);
 
+    // premium_ate nulo só acontece em acesso concedido: ativarPlanoDoUsuario
+    // SEMPRE grava uma data quando um pagamento é confirmado. Então isto aqui
+    // distingue "ganhou o acesso" de "pagou por Pix" — os dois chegavam
+    // indistinguíveis antes, e a tela dizia "R$ 0,00 · pago por Pix".
+    const concedido = !!(usuario.premium && !usuario.premium_ate);
+
+    // O ledger unificado já registra Pix e cartão no mesmo lugar. Chamado de
+    // "últimos" e não "histórico" porque a tabela só existe a partir da data
+    // em que foi criada (ver comentário do model): cobranças antigas de contas
+    // veteranas não aparecem aqui.
+    let pagamentos = [];
+    try {
+      const registros = await PagamentoProcessado.findAll({
+        where: { usuario_id: usuario.id },
+        order: [['processado_em', 'DESC']],
+        limit: 12,
+        attributes: ['metodo', 'plano', 'valor', 'processado_em']
+      });
+      pagamentos = registros.map((p) => ({
+        metodo: p.metodo,
+        plano: p.plano,
+        valor: Number(p.valor),
+        data: p.processado_em
+      }));
+    } catch (erroLedger) {
+      // Nunca derrubar a tela por causa do histórico — ele é complementar.
+      console.error(`[minha-assinatura] falha ao ler pagamentos do usuario ${req.usuarioId}:`, erroLedger.message);
+    }
+
     const retrato = {
       ativo,
+      concedido,
+      pagamentos,
       plano: usuario.plano_atual,
       plano_nome: planoInfo ? planoInfo.nome : null,
       valor: planoInfo ? planoInfo.valor : null,
