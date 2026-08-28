@@ -5,6 +5,7 @@ const Usuario = require('../models/Usuario');
 const PagamentoAssinaturaProcessado = require('../models/PagamentoAssinaturaProcessado');
 const PagamentoProcessado = require('../models/PagamentoProcessado');
 const { sincronizarIndicacaoDoUsuario } = require('./parceiroController');
+const { temPremiumAtivo } = require('../utils/premium');
 const {
   enviarMensagemTemplate,
   normalizarTelefoneE164,
@@ -641,9 +642,13 @@ const cancelarAssinaturaCartao = async (req, res) => {
     }
 
     // CASO 2 — já estava cancelada no Mercado Pago: cai aqui como sucesso.
-    // Limpa o vínculo local pra o botão parar de aparecer. premium e
-    // premium_ate ficam INTOCADOS (ver comentário do helper).
-    await usuario.update({ mercadopago_subscription_id: null });
+    //
+    // O id da assinatura é MANTIDO de propósito. Zerá-lo apagaria a única
+    // pista de que esta pessoa assinou por cartão, deixando-a idêntica a quem
+    // pagou por Pix — e é justamente essa distinção que a tela "Minha
+    // assinatura" precisa pra dizer "cancelada, mas seu acesso continua até
+    // tal data". Quem responde se ainda vai cobrar é o próprio Mercado Pago,
+    // consultado ao abrir a tela. premium e premium_ate seguem intocados.
 
     console.log(`[cancelar-assinatura] usuario ${req.usuarioId} cancelou assinatura ${idAssinatura}` +
       `${resultado.jaEstavaCancelada ? ' (já estava cancelada no MP)' : ''}.`);
@@ -657,6 +662,79 @@ const cancelarAssinaturaCartao = async (req, res) => {
   } catch (erro) {
     console.error('[cancelar-assinatura] erro inesperado:', erro);
     res.status(500).json({ erro: 'Erro ao cancelar assinatura: ' + erro.message });
+  }
+};
+
+/**
+ * Monta o retrato da assinatura para a tela "Minha assinatura".
+ *
+ * Quando existe assinatura de cartão, o status real vem do Mercado Pago — ele
+ * é o dono da resposta "isso vai cobrar de novo?". Uma cópia local desse
+ * estado divergiria em silêncio (cancelamento feito pelo painel do MP, ou
+ * pelo próprio assinante na conta dele, nunca passaria por aqui).
+ *
+ * Se o MP não responder, degrada: devolve o que sabemos localmente e marca
+ * status_confirmado:false, pra tela avisar em vez de mentir ou quebrar.
+ */
+const obterMinhaAssinatura = async (req, res) => {
+  try {
+    const usuario = await Usuario.findByPk(req.usuarioId, {
+      attributes: ['id', 'premium', 'premium_ate', 'plano_atual', 'mercadopago_subscription_id']
+    });
+    if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado.' });
+
+    const planoInfo = usuario.plano_atual ? planos[usuario.plano_atual] : null;
+    const ativo = temPremiumAtivo(usuario);
+
+    const retrato = {
+      ativo,
+      plano: usuario.plano_atual,
+      plano_nome: planoInfo ? planoInfo.nome : null,
+      valor: planoInfo ? planoInfo.valor : null,
+      metodo: usuario.mercadopago_subscription_id ? 'cartao' : 'pix',
+      acesso_ate: usuario.premium_ate,
+      vitalicio: !!(usuario.premium && !usuario.premium_ate),
+      cancelada: false,
+      proxima_cobranca: null,
+      pode_cancelar: false,
+      status_confirmado: true
+    };
+
+    // Pix (ou nunca assinou): não há nada a consultar fora.
+    if (!usuario.mercadopago_subscription_id) {
+      return res.json(retrato);
+    }
+
+    try {
+      const consulta = await fetch(
+        `https://api.mercadopago.com/preapproval/${usuario.mercadopago_subscription_id}`,
+        { headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` } }
+      );
+      const dados = await consulta.json().catch(() => null);
+
+      if (!consulta.ok || !dados) throw new Error('resposta inválida do Mercado Pago');
+
+      retrato.cancelada = dados.status === 'cancelled';
+      // Só oferece cancelar o que de fato ainda pode cobrar.
+      retrato.pode_cancelar = dados.status === 'authorized' && ativo;
+      // next_payment_date é a data real da próxima cobrança. Nem toda resposta
+      // traz esse campo, então cai para premium_ate, que é a nossa melhor
+      // estimativa (fim do ciclo já pago).
+      retrato.proxima_cobranca = retrato.cancelada
+        ? null
+        : (dados.next_payment_date || usuario.premium_ate);
+    } catch (erroMP) {
+      console.error(`[minha-assinatura] não foi possível ler a assinatura` +
+        ` ${usuario.mercadopago_subscription_id} do usuario ${req.usuarioId}:`, erroMP.message);
+      retrato.status_confirmado = false;
+      retrato.pode_cancelar = ativo; // deixa tentar; o cancelamento valida de novo
+      retrato.proxima_cobranca = usuario.premium_ate;
+    }
+
+    res.json(retrato);
+  } catch (erro) {
+    console.error('[minha-assinatura] erro inesperado:', erro);
+    res.status(500).json({ erro: 'Erro ao carregar assinatura: ' + erro.message });
   }
 };
 
@@ -808,6 +886,7 @@ module.exports = {
   criarPagamentoPix,
   criarAssinaturaCartao,
   cancelarAssinaturaCartao,
+  obterMinhaAssinatura,
   webhook,
   verificarPremium,
   ativarPlanoDoUsuario,

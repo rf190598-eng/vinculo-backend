@@ -1366,6 +1366,17 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div style="padding:0 18px 24px" id="notifFeedLista"></div>
 </div>
 
+<div class="screen" id="screen-minha-assinatura" style="background:#1a0810;min-height:100vh;">
+  <div class="topbar">
+    <div class="icon-btn" onclick="goTo('myprofile')">&#8592;</div>
+    <div class="logo serif">Minha assinatura</div>
+    <div style="width:38px"></div>
+  </div>
+  <div style="padding:0 18px" id="minhaAssinaturaConteudo">
+    <div class="sec-card" style="text-align:center;color:#d0a8b8;font-size:13px">Carregando...</div>
+  </div>
+</div>
+
 <div class="screen" id="screen-notif-prefs" style="background:#1a0810;min-height:100vh;">
   <div class="topbar">
     <div class="icon-btn" onclick="goTo('myprofile')">&#8592;</div>
@@ -2532,7 +2543,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div class="settings-item" onclick="goTo('indica')"><div class="settings-label"><span class="settings-ic">&#129309;</span>Parceiros Vínculo</div><span style="color:#d0a8b8">&#8250;</span></div>
   <div class="settings-item" id="menuPainelAdmin" onclick="goTo('admin')"><div class="settings-label"><span class="settings-ic">&#128202;</span><span style="color:#d4b87a">Painel Admin</span></div><span style="background:rgba(212,131,154,.2);border-radius:20px;padding:2px 8px;font-size:10px;color:#f0a0b8;font-weight:700">ADMIN</span></div>
   <div class="settings-item" onclick="goTo('landing')"><div class="settings-label"><span class="settings-ic">&#127968;</span>Ver landing page</div><span style="color:#d0a8b8">&#8250;</span></div>
-  <div class="settings-item" id="menuCancelarAssinatura" onclick="cancelarMinhaAssinatura()" style="display:none"><div class="settings-label"><span class="settings-ic">&#128179;</span><span style="color:#e8b0a0">Cancelar assinatura</span></div><span style="color:#d0a8b8">&#8250;</span></div>
+  <div class="settings-item" onclick="goTo('minha-assinatura')"><div class="settings-label"><span class="settings-ic">&#128179;</span>Minha assinatura</div><span style="color:#d0a8b8" id="menuAssinaturaBadge">&#8250;</span></div>
   <div class="settings-item" onclick="sairDaConta()"><div class="settings-label"><span class="settings-ic">&#128682;</span><span style="color:#e8909e">Sair da conta</span></div></div>
   <div class="settings-item" onclick="abrirModalExcluirConta()" style="border-top:1px solid rgba(192,41,63,.3);margin-top:4px"><div class="settings-label"><span class="settings-ic">&#9888;&#65039;</span><span style="color:#ff8fa3;font-weight:700">Excluir minha conta</span></div><span style="color:#ff8fa3">&#8250;</span></div>
 </div>
@@ -3173,7 +3184,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 </div>
 
 <script>
-const noNav=['landing','auth','login','onboarding','tour1','liveness','match','profile-view','chatroom','edit-profile','notifications','assinatura','esqueci-senha','redefinir-senha'];
+const noNav=['landing','auth','login','onboarding','tour1','liveness','match','profile-view','chatroom','edit-profile','notifications','assinatura','minha-assinatura','esqueci-senha','redefinir-senha'];
 let swipeCount=0, timerInterval=null, timerSec=0;
 let lastSwipeDir=null, totalSwipes=0;
 let filaPerfis=[];
@@ -3241,11 +3252,11 @@ function goTo(name){
   if(name==='myprofile'){
     const menuAdmin = document.getElementById('menuPainelAdmin');
     if(menuAdmin) menuAdmin.style.display = (usuarioAtual && usuarioAtual.is_admin) ? 'flex' : 'none';
-    verificarAssinaturaRecorrente();
     carregarMeuPerfil();
   }
   if(name==='notif-prefs'){ carregarPreferenciasNaTela('notif', {matches:'prefNotifMatches',mensagens:'prefNotifMensagens',curtidas:'prefNotifCurtidas',promo:'prefNotifPromo'}); }
   if(name==='notif-prefs'){ verificarStatusNotificacoesPush(); }
+  if(name==='minha-assinatura'){ carregarMinhaAssinatura(); }
   if(name==='privacy-prefs'){ carregarPreferenciasNaTela('priv', {mostrarIdade:'prefPrivIdade',incognito:'prefPrivIncognito'}); }
   if(name==='match') setTimeout(launchConfetti, 300);
 }
@@ -10410,22 +10421,104 @@ async function verificarStatusPremium(silencioso){
   }
 }
 
-// O botão de cancelar só existe pra quem tem assinatura recorrente de cartão.
-// Quem pagou por Pix não tem o que cancelar — o acesso simplesmente acaba na
-// data. Em caso de erro, esconde: melhor não oferecer do que oferecer algo
-// que vai falhar.
-async function verificarAssinaturaRecorrente(){
-  const item = document.getElementById('menuCancelarAssinatura');
-  if(!item) return;
+function formatarDataAssinatura(iso){
+  if(!iso) return '';
+  return new Date(iso).toLocaleDateString('pt-BR', {day:'2-digit', month:'long', year:'numeric'});
+}
+
+function diasRestantesAssinatura(iso){
+  if(!iso) return null;
+  const dias = Math.ceil((new Date(iso) - new Date()) / 86400000);
+  return dias > 0 ? dias : null;
+}
+
+// Renderiza a tela "Minha assinatura" em um de quatro estados: sem assinatura,
+// ativa por Pix, ativa por cartão, ou cancelada mas ainda dentro do período
+// pago. O backend já entrega o estado resolvido (inclusive consultando o
+// Mercado Pago), então aqui é só apresentação.
+async function carregarMinhaAssinatura(){
+  const el = document.getElementById('minhaAssinaturaConteudo');
+  if(!el) return;
+  el.innerHTML = '<div class="sec-card" style="text-align:center;color:#d0a8b8;font-size:13px">Carregando...</div>';
+  let d;
   try{
-    const resp = await fetch(`${API_URL}/api/pagamento/status`, {
+    const resp = await fetch(`${API_URL}/api/pagamento/minha-assinatura`, {
       headers: { 'Authorization': `Bearer ${tokenAtual}` }
     });
-    const dados = await resp.json();
-    item.style.display = dados.assinatura_recorrente_ativa ? 'flex' : 'none';
+    d = await resp.json();
+    if(!resp.ok) throw new Error(d.erro || 'falhou');
   }catch(e){
-    item.style.display = 'none';
+    el.innerHTML = '<div class="sec-card" style="text-align:center"><div style="color:#ff8fa3;font-size:13px;margin-bottom:12px">Não foi possível carregar sua assinatura.</div><button class="btn btn-primary" onclick="carregarMinhaAssinatura()">Tentar de novo</button></div>';
+    return;
   }
+
+  const badge = document.getElementById('menuAssinaturaBadge');
+  if(badge) badge.textContent = d.ativo ? (d.cancelada ? 'Cancelada ›' : 'Ativo ›') : '›';
+
+  const T = { ouro:'#d4b87a', claro:'#fdf6f2', suave:'#e0c8d8', apagado:'#a07890' };
+  const linhaTitulo = (txt, cor) => `<div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;color:${cor||T.claro};margin-bottom:4px">${txt}</div>`;
+  const destaque = (txt) => `<div style="font-size:15px;font-weight:700;color:${T.ouro};margin:14px 0 4px">${txt}</div>`;
+  const nota = (txt) => `<div style="font-size:12.5px;color:${T.apagado};line-height:1.6">${txt}</div>`;
+
+  let html = '';
+
+  // ESTADO 1 — sem assinatura ativa (nunca teve, ou expirou)
+  if(!d.ativo){
+    html += `<div class="sec-card">`;
+    html += linhaTitulo('Você não tem assinatura ativa');
+    html += nota('Com o Premium você vê quem curtiu você, conversa com seus matches e usa filtros avançados.');
+    if(d.acesso_ate){
+      html += `<div style="font-size:12.5px;color:${T.apagado};margin-top:10px">Seu último acesso terminou em ${formatarDataAssinatura(d.acesso_ate)}.</div>`;
+    }
+    html += `<button class="btn btn-primary" style="margin-top:16px" onclick="goTo('assinatura')">Ver planos</button>`;
+    html += `</div>`;
+
+  // ESTADO 4 — cancelada, mas ainda dentro do periodo pago
+  } else if(d.cancelada){
+    const dias = diasRestantesAssinatura(d.acesso_ate);
+    html += `<div class="sec-card">`;
+    html += linhaTitulo(d.plano_nome || 'Vínculo Premium');
+    html += `<div style="font-size:12.5px;color:${T.apagado}">Cancelada</div>`;
+    html += destaque('Não haverá nova cobrança.');
+    html += `<div style="font-size:14px;color:${T.suave};line-height:1.6">Seu acesso continua até <b style="color:${T.claro}">${formatarDataAssinatura(d.acesso_ate)}</b>${dias ? ` — faltam ${dias} dia${dias>1?'s':''}` : ''}.</div>`;
+    html += `<button class="btn btn-primary" style="margin-top:16px" onclick="goTo('assinatura')">Assinar de novo</button>`;
+    html += `</div>`;
+
+  // ESTADO 3 — ativo via cartao (recorrente)
+  } else if(d.metodo === 'cartao'){
+    html += `<div class="sec-card">`;
+    html += linhaTitulo(d.plano_nome || 'Vínculo Premium');
+    html += `<div style="font-size:12.5px;color:#6dcc6d;font-weight:700">Ativo</div>`;
+    html += `<div style="font-size:13px;color:${T.suave};margin-top:8px">R$ ${(d.valor||0).toFixed(2).replace('.',',')} · cartão, renova automaticamente</div>`;
+    if(d.proxima_cobranca) html += destaque(`Próxima cobrança em ${formatarDataAssinatura(d.proxima_cobranca)}`);
+    html += nota('Seu acesso fica liberado enquanto a assinatura estiver ativa.');
+    if(!d.status_confirmado){
+      html += `<div style="font-size:12px;color:#e8b0a0;margin-top:10px">Não conseguimos confirmar o status com o Mercado Pago agora — estes dados podem estar desatualizados.</div>`;
+    }
+    html += `</div>`;
+    if(d.pode_cancelar){
+      html += `<div style="text-align:center;padding:4px 0 24px"><span onclick="cancelarMinhaAssinatura()" style="font-size:13px;color:${T.apagado};text-decoration:underline;cursor:pointer">Cancelar assinatura</span></div>`;
+    }
+
+  // ESTADO 2 — ativo via Pix (pagamento unico)
+  } else {
+    const dias = diasRestantesAssinatura(d.acesso_ate);
+    html += `<div class="sec-card">`;
+    html += linhaTitulo(d.plano_nome || 'Vínculo Premium');
+    html += `<div style="font-size:12.5px;color:#6dcc6d;font-weight:700">Ativo</div>`;
+    html += `<div style="font-size:13px;color:${T.suave};margin-top:8px">R$ ${(d.valor||0).toFixed(2).replace('.',',')} · pago por Pix</div>`;
+    if(d.vitalicio){
+      html += destaque('Acesso sem data de expiração');
+    } else {
+      html += destaque(`Acesso até ${formatarDataAssinatura(d.acesso_ate)}`);
+      if(dias) html += `<div style="font-size:13px;color:${T.suave}">Faltam ${dias} dia${dias>1?'s':''}.</div>`;
+      html += nota('Pagamento único — não renova sozinho. Quando acabar, é só pagar de novo.');
+      html += `<button class="btn btn-primary" style="margin-top:16px" onclick="goTo('assinatura')">Renovar agora</button>`;
+    }
+    html += `</div>`;
+  }
+
+  el.innerHTML = html;
 }
 
 async function cancelarMinhaAssinatura(){
@@ -10444,9 +10537,8 @@ async function cancelarMinhaAssinatura(){
       showToastVinculo(dados.erro || 'Não foi possível cancelar. Tenta de novo.');
       return;
     }
-    const item = document.getElementById('menuCancelarAssinatura');
-    if(item) item.style.display = 'none';
     showToastVinculo('Assinatura cancelada. Você não será cobrado de novo.');
+    carregarMinhaAssinatura();
   }catch(e){
     showToastVinculo('Erro de conexão. Tenta de novo.');
   }
