@@ -111,6 +111,14 @@ app.use(cors({
 // de relatório sem achado inesperado, troca reportOnly pra false pra virar
 // bloqueio de verdade.
 //
+// DEPLOY A (este): política ampliada com os domínios legítimos que apareceram
+// nos relatórios (Mercado Pago) mais duas exigências do liveness descobertas
+// lendo o bundle — WebAssembly e Web Worker via blob:. Continua em modo
+// relatório de propósito: primeiro confirmamos, com tráfego real, que os
+// relatórios pararam; só então vem o DEPLOY B, que troca reportOnly pra false.
+// Em modo relatório um erro de política custa uma linha de log; em modo
+// bloqueio custa um usuário que não consegue verificar o rosto nem pagar.
+//
 // useDefaults:false de propósito: o Helmet mescla suas próprias diretivas
 // padrão por baixo quando useDefaults fica true (o default), e uma delas é
 // `script-src-attr 'none'` — isso bloquearia os 328 `onclick=` do
@@ -128,34 +136,63 @@ app.use(helmet({
       // 'unsafe-inline' é necessário pro prototipo.html (328 onclick inline);
       // scriptSrcAttr replicado pro mesmo valor por causa do default do Helmet
       // explicado acima.
-      scriptSrc: ["'self'", "'unsafe-inline'", 'https://sdk.mercadopago.com'],
+      // 'wasm-unsafe-eval': o bundle do FaceLivenessDetector roda TensorFlow.js
+      // compilado em WebAssembly (Emscripten). Sem essa fonte, o navegador
+      // recusa compilar o WASM e a verificação facial não roda — 'unsafe-inline'
+      // NÃO cobre isso. Achado lendo o bundle, não estava na lista original.
+      // http2.mlstatic.com é o CDN de estáticos do Card Payment Brick.
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "'wasm-unsafe-eval'",
+        'https://sdk.mercadopago.com',
+        'https://http2.mlstatic.com'
+      ],
       scriptSrcAttr: ["'unsafe-inline'"],
+      // O liveness cria um Web Worker a partir de blob: (createObjectURL).
+      // Sem declarar workerSrc, ele cai no defaultSrc 'self', que não cobre
+      // blob: — o worker seria bloqueado. Segundo achado da leitura do bundle.
+      workerSrc: ["'self'", 'blob:'],
       // 'unsafe-inline' necessário pros 1211 style="..." + 3 <style> inline.
-      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdn.jsdelivr.net'],
-      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdn.jsdelivr.net', 'https://http2.mlstatic.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com', 'https://http2.mlstatic.com'],
       // vinculo-backend-production é host separado do domínio real do app
       // (ver APP_URL no .env) — precisa estar explícito aqui, 'self' sozinho
       // não cobre. blob: cobre preview de foto/vídeo local antes do upload.
-      imgSrc: ["'self'", 'data:', 'blob:', 'https://vinculo-backend-production.up.railway.app'],
+      imgSrc: ["'self'", 'data:', 'blob:', 'https://vinculo-backend-production.up.railway.app', 'https://http2.mlstatic.com'],
       mediaSrc: ["'self'", 'blob:', 'https://vinculo-backend-production.up.railway.app'],
       // cognito-identity + amazonaws.com/wss cobrem o FaceLivenessDetector
       // (Cognito Identity Pool em us-east-2 + WebSocket direto pro
       // Rekognition Streaming em us-east-1) — o host exato do WebSocket não
       // dá pra confirmar sem tráfego real, por isso o wildcard por enquanto.
       // api.mercadopago.com é o Card Payment Brick chamando a própria API.
+      // http2.mlstatic.com / secure-fields.mercadopago.com / api.mercadolibre.com
+      // vieram dos relatórios de violação reais coletados nos últimos dias.
+      // O curinga *.amazonaws.com fica de propósito: o host do WebSocket do
+      // Rekognition Streaming varia por região/sessão, e estreitar isso agora
+      // arriscaria quebrar o cadastro de conta nova. Dá pra estreitar depois,
+      // num passo separado, com os hosts exatos vindos dos relatórios.
       connectSrc: [
         "'self'",
         'https://vinculo-backend-production.up.railway.app',
         'https://sdk.mercadopago.com',
         'https://api.mercadopago.com',
+        'https://http2.mlstatic.com',
+        'https://secure-fields.mercadopago.com',
+        'https://api.mercadolibre.com',
         'https://cognito-identity.us-east-2.amazonaws.com',
         'https://*.amazonaws.com',
         'wss://*.amazonaws.com'
       ],
       // Card Payment Brick abre iframe próprio pra captura segura do cartão —
-      // host exato (www.mercadopago.com) é o padrão conhecido da Mercado Pago,
-      // mas também é candidato a ajuste depois de ver o relatório real.
-      frameSrc: ['https://sdk.mercadopago.com', 'https://www.mercadopago.com'],
+      // secure-fields.mercadopago.com é justamente o host desse iframe, achado
+      // nos relatórios (é onde os campos do cartão realmente vivem).
+      frameSrc: [
+        'https://sdk.mercadopago.com',
+        'https://www.mercadopago.com',
+        'https://secure-fields.mercadopago.com',
+        'https://http2.mlstatic.com'
+      ],
       objectSrc: ["'none'"], // nenhum <object>/<embed> encontrado no projeto
       baseUri: ["'self'"],
       frameAncestors: ["'self'"],
