@@ -2882,10 +2882,17 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div class="topo-seguro" style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:flex-start;justify-content:space-between;padding-left:14px;padding-right:14px;padding-bottom:16px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
         <div onclick="fecharComposerStory()" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff;flex-shrink:0">&#10005;</div>
 
-        <div style="display:flex;gap:8px;flex-shrink:0">
-          <div id="cameraStoryTrocarBtn" onclick="trocarCameraStory()" title="Trocar câmera" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff">&#128260;</div>
-          <div onclick="abrirModoTextoComposer()" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;cursor:pointer;color:#fff">Aa</div>
-        </div>
+        <div onclick="abrirModoTextoComposer()" style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;cursor:pointer;color:#fff">Aa</div>
+      </div>
+
+      <!-- Trocar câmera: botão próprio na lateral direita (estilo Instagram),
+           fora da barra de cima. Maior (44px) e com ícone desenhado. -->
+      <div id="cameraStoryTrocarBtn" onclick="trocarCameraStory()" title="Trocar câmera" style="position:absolute;top:110px;right:14px;z-index:10;width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
       </div>
 
       <!-- Card da pergunta do dia, em destaque no centro da tela da câmera.
@@ -2971,7 +2978,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 
       <!-- Topo: voltar — pra câmera, se a foto/vídeo veio dela (ou da galeria);
            fecha o composer inteiro se era modo texto puro (nunca passou pela câmera). -->
-      <div style="position:absolute;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;gap:10px;padding:16px 14px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
+      <div class="topo-seguro" style="position:absolute;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;gap:10px;padding-left:14px;padding-right:14px;padding-bottom:16px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
         <div onclick="cancelarEdicaoStory()" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff;flex-shrink:0">&#10005;</div>
 
         <!-- Chip da pergunta do dia DENTRO da edição: fica disponível com
@@ -7389,8 +7396,8 @@ function adicionarCaixaTextoStory(textoInicial, origemPergunta){
     <span class="editor-story-caixa-del" style="position:absolute;top:-11px;left:-11px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2">&times;</span>
     ${origemPergunta ? '<div class="editor-story-cartao-rotulo">Pergunta do dia</div>' : ''}
     <div class="editor-story-caixa-conteudo" contenteditable="true" style="color:#fdf6f2;font-family:${EDITOR_STORY_FONTES[0].valor};font-size:${tamanhoInicial}px;font-weight:700;text-shadow:0 2px 10px rgba(0,0,0,.6);outline:none;min-width:26px;white-space:pre-wrap;text-align:center;cursor:text;-webkit-user-select:none;user-select:none"></div>
-    <span class="editor-story-caixa-resize" style="position:absolute;bottom:-13px;right:-13px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:nwse-resize;z-index:2">&#8646;</span>
-    <span class="editor-story-caixa-rotate" style="position:absolute;top:-13px;right:-13px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:grab;z-index:2">&#8635;</span>
+    <span class="editor-story-caixa-resize" style="position:absolute;bottom:-22px;right:-22px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:nwse-resize;z-index:2">&#8646;</span>
+    <span class="editor-story-caixa-rotate" style="position:absolute;top:-22px;right:-22px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:grab;z-index:2">&#8635;</span>
   `;
   // .textContent em vez de interpolar direto no template: evita que o texto
   // da pergunta (vindo do backend) seja interpretado como HTML dentro do
@@ -7488,8 +7495,8 @@ function adicionarEmojiStory(emoji){
   caixa.innerHTML = `
     <span class="editor-story-caixa-del" style="position:absolute;top:-11px;left:-11px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2">&times;</span>
     <div class="editor-story-caixa-conteudo" style="font-size:${EDITOR_STORY_EMOJI_TAMANHO_BASE}px;line-height:1.1;user-select:none;cursor:grab"></div>
-    <span class="editor-story-caixa-resize" style="position:absolute;bottom:-13px;right:-13px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:nwse-resize;z-index:2">&#8646;</span>
-    <span class="editor-story-caixa-rotate" style="position:absolute;top:-13px;right:-13px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:grab;z-index:2">&#8635;</span>
+    <span class="editor-story-caixa-resize" style="position:absolute;bottom:-22px;right:-22px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:nwse-resize;z-index:2">&#8646;</span>
+    <span class="editor-story-caixa-rotate" style="position:absolute;top:-22px;right:-22px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.92);color:#1a0810;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:grab;z-index:2">&#8635;</span>
   `;
   caixa.querySelector('.editor-story-caixa-conteudo').textContent = emoji;
   camada.appendChild(caixa);
