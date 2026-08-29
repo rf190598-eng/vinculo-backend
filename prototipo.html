@@ -24,7 +24,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png"/>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Karla:wght@400;500;600;700&family=Poppins:wght@700;800&family=Caveat:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Karla:wght@400;500;600;700&family=Poppins:wght@700;800&family=Caveat:wght@600;700&family=Special+Elite&family=Baloo+2:wght@600;700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 /* PWA: remove seleção de texto acidental (toque longo) em elementos de
    interface — nav, botões, links. Campos de texto, mensagens e bios NÃO são
@@ -3021,9 +3021,27 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
             <span id="editorStoryTamanhoLabel" style="color:#fff;font-size:12px;min-width:44px;text-align:center">28px</span>
             <div onclick="ajustarTamanhoFonteStory(4)" style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;cursor:pointer">A+</div>
           </div>
-          <div style="display:flex;align-items:center;justify-content:center;margin-bottom:4px">
+          <!-- Alinhamento: 3 estados, alternáveis com toque. Escondido pra caixa
+               da pergunta do dia (cartão) — o visual dela é sempre centralizado,
+               inclusive na publicação, então mostrar o controle aqui enganaria. -->
+          <div id="editorStoryAlinhamentoWrap" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">
+            <div class="editor-story-align-btn" data-align="esquerda" onclick="alinharCaixaTextoStory('esquerda')" style="width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+            </div>
+            <div class="editor-story-align-btn" data-align="centro" onclick="alinharCaixaTextoStory('centro')" style="width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4.5" y1="18" x2="19.5" y2="18"/></svg>
+            </div>
+            <div class="editor-story-align-btn" data-align="direita" onclick="alinharCaixaTextoStory('direita')" style="width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>
+            </div>
+          </div>
+
+          <div id="editorStoryFundoWrapToggle" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
             <label style="color:#fff;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;background:rgba(255,255,255,.1);padding:6px 12px;border-radius:16px">
               <input type="checkbox" id="editorStoryFundoToggle" onchange="alternarFundoCaixaStory(this.checked)" style="cursor:pointer"/> Fundo atrás do texto
+            </label>
+            <label id="editorStoryGlowWrap" style="color:#fff;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;background:rgba(255,255,255,.1);padding:6px 12px;border-radius:16px">
+              <input type="checkbox" id="editorStoryGlowToggle" onchange="alternarGlowCaixaStory(this.checked)" style="cursor:pointer"/> &#10024; Neon
             </label>
           </div>
         </div>
@@ -7095,7 +7113,10 @@ let filtroCssStoryVar = '';       // idem pro filtro escolhido (só usado em ví
 let perguntaUsadaStoryVar = false; // a pergunta do dia virou texto NESTE story?
 let fundoTransformStoryVar = null; // enquadramento por pinça (só vídeo)
 
-const EDITOR_STORY_CORES = ['#fdf6f2', '#f0a0b8', '#d4b87a', '#e0607a', '#c9a06b', '#7a2a4a', '#1a0810', '#6dcc6d'];
+const EDITOR_STORY_CORES = [
+  '#fdf6f2', '#ffffff', '#f0a0b8', '#d4b87a', '#e0607a', '#c9a06b', '#7a2a4a', '#1a0810', '#6dcc6d',
+  '#4a90e2', '#2a4a7a', '#9060e0', '#b8a8d4', '#e0d060', '#f5d0b0', '#e06060', '#60d0e0', '#4a7a2a'
+];
 const EDITOR_STORY_FONTE_BASE = 28; // px, tamanho de referência no editor (escala 1)
 const EDITOR_STORY_PERGUNTA_TAMANHO = 24; // px, texto da pergunta dentro do cartão
 const EDITOR_STORY_FONTE_MIN = 14;
@@ -7107,8 +7128,19 @@ const EDITOR_STORY_FONTES = [
   { label: 'Elegante', valor: "'Cormorant Garamond', serif" },
   { label: 'Clean', valor: "'Karla', sans-serif" },
   { label: 'Impacto', valor: "'Poppins', sans-serif" },
-  { label: 'Manuscrita', valor: "'Caveat', cursive" }
+  { label: 'Manuscrita', valor: "'Caveat', cursive" },
+  { label: 'Retrô', valor: "'Special Elite', monospace" },
+  { label: 'Arredondada', valor: "'Baloo 2', cursive" }
 ];
+
+// Efeito "neon"/glow: NÃO é uma fonte separada — é um toggle (dataset.glow)
+// aplicável em cima de qualquer uma das fontes acima, via múltiplas camadas
+// de text-shadow na cor do próprio texto (o mesmo truque CSS usado em
+// qualquer editor de neon). Substitui a sombra de contraste padrão (que é só
+// pra legibilidade) quando ligado.
+function textShadowGlowStory(cor){
+  return `0 0 4px ${cor}, 0 0 11px ${cor}, 0 0 19px ${cor}, 0 0 40px ${cor}`;
+}
 
 function abrirEditorStory(tipo, arquivo){
   console.log('[editor] abrirEditorStory chamada com tipo:', tipo, 'arquivo:', arquivo);
@@ -7377,6 +7409,8 @@ function adicionarCaixaTextoStory(textoInicial, origemPergunta){
   caixa.dataset.y = '50';
   caixa.dataset.rot = '0';
   caixa.dataset.escala = '1';
+  caixa.dataset.alinhamento = 'centro'; // 'esquerda' | 'centro' | 'direita'
+  caixa.dataset.glow = '0';
   caixa.dataset.fonte = EDITOR_STORY_FONTES[0].valor;
   // A pergunta nasce maior que uma caixa comum: ela é o conteúdo principal
   // do story quando usada, não uma legenda solta.
@@ -7848,6 +7882,17 @@ function selecionarCaixaStory(caixa){
   montarFontesStory(caixa);
   atualizarPainelTamanhoStory(caixa);
   atualizarToggleFundoStory(caixa);
+  atualizarPainelAlinhamentoStory(caixa);
+  atualizarToggleGlowStory(caixa);
+  // O cartão da pergunta do dia é sempre centralizado (na edição e na
+  // publicação — desenharCartaoPerguntaNoCanvas e o ramo "cartao" de
+  // renderizarOverlaysTextoStory ignoram alinhamento de propósito, pra manter
+  // a identidade visual fixa do cartão). Esconder os controles aqui evita que
+  // a pessoa escolha um alinhamento/glow que pareceria funcionar no editor
+  // mas sumiria ao publicar.
+  const ehCartaoPergunta = caixa.dataset.origemPergunta === '1';
+  document.getElementById('editorStoryAlinhamentoWrap').style.display = ehCartaoPergunta ? 'none' : 'flex';
+  document.getElementById('editorStoryGlowWrap').style.display = ehCartaoPergunta ? 'none' : 'flex';
   aplicarEstadoPainelEstiloStory();
 }
 
@@ -7914,11 +7959,68 @@ function montarPaletaCoresStory(caixa){
   EDITOR_STORY_CORES.forEach(cor => {
     const sw = document.createElement('div');
     const ativa = (conteudo.style.color === cor) || (!conteudo.style.color && cor === '#fdf6f2');
-    sw.style.cssText = `width:26px;height:26px;border-radius:50%;background:${cor};border:2px solid ${ativa ? '#fff' : 'rgba(255,255,255,.35)'};cursor:pointer`;
-    sw.onclick = (ev) => { ev.stopPropagation(); conteudo.style.color = cor; montarPaletaCoresStory(caixa); };
+    sw.style.cssText = `width:26px;height:26px;border-radius:50%;background:${cor};border:2px solid ${ativa ? '#fff' : 'rgba(255,255,255,.35)'};cursor:pointer;flex-shrink:0`;
+    sw.onclick = (ev) => {
+      ev.stopPropagation();
+      conteudo.style.color = cor;
+      if(caixa.dataset.glow === '1') conteudo.style.textShadow = textShadowGlowStory(cor);
+      montarPaletaCoresStory(caixa);
+    };
     paleta.appendChild(sw);
   });
+
+  // Cor livre: além das predefinidas, um seletor nativo do navegador — cobre
+  // qualquer tom que a paleta fixa não tenha, sem inflar a lista de swatches.
+  const inputCor = document.createElement('input');
+  inputCor.type = 'color';
+  // getComputedStyle nunca falha em hex, mas conteudo.style.color pode vir
+  // vazio (cor padrão) — nesse caso o input de cor cai no branco-creme padrão.
+  inputCor.value = conteudo.style.color ? rgbParaHex(conteudo.style.color) : '#fdf6f2';
+  inputCor.title = 'Cor livre';
+  inputCor.style.cssText = 'width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:none;padding:0;cursor:pointer;flex-shrink:0';
+  inputCor.oninput = (ev) => {
+    ev.stopPropagation();
+    conteudo.style.color = ev.target.value;
+    if(caixa.dataset.glow === '1') conteudo.style.textShadow = textShadowGlowStory(ev.target.value);
+  };
+  inputCor.onclick = (ev) => ev.stopPropagation();
+  paleta.appendChild(inputCor);
+
   paleta.style.display = 'flex';
+}
+
+// Alinhamento do texto dentro da caixa (a caixa em si não se move — x/y
+// continuam sendo o CENTRO dela, igual antes; só o texto desliza dentro da
+// largura já ocupada pela linha mais longa).
+function alinharCaixaTextoStory(alinhamento){
+  if(!editorStoryCaixaAtiva) return;
+  editorStoryCaixaAtiva.dataset.alinhamento = alinhamento;
+  const conteudo = editorStoryCaixaAtiva.querySelector('.editor-story-caixa-conteudo');
+  conteudo.style.textAlign = alinhamento === 'esquerda' ? 'left' : alinhamento === 'direita' ? 'right' : 'center';
+  atualizarPainelAlinhamentoStory(editorStoryCaixaAtiva);
+}
+
+function atualizarPainelAlinhamentoStory(caixa){
+  const atual = caixa.dataset.alinhamento || 'centro';
+  document.querySelectorAll('.editor-story-align-btn').forEach(btn => {
+    const ativo = btn.dataset.align === atual;
+    btn.style.background = ativo ? 'rgba(255,255,255,.32)' : 'rgba(255,255,255,.12)';
+  });
+}
+
+// Neon/glow: troca a sombra de contraste padrão por camadas de glow na cor
+// atual do texto. Ligar/desligar não perde a cor escolhida — só troca o
+// text-shadow aplicado sobre ela.
+function alternarGlowCaixaStory(ligado){
+  if(!editorStoryCaixaAtiva) return;
+  editorStoryCaixaAtiva.dataset.glow = ligado ? '1' : '0';
+  const conteudo = editorStoryCaixaAtiva.querySelector('.editor-story-caixa-conteudo');
+  const cor = conteudo.style.color || '#fdf6f2';
+  conteudo.style.textShadow = ligado ? textShadowGlowStory(cor) : '0 2px 10px rgba(0,0,0,.6)';
+}
+
+function atualizarToggleGlowStory(caixa){
+  document.getElementById('editorStoryGlowToggle').checked = caixa.dataset.glow === '1';
 }
 
 // Amostras de fonte (mostra "Aa" já na fonte real). Reaproveita a mesma serif
@@ -8256,6 +8358,8 @@ async function finalizarEEnviarStoryInterno(){
       // do dia. Persistido junto com o resto pra sobreviver ao achatamento em
       // canvas (foto) e ao overlay de metadata (vídeo).
       cartao: !ehEmoji && c.dataset.cartao === '1',
+      alinhamento: !ehEmoji ? (c.dataset.alinhamento || 'centro') : 'centro',
+      glow: !ehEmoji && c.dataset.glow === '1',
       x: pos.x, y: pos.y,
       rot: parseFloat(c.dataset.rot), escala: parseFloat(c.dataset.escala)
     };
@@ -8396,11 +8500,17 @@ function desenharTextosNoCanvas(ctx, dadosCaixas, w, h, fatorEscalaCanvas){
 
     const inicioY = -((linhas.length - 1) * alturaLinha) / 2;
 
-    // Fundo semi-transparente atrás do texto (opcional) — desenhado sem sombra,
-    // largura calculada pela linha mais longa.
+    // Largura da linha mais comprida — determina tanto o fundo (já existia)
+    // quanto o ponto de ancoragem do texto quando alinhado à esquerda/direita
+    // (novo). A CAIXA em si (x/y) continua ancorada no centro, igual sempre
+    // foi — só a posição de cada linha DENTRO dessa largura muda com o
+    // alinhamento, exatamente como o text-align faz no editor (a largura da
+    // caixa não muda ao trocar o alinhamento, só o texto desliza dentro dela).
+    let larguraMax = 0;
+    linhas.forEach(l => { larguraMax = Math.max(larguraMax, ctx.measureText(l).width); });
+
+    // Fundo semi-transparente atrás do texto (opcional) — desenhado sem sombra.
     if(d.fundo){
-      let larguraMax = 0;
-      linhas.forEach(l => { larguraMax = Math.max(larguraMax, ctx.measureText(l).width); });
       const padX = 16 * fatorEscalaCanvas, padY = 10 * fatorEscalaCanvas;
       const alturaTotal = linhas.length * alturaLinha;
       const rx = -larguraMax / 2 - padX, ry = inicioY - alturaLinha / 2 - padY;
@@ -8416,14 +8526,28 @@ function desenharTextosNoCanvas(ctx, dadosCaixas, w, h, fatorEscalaCanvas){
       }
     }
 
+    const alinhamento = d.alinhamento || 'centro';
+    ctx.textAlign = alinhamento === 'esquerda' ? 'left' : alinhamento === 'direita' ? 'right' : 'center';
+    const xTexto = alinhamento === 'esquerda' ? -larguraMax / 2 : alinhamento === 'direita' ? larguraMax / 2 : 0;
+
     ctx.fillStyle = d.cor;
-    // Emoji não leva sombra: a sombra vaza pelas bordas do glifo colorido e
-    // deixa um halo escuro feio em volta.
-    if(!ehEmoji){
+    // Emoji não leva sombra/glow: a sombra vaza pelas bordas do glifo colorido
+    // e deixa um halo escuro (ou um brilho estranho) em volta.
+    if(!ehEmoji && d.glow){
+      // Canvas não tem "múltiplas camadas de text-shadow" nativas como o CSS —
+      // aproxima o glow desenhando o mesmo texto 3 vezes com blur crescente
+      // (acumula translucidez) antes do traço final nítido por cima.
+      [4, 15, 30].forEach(blur => {
+        ctx.shadowColor = d.cor;
+        ctx.shadowBlur = blur * fatorEscalaCanvas;
+        linhas.forEach((linha, i) => ctx.fillText(linha, xTexto, inicioY + i * alturaLinha));
+      });
+      ctx.shadowBlur = 0;
+    } else if(!ehEmoji){
       ctx.shadowColor = 'rgba(0,0,0,.6)';
       ctx.shadowBlur = 10 * fatorEscalaCanvas;
     }
-    linhas.forEach((linha, i) => ctx.fillText(linha, 0, inicioY + i * alturaLinha));
+    linhas.forEach((linha, i) => ctx.fillText(linha, xTexto, inicioY + i * alturaLinha));
     ctx.restore();
   });
 }
@@ -8538,7 +8662,11 @@ function renderizarOverlaysTextoStory(item, media){
     } else {
       const fonte = o.fonte || EDITOR_STORY_FONTES[0].valor;
       const fundoCss = o.fundo ? 'background:rgba(0,0,0,.42);border-radius:10px;padding:6px 12px;' : '';
-      div.style.cssText = base + `color:${o.cor};font-family:${fonte};font-weight:700;text-shadow:0 2px 10px rgba(0,0,0,.6);${fundoCss}`;
+      const alinhamentoCss = o.alinhamento === 'esquerda' ? 'left' : o.alinhamento === 'direita' ? 'right' : 'center';
+      const sombraCss = o.glow ? textShadowGlowStory(o.cor) : '0 2px 10px rgba(0,0,0,.6)';
+      // base já vem com text-align:center — sobrescreve por último, já que CSS
+      // aplica a última declaração repetida na mesma linha.
+      div.style.cssText = base + `color:${o.cor};font-family:${fonte};font-weight:700;text-shadow:${sombraCss};text-align:${alinhamentoCss};${fundoCss}`;
     }
     media.appendChild(div);
   });
