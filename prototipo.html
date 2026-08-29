@@ -8640,7 +8640,13 @@ function renderizarOverlaysTextoStory(item, media){
     div.textContent = o.texto;
     const ehEmoji = o.tipo === 'emoji';
     const tamanho = o.tamanhoFonte || (ehEmoji ? EDITOR_STORY_EMOJI_TAMANHO_BASE : EDITOR_STORY_FONTE_BASE);
-    const base = `position:absolute;left:${o.x}%;top:${o.y}%;transform:translate(-50%,-50%) rotate(${o.rot}deg) scale(${o.escala});font-size:${tamanho}px;white-space:pre-wrap;text-align:center;pointer-events:none;max-width:90%;`;
+    // width:max-content é o que faltava: sem ele, o navegador usa "shrink-to-fit"
+    // pra elemento absolute, que calcula o espaço disponível a partir do "left"
+    // SEM considerar que o translate(-50%) vai recentralizar depois — numa caixa
+    // em x:50% (caso da resposta da pergunta do dia, sempre centralizada), isso
+    // espreme a largura disponível pela metade, forçando quebra de linha extra.
+    // width:max-content faz a largura vir do conteúdo real, igual o editor já faz.
+    const base = `position:absolute;left:${o.x}%;top:${o.y}%;transform:translate(-50%,-50%) rotate(${o.rot}deg) scale(${o.escala});font-size:${tamanho}px;white-space:pre-wrap;text-align:center;pointer-events:none;width:max-content;max-width:80vw;`;
     if(ehEmoji){
       // Sem fonte do app, sem peso e sem sombra — mesma escolha do canvas,
       // pra emoji renderizar colorido e sem halo escuro em volta.
