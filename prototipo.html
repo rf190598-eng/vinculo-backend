@@ -2797,25 +2797,34 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 <!-- MODAL VIEW STORY -->
 <div class="overlay" id="overlay-view-story" onclick="if(event.target===this)closeModal('view-story')" style="align-items:center">
   <div style="background:#1a0810;width:100%;max-width:430px;height:100vh;position:relative;display:flex;flex-direction:column">
-    <!-- Barra de progresso (montada dinamicamente por montarBarraProgressoStory()) -->
-    <div id="viewStoryBarraProgresso" style="display:flex;gap:3px;padding:12px 14px 8px;position:absolute;top:26px;left:0;right:0;z-index:10"></div>
-    <!-- Header -->
-    <div class="topo-seguro" style="position:absolute;top:42px;left:0;right:0;z-index:10;display:flex;align-items:center;gap:10px;padding-left:14px;padding-right:14px">
-      <div id="viewStoryFotoPerfil" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7a2a4a,#4a1428);display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid rgba(255,255,255,.4)">&#128100;</div>
-      <div>
-        <div style="display:flex;align-items:baseline;gap:6px">
-          <span style="font-size:13.5px;font-weight:700;color:#fdf6f2" id="viewStoryNome">—</span>
-          <!-- Tempo desde a publicação, no padrão Instagram: "5min", "2h". -->
-          <span style="font-size:12px;color:rgba(255,255,255,.6);font-weight:500" id="viewStoryTempo"></span>
+    <!-- Cabeçalho do story: barra de progresso + avatar/nome/ações num único
+         bloco agrupado, estilo Instagram. Antes eram 2 elementos com offsets
+         absolutos independentes (barra em top:26px fixo, sem área segura;
+         header em top:42px MAIS padding-top de área segura) — em aparelhos
+         com notch/Dynamic Island isso fazia os dois se afastarem cada vez
+         mais um do outro, em vez de crescerem juntos. Agora é um único
+         container com a área segura aplicada uma vez só (via .topo-seguro)
+         e as duas linhas empilhadas com um gap pequeno e fixo entre elas. -->
+    <div class="topo-seguro" style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;flex-direction:column;gap:8px;padding-left:14px;padding-right:14px;padding-bottom:8px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)">
+      <!-- Barra de progresso (montada dinamicamente por montarBarraProgressoStory()) -->
+      <div id="viewStoryBarraProgresso" style="display:flex;gap:3px"></div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div id="viewStoryFotoPerfil" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7a2a4a,#4a1428);display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid rgba(255,255,255,.4)">&#128100;</div>
+        <div>
+          <div style="display:flex;align-items:baseline;gap:6px">
+            <span style="font-size:13.5px;font-weight:700;color:#fdf6f2" id="viewStoryNome">—</span>
+            <!-- Tempo desde a publicação, no padrão Instagram: "5min", "2h". -->
+            <span style="font-size:12px;color:rgba(255,255,255,.6);font-weight:500" id="viewStoryTempo"></span>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,.7)" id="viewStoryPergunta">Pergunta do dia</div>
         </div>
-        <div style="font-size:11px;color:rgba(255,255,255,.7)" id="viewStoryPergunta">Pergunta do dia</div>
-      </div>
-      <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-        <!-- Só aparece quando o story sendo visto é do próprio usuário logado
-             (controlado em abrirPessoaEmIndice) — nunca visível vendo story
-             de outra pessoa. -->
-        <div id="viewStoryExcluir" onclick="excluirStoryAtual()" style="display:none;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.4);align-items:center;justify-content:center;font-size:15px;cursor:pointer;color:#fff">&#128465;</div>
-        <div onclick="closeModal('view-story')" style="width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff">&#10005;</div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+          <!-- Só aparece quando o story sendo visto é do próprio usuário logado
+               (controlado em abrirPessoaEmIndice) — nunca visível vendo story
+               de outra pessoa. -->
+          <div id="viewStoryExcluir" onclick="excluirStoryAtual()" style="display:none;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.4);align-items:center;justify-content:center;font-size:15px;cursor:pointer;color:#fff">&#128465;</div>
+          <div onclick="closeModal('view-story')" style="width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff">&#10005;</div>
+        </div>
       </div>
     </div>
     <!-- Conteúdo do story -->
