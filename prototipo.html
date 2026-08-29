@@ -2819,7 +2819,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       </div>
     </div>
     <!-- Conteúdo do story -->
-    <div id="viewStoryConteudoWrap" style="flex:1;background:linear-gradient(160deg,#8a2a4a,#4a1428,#1a0810);display:flex;align-items:center;justify-content:center;font-size:80px;overflow:hidden;position:relative">
+    <div id="viewStoryConteudoWrap" style="position:absolute;inset:0;background:linear-gradient(160deg,#8a2a4a,#4a1428,#1a0810);display:flex;align-items:center;justify-content:center;font-size:80px;overflow:hidden">
       <div id="viewStoryMedia" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative"></div>
       <!-- Zonas de toque: terço esquerdo volta, terço direito avança (o terço do meio não faz nada) -->
       <div id="viewStoryTapEsquerda" style="position:absolute;top:0;left:0;width:33.33%;height:100%;z-index:5"></div>
@@ -2830,7 +2830,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
       <div style="font-family:'Cormorant Garamond',serif;font-weight:700;color:#fdf6f2;text-shadow:0 2px 12px rgba(0,0,0,.8);max-height:38vh;overflow-y:auto;pointer-events:auto;font-size:clamp(13px,4vw,20px);line-height:1.35;word-break:break-word" id="viewStoryTexto"></div>
     </div>
     <!-- Reações -->
-    <div style="padding:14px 18px;background:rgba(0,0,0,.6);display:flex;gap:10px;align-items:center">
+    <div style="position:absolute;bottom:0;left:0;right:0;z-index:10;padding:14px 18px;background:rgba(0,0,0,.6);display:flex;gap:10px;align-items:center">
       <input style="flex:1;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);border-radius:22px;padding:10px 16px;font-size:14px;color:#fdf6f2;outline:none;font-family:inherit" placeholder="Responder story..."/>
       <div style="display:flex;gap:8px">
         <div style="font-size:24px;cursor:pointer">&#128150;</div>
