@@ -2931,6 +2931,8 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 
       <!-- Controles inferiores: indicador de gravação, seletor de duração, botão de captura, galeria -->
       <div id="cameraStoryControlesCaptura" style="position:absolute;bottom:0;left:0;right:0;z-index:10;display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px 18px 30px;background:linear-gradient(0deg,rgba(0,0,0,.6),transparent)">
+        <div id="cameraStoryFiltrosLista" style="display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;width:100%;padding:0 4px 2px"></div>
+
         <div id="cameraStoryGravandoIndicador" style="display:none;align-items:center;gap:6px;background:rgba(192,41,63,.85);border-radius:20px;padding:5px 12px">
           <div style="width:8px;height:8px;border-radius:50%;background:#fff;animation:pulseRec 1s infinite"></div>
           <span style="font-size:11.5px;color:#fff;font-weight:700" id="cameraStoryTempoGravado">0s</span>
@@ -6659,6 +6661,11 @@ function resetarEstadoComposer(){
   perguntaDispensadaNoComposer = false;
   perguntaUsadaStoryVar = false;
   painelEstiloAberto = false;
+  // Filtro escolhido na câmera "viaja" pro editor após a captura (não é
+  // resetado em abrirEditorStory) — só volta ao normal quando uma sessão
+  // NOVA de câmera começa, aqui.
+  editorStoryFiltroId = 'normal';
+  filtroCssStoryVar = '';
 
   document.getElementById('cameraStoryErro').style.display = 'none';
   document.getElementById('cameraStoryGravandoIndicador').style.display = 'none';
@@ -6821,6 +6828,12 @@ async function iniciarStreamCameraComposer(){
     cameraStoryStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: cameraStoryFacingMode }, audio: true });
     const video = document.getElementById('cameraStoryVideoPreview');
     video.srcObject = cameraStoryStream;
+    // Espelha a prévia só da câmera frontal (efeito "selfie"), como qualquer
+    // app de câmera faz — a traseira nunca é espelhada. Isso é puramente
+    // visual na prévia; a captura (foto/vídeo) permanece sem espelhamento
+    // real de pixels, que é assunto separado (fora do escopo aqui).
+    video.style.transform = (cameraStoryFacingMode === 'user') ? 'scaleX(-1)' : 'none';
+    aplicarFiltroNaCameraPreview();
 
     // Só revela o vídeo quando ele já tem dimensões/primeiro frame prontos.
     // Revelar junto com o srcObject ainda deixaria uma janela de alguns frames
@@ -6831,6 +6844,7 @@ async function iniciarStreamCameraComposer(){
       if(revelado) return;
       revelado = true;
       alternarCarregandoCameraComposer(false);
+      montarFaixaFiltrosCamera();
     };
     video.addEventListener('loadedmetadata', revelar, { once: true });
     setTimeout(revelar, 2500);
@@ -7160,10 +7174,10 @@ function abrirEditorStory(tipo, arquivo){
   editorStoryCaixaAtiva = null;
   document.getElementById('editorStoryCamadaTextos').innerHTML = '';
   document.getElementById('editorStoryPainelTexto').style.display = 'none';
-  // Toda edição começa sem filtro e com os painéis fechados — senão o preset
-  // da edição anterior continuaria aplicado na próxima foto/vídeo.
-  editorStoryFiltroId = 'normal';
-  filtroCssStoryVar = '';
+  // Filtro NÃO é resetado aqui — se veio escolhido na câmera, precisa
+  // sobreviver até o editor (aplicarFiltroNoFundoStory abaixo usa o valor
+  // atual). O reset acontece em resetarEstadoComposer(), no início de cada
+  // sessão nova de câmera.
   // A guarda anti-loop compara o bottom novo com o último ESCRITO. Se esse
   // valor sobrevivesse de uma edição para a seguinte, uma medição correta
   // poderia ser descartada por "não ter mudado" enquanto o DOM real estivesse
@@ -7651,6 +7665,59 @@ function montarPainelFiltrosStory(){
       editorStoryFiltroId = preset.id;
       aplicarFiltroNoFundoStory();
       montarPainelFiltrosStory(); // remonta só pra atualizar o destaque do ativo
+    };
+    lista.appendChild(item);
+  });
+}
+
+// ===== FILTROS NA CÂMERA (antes de capturar) =====
+// Mesmo padrão do editor: miniatura usa o próprio frame ao vivo da câmera.
+function obterFundoMiniaturaFiltroCamera(){
+  const video = document.getElementById('cameraStoryVideoPreview');
+  if(video && video.videoWidth){
+    try{
+      const c = document.createElement('canvas');
+      c.width = 80; c.height = 80;
+      const razao = Math.max(80 / video.videoWidth, 80 / video.videoHeight);
+      const lw = video.videoWidth * razao, lh = video.videoHeight * razao;
+      c.getContext('2d').drawImage(video, (80 - lw) / 2, (80 - lh) / 2, lw, lh);
+      return `background-image:url(${c.toDataURL('image/jpeg', 0.7)});background-size:cover;background-position:center`;
+    } catch(e){ /* frame ainda não decodificado */ }
+  }
+  return 'background:linear-gradient(160deg,#7a2a4a,#4a1428,#1a0810)';
+}
+
+// Aplica o filtro escolhido diretamente na prévia (CSS, nunca no arquivo).
+function aplicarFiltroNaCameraPreview(){
+  const video = document.getElementById('cameraStoryVideoPreview');
+  if(video) video.style.filter = cssDoFiltroStory(editorStoryFiltroId) || 'none';
+}
+
+function montarFaixaFiltrosCamera(){
+  const lista = document.getElementById('cameraStoryFiltrosLista');
+  if(!lista) return;
+  lista.innerHTML = '';
+  const fundoMiniatura = obterFundoMiniaturaFiltroCamera();
+
+  EDITOR_STORY_FILTROS.forEach(preset => {
+    const ativo = preset.id === editorStoryFiltroId;
+    const item = document.createElement('div');
+    item.style.cssText = 'flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer';
+
+    const thumb = document.createElement('div');
+    thumb.style.cssText = `width:54px;height:54px;border-radius:10px;${fundoMiniatura};filter:${preset.css || 'none'};border:2px solid ${ativo ? '#e0607a' : 'rgba(255,255,255,.25)'}`;
+
+    const nome = document.createElement('span');
+    nome.textContent = preset.label;
+    nome.style.cssText = `font-size:10px;font-weight:600;color:${ativo ? '#f0a0b8' : 'rgba(255,255,255,.75)'}`;
+
+    item.appendChild(thumb);
+    item.appendChild(nome);
+    item.onclick = () => {
+      editorStoryFiltroId = preset.id;
+      filtroCssStoryVar = cssDoFiltroStory(preset.id);
+      aplicarFiltroNaCameraPreview();
+      montarFaixaFiltrosCamera();
     };
     lista.appendChild(item);
   });
