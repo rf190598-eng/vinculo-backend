@@ -6,6 +6,7 @@ const Bloqueio = require('../models/Bloqueio');
 const FotoPerfil = require('../models/FotoPerfil');
 const { Op } = require('sequelize');
 const { temPremiumAtivo } = require('../utils/premium');
+const { enviarPush } = require('../utils/pushNotificacoes');
 
 // Busca a galeria de fotos (múltiplas fotos, tabela fotos_perfil) de uma
 // lista de usuários de uma vez só e devolve os perfis já em JSON com
@@ -150,16 +151,31 @@ const darSwipe = async (req, res) => {
           tipo: 'match',
           texto: `Você deu um Vínculo com ${usuarioAlvo.nome}!`
         });
+        await enviarPush(usuario_id, {
+          title: '🎉 Novo match!',
+          body: `Você e ${usuarioAlvo.nome} curtiram um ao outro`,
+          url: `/?abrir=chat&match_id=${match.id}`
+        });
         await Notificacao.create({
           usuario_id: alvo_id,
           tipo: 'match',
           texto: `Você deu um Vínculo com ${usuarioAtual.nome}!`
+        });
+        await enviarPush(alvo_id, {
+          title: '🎉 Novo match!',
+          body: `Você e ${usuarioAtual.nome} curtiram um ao outro`,
+          url: `/?abrir=chat&match_id=${match.id}`
         });
       } else {
         await Notificacao.create({
           usuario_id: alvo_id,
           tipo: 'curtida',
           texto: 'Alguém curtiu seu perfil! Assine o Premium pra ver quem é.'
+        });
+        await enviarPush(alvo_id, {
+          title: '💕 Alguém curtiu você!',
+          body: 'Toque para descobrir quem é',
+          url: '/?abrir=curtidas'
         });
       }
     }

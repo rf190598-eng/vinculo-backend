@@ -3799,6 +3799,32 @@ async function confirmarExclusaoConta(){
   }
 }
 
+// Deep link de push: '?abrir=chat&match_id=X' ou '?abrir=curtidas'. Só faz
+// sentido depois de confirmar sessão — por isso é chamado de dentro de
+// verificarSessaoSalva(), nunca antes do login estar validado.
+async function processarDeepLinkPush(){
+  const params = new URLSearchParams(window.location.search);
+  const abrir = params.get('abrir');
+  if(!abrir) return false;
+  const matchId = params.get('match_id');
+  // Limpa a query string pra um F5 não reabrir o mesmo destino sempre.
+  history.replaceState(null, '', window.location.pathname);
+
+  if(abrir === 'curtidas'){
+    goTo('likes');
+    return true;
+  }
+  if(abrir === 'chat' && matchId){
+    try{
+      const resp = await fetch(`${API_URL}/api/swipe/matches`, { headers:{'Authorization':`Bearer ${tokenAtual}`} });
+      const dados = await resp.json();
+      const match = (dados.matches || []).find(m => String(m.id) === String(matchId));
+      if(match){ await abrirChat(match); return true; }
+    } catch(e){ /* cai no fallback abaixo */ }
+  }
+  return false; // match não encontrado (ex: desfeito) ou destino desconhecido
+}
+
 async function verificarSessaoSalva(){
   // Retorno do Google tem prioridade: ele traz um token novo e decide o
   // destino. Se rodasse depois, a sessão antiga (ou a falta dela) já teria
@@ -3822,7 +3848,8 @@ async function verificarSessaoSalva(){
     const usuario = await resp.json();
     usuarioAtual = usuario;
     localStorage.setItem('vinculo_usuario', JSON.stringify(usuarioAtual));
-    goTo('discover'); // o próprio goTo já redireciona pra 'liveness' se não estiver verificado
+    // o próprio goTo já redireciona pra 'liveness' se não estiver verificado
+    if(!(await processarDeepLinkPush())) goTo('discover');
   } catch (e) {
     // Erro de rede — mantém os dados salvos e deixa a pessoa tentar de novo manualmente
   }
