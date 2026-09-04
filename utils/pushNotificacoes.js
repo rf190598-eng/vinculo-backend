@@ -15,12 +15,24 @@ const webpush = require('web-push');
 const InscricaoPush = require('../models/InscricaoPush');
 
 const vapidConfigurado = !!(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
+// vapidValido (não só vapidConfigurado): setVapidDetails() valida o formato
+// da chave e lança síncrono se ela não for Base64 URL-safe válida. Sem o
+// try/catch, uma chave malformada travava o processo inteiro no boot —
+// achado no ar em 2026-09 (a rota nunca tinha sido carregada até o Lote 1
+// de gatilhos exercitar este require pela primeira vez). Config inválida
+// deve desativar só o push, nunca o servidor inteiro.
+let vapidValido = false;
 if (vapidConfigurado) {
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT || 'mailto:contato@vinculoapp.com.br',
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-  );
+  try {
+    webpush.setVapidDetails(
+      process.env.VAPID_SUBJECT || 'mailto:contato@vinculoapp.com.br',
+      process.env.VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY
+    );
+    vapidValido = true;
+  } catch (erro) {
+    console.error('[push] VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY inválidas — notificações push desativadas:', erro.message);
+  }
 } else {
   console.warn('[push] VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY não configuradas — notificações push desativadas.');
 }
@@ -29,7 +41,7 @@ if (vapidConfigurado) {
 // usuário. Nunca lança: uma falha de push é sempre não-crítica pro fluxo que
 // a chamou, então qualquer erro só é logado.
 async function enviarPush(usuario_id, payload) {
-  if (!vapidConfigurado) return;
+  if (!vapidValido) return;
   try {
     const inscricoes = await InscricaoPush.findAll({ where: { usuario_id } });
     if (inscricoes.length === 0) return;
