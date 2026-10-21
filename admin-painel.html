@@ -85,6 +85,8 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .tag-gratuito{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.2);color:#c0aab2}
 .tag-temporaria{background:rgba(232,192,122,.15);border-color:rgba(232,192,122,.4);color:var(--aviso)}
 .tag-permanente{background:rgba(255,143,163,.16);border-color:rgba(255,143,163,.45);color:var(--erro)}
+.tag-aprovado{background:rgba(109,214,138,.13);border-color:rgba(109,214,138,.4);color:var(--ok)}
+.tag-recusado{background:rgba(255,143,163,.13);border-color:rgba(255,143,163,.4);color:var(--erro)}
 .tag-pendente{background:rgba(232,192,122,.15);border-color:rgba(232,192,122,.4);color:var(--aviso)}
 .tag-em_analise{background:rgba(90,150,230,.15);border-color:rgba(90,150,230,.4);color:#9cc4f5}
 .tag-resolvida{background:rgba(109,214,138,.13);border-color:rgba(109,214,138,.4);color:var(--ok)}
@@ -197,6 +199,16 @@ tbody tr.linha-clicavel{cursor:pointer}
         <div style="font-size:12.5px;font-weight:700;color:var(--suave);margin-bottom:8px">Quem mais indicou</div>
         <div id="fundadoresIndicadores"><div class="vazio">Carregando...</div></div>
       </div>
+    </div>
+
+    <!-- ===== 3B. EVENTOS E ANÚNCIOS (pedidos do formulário "Ser Parceiro" do app) ===== -->
+    <div class="card">
+      <div class="card-head">
+        <h2>Eventos e anúncios (pedidos de espaço)</h2>
+      </div>
+      <div class="resumo" id="solicitacoesResumo" style="margin-bottom:16px"></div>
+      <div id="solicitacoesLista"><div class="vazio">Carregando...</div></div>
+      <div class="aviso-nota">Pedidos enviados pelo formulário "Ser Parceiro" do app. "Destaque Premium" (R$ 99,90/mês) ainda está como "Em breve" no app e não tem cobrança automática, então o valor combinado com o parceiro é tratado manualmente por enquanto.</div>
     </div>
 
     <!-- ===== 4. PARCEIROS E COMISSÕES ===== -->
@@ -359,6 +371,7 @@ async function carregarTudo(){
     montarAssinantes(painel.assinantes);
     montarFinanceiro(painel.financeiro);
     carregarUsuarios(1);
+    carregarSolicitacoesParceria();
   }catch(e){
     mostrarMsg('painelMsg', e.message || 'Erro ao carregar dados', 'erro');
   }
@@ -1442,6 +1455,80 @@ function montarParceiros(parceiros, comissoes){
         </tbody>
       </table>
     `;
+  }
+}
+
+// ===== EVENTOS E ANÚNCIOS (pedidos de espaço/evento do app) =====
+const ROTULOS_TIPO_NEGOCIO = { balada: 'Balada / Bar', restaurante: 'Restaurante', evento: 'Evento único', outro: 'Outro espaço' };
+const ROTULOS_STATUS_SOLICITACAO = { pendente: 'Pendente', aprovado: 'Aprovado', recusado: 'Recusado' };
+
+async function carregarSolicitacoesParceria(){
+  const lista = document.getElementById('solicitacoesLista');
+  try{
+    const d = await api('/api/admin/painel/solicitacoes-parceria');
+    montarSolicitacoesParceria(d);
+  }catch(e){
+    lista.innerHTML = '<div class="vazio">' + esc(e.message || 'Erro ao carregar pedidos') + '</div>';
+  }
+}
+
+function montarSolicitacoesParceria(d){
+  const r = d.resumo;
+  document.getElementById('solicitacoesResumo').innerHTML = `
+    <div class="tile"><div class="valor">${esc(r.pendentes)}</div><div class="rot">Pendentes</div></div>
+    <div class="tile"><div class="valor">${esc(r.aprovados)}</div><div class="rot">Aprovados</div></div>
+    <div class="tile"><div class="valor">${esc(r.destaque_pago)}</div><div class="rot">Pediram Destaque Premium (pago)</div></div>
+    <div class="tile"><div class="valor">${esc(r.total)}</div><div class="rot">Total de pedidos</div></div>
+  `;
+  const el = document.getElementById('solicitacoesLista');
+  if(!d.solicitacoes.length){
+    el.innerHTML = '<div class="vazio">Nenhum pedido ainda.</div>';
+    return;
+  }
+  el.innerHTML = d.solicitacoes.map(s => {
+    const fone = String(s.telefone || '').replace(/\D/g, '');
+    const whats = fone ? 'https://wa.me/' + (fone.length <= 11 ? '55' + fone : fone) : '';
+    const pago = s.tipo_anuncio === 'destaque';
+    return `
+      <div style="border:1px solid var(--borda-forte);border-radius:14px;padding:14px 16px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+          <div style="font-size:15px;font-weight:800">${esc(s.nome_espaco)}</div>
+          <div>
+            <span class="tag tag-${esc(s.status)}">${esc(ROTULOS_STATUS_SOLICITACAO[s.status] || s.status)}</span>
+            <span class="tag ${pago ? 'tag-vitalicio_legado' : 'tag-gratuito'}">${pago ? 'Destaque Premium · R$ 99,90/mês' : 'Listagem gratuita'}</span>
+          </div>
+        </div>
+        <div style="font-size:12.5px;line-height:1.8;color:var(--suave)">
+          <div><b>Tipo:</b> ${esc(ROTULOS_TIPO_NEGOCIO[s.tipo_negocio] || s.tipo_negocio || '—')}</div>
+          <div><b>Endereço:</b> ${esc(s.endereco || '—')} · ${esc(s.bairro || '—')}</div>
+          <div><b>Quando funciona:</b> ${esc(s.funcionamento || '—')} · <b>Horário:</b> ${esc(s.horario || '—')}</div>
+          <div><b>Entrada / consumação:</b> ${esc(s.valor_entrada || '—')}</div>
+          <div><b>Telefone:</b> ${esc(s.telefone)}${whats ? ' · <a href="' + esc(whats) + '" target="_blank" rel="noopener">Chamar no WhatsApp</a>' : ''}</div>
+          <div><b>Instagram:</b> ${esc(s.instagram || '—')}</div>
+          <div><b>Descrição:</b> ${esc(s.descricao || '—')}</div>
+          <div><b>Enviado por:</b> ${esc(s.solicitante_nome || '—')} (${esc(s.solicitante_email || '—')}) em ${esc(dataBR(s.criado_em))}</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          ${s.status !== 'aprovado' ? `<button class="btn btn-primario" onclick="mudarStatusSolicitacao('${esc(s.id)}','aprovado')">Aprovar</button>` : ''}
+          ${s.status !== 'recusado' ? `<button class="btn btn-secundario" onclick="mudarStatusSolicitacao('${esc(s.id)}','recusado')">Recusar</button>` : ''}
+          ${s.status !== 'pendente' ? `<button class="btn btn-secundario" onclick="mudarStatusSolicitacao('${esc(s.id)}','pendente')">Voltar para pendente</button>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function mudarStatusSolicitacao(id, status){
+  try{
+    const resp = await fetch(API_URL + '/api/admin/painel/solicitacoes-parceria/' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ status })
+    });
+    const d = await resp.json().catch(() => ({}));
+    if(!resp.ok) throw new Error(d.erro || 'Não foi possível atualizar.');
+    carregarSolicitacoesParceria();
+  }catch(e){
+    mostrarMsg('painelMsg', e.message || 'Erro ao atualizar', 'erro');
   }
 }
 

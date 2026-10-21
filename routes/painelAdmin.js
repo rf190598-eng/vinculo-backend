@@ -18,6 +18,7 @@ const {
   obterSegmentacaoPagantes
 } = require('../controllers/painelAdminController');
 const { listarLogsAuditoria } = require('../controllers/auditoriaController');
+const { listarSolicitacoesParceria, atualizarStatusSolicitacao } = require('../controllers/painelParceriaController');
 const { autenticar } = require('../controllers/authMiddleware');
 const { verificarAdmin } = require('../controllers/verificarAdmin');
 const { limitarTaxa } = require('../utils/limitadorTaxa');
@@ -49,5 +50,7 @@ router.get('/usuarios/:id/conversas/:matchId/mensagens', obterMensagensConversaU
 router.get('/ranking-comissoes', obterRankingComissoes);
 router.get('/segmentacao-pagantes', obterSegmentacaoPagantes);
 router.get('/logs-auditoria', listarLogsAuditoria);
+router.get('/solicitacoes-parceria', listarSolicitacoesParceria);
+router.patch('/solicitacoes-parceria/:id', atualizarStatusSolicitacao);
 
 module.exports = router;
