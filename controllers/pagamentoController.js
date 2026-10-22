@@ -18,9 +18,9 @@ const client = new MercadoPagoConfig({
 });
 
 const planos = {
-  semanal: { valor: 9.90, dias: 7, nome: 'Vínculo Premium Semanal' },
-  mensal: { valor: 24.90, dias: 30, nome: 'Vínculo Premium Mensal' },
-  anual: { valor: 199.90, dias: 365, nome: 'Vínculo Premium Anual' }
+  semanal: { valor: 9.90, dias: 7, nome: 'Vinculom Premium Semanal' },
+  mensal: { valor: 24.90, dias: 30, nome: 'Vinculom Premium Mensal' },
+  anual: { valor: 199.90, dias: 365, nome: 'Vinculom Premium Anual' }
 };
 
 /**

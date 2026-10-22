@@ -32,10 +32,10 @@ const solicitarRecuperacao = async (req, res) => {
 
     await enviarEmail(
       usuario.email,
-      'Recuperação de senha - Vínculo',
+      'Recuperação de senha - Vinculom',
       `
         <p>Olá, ${usuario.nome}!</p>
-        <p>Recebemos uma solicitação para redefinir sua senha no Vínculo.</p>
+        <p>Recebemos uma solicitação para redefinir sua senha no Vinculom.</p>
         <p><a href="${link}">Clique aqui para criar uma nova senha</a></p>
         <p>Este link expira em 30 minutos. Se você não solicitou isso, ignore este e-mail — sua senha continua segura.</p>
       `

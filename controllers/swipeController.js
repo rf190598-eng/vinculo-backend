@@ -149,7 +149,7 @@ const darSwipe = async (req, res) => {
         await Notificacao.create({
           usuario_id: usuario_id,
           tipo: 'match',
-          texto: `Você deu um Vínculo com ${usuarioAlvo.nome}!`
+          texto: `Você deu um Vinculom com ${usuarioAlvo.nome}!`
         });
         await enviarPush(usuario_id, {
           title: '🎉 Novo match!',
@@ -159,7 +159,7 @@ const darSwipe = async (req, res) => {
         await Notificacao.create({
           usuario_id: alvo_id,
           tipo: 'match',
-          texto: `Você deu um Vínculo com ${usuarioAtual.nome}!`
+          texto: `Você deu um Vinculom com ${usuarioAtual.nome}!`
         });
         await enviarPush(alvo_id, {
           title: '🎉 Novo match!',
@@ -182,7 +182,7 @@ const darSwipe = async (req, res) => {
 
     if (match) {
       return res.json({
-        mensagem: 'É um Vínculo!',
+        mensagem: 'É um Vinculom!',
         match: true,
         match_id: match.id
       });
@@ -393,7 +393,7 @@ const obterPerfilMatch = async (req, res) => {
       }
     });
     if (!match) {
-      return res.status(403).json({ erro: 'Você só pode ver o perfil completo de quem já é seu Vínculo' });
+      return res.status(403).json({ erro: 'Você só pode ver o perfil completo de quem já é seu Vinculom' });
     }
 
     const perfil = await Usuario.findByPk(alvo_id, {

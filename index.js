@@ -525,7 +525,7 @@ const iniciar = async () => {
   }
 
   servidor = app.listen(PORT, () => {
-    console.log('Servidor Vinculo rodando na porta ' + PORT);
+    console.log('Servidor Vinculom rodando na porta ' + PORT);
     console.log('Acesse: http://localhost:' + PORT);
   });
 

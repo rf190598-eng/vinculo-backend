@@ -1,7 +1,7 @@
 {
-  "name": "Vínculo Painel",
-  "short_name": "Vínculo Painel",
-  "description": "Vínculo — Painel Central de administração.",
+  "name": "Vinculom Painel",
+  "short_name": "Vinculom Painel",
+  "description": "Vinculom — Painel Central de administração.",
   "start_url": "/admin/painel",
   "scope": "/admin/",
   "display": "standalone",

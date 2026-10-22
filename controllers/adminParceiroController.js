@@ -394,15 +394,15 @@ async function enviarLembretePagamentoComissoes() {
   }
 
   const assunto = quantidade
-    ? `Vínculo: ${quantidade} comissão(ões) a pagar até dia 5 — ${reais(total)}`
-    : 'Vínculo: nenhuma comissão pendente neste mês';
+    ? `Vinculom: ${quantidade} comissão(ões) a pagar até dia 5 — ${reais(total)}`
+    : 'Vinculom: nenhuma comissão pendente neste mês';
 
   const linhasMes = [...porMes.entries()]
     .sort((a, b) => (a[0] < b[0] ? 1 : -1))
     .map(([mes, d]) => `<li>${mes} — ${d.qtd} comissão(ões), ${reais(d.valor)}</li>`)
     .join('');
 
-  const rodape = '<p style="color:#888;font-size:12px">Lembrete automático do Vínculo. Enviado todo mês nos primeiros dias.</p>';
+  const rodape = '<p style="color:#888;font-size:12px">Lembrete automático do Vinculom. Enviado todo mês nos primeiros dias.</p>';
 
   const html = quantidade ? `
     <p>Bom dia, Roberto.</p>

@@ -1,7 +1,7 @@
 {
-  "name": "Vínculo",
-  "short_name": "Vínculo",
-  "description": "Vínculo — conexões reais, com segurança.",
+  "name": "Vinculom",
+  "short_name": "Vinculom",
+  "description": "Vinculom — conexões reais, com segurança.",
   "start_url": "/?fonte=pwa",
   "scope": "/",
   "display": "standalone",
