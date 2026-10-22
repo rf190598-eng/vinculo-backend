@@ -3363,6 +3363,14 @@ function preencherEdicaoPerfilComDadosSalvos(){
   });
 }
 
+// O boneco (emoji) é só um marcador de "sem foto" escrito como texto dentro da caixa.
+// Quando a foto de verdade entra como imagem de fundo, esse texto ficava por cima dela.
+function tirarEmojiPlaceholder(el){
+  Array.from(el.childNodes).forEach(node => {
+    if (node.nodeType === Node.TEXT_NODE) node.textContent = '';
+  });
+}
+
 function atualizarFotoNaTela(fotoUrl){
   document.querySelectorAll('.my-profile-photo').forEach(el=>{
     el.style.backgroundImage = `url(${API_URL}${fotoUrl})`;
@@ -3454,7 +3462,7 @@ function verPerfilCompleto(){
     fotoEl.style.backgroundImage = `url(${API_URL}${p.foto_url})`;
     fotoEl.style.backgroundSize = 'cover';
     fotoEl.style.backgroundPosition = 'center 20%';
-    fotoEl.innerHTML = fotoEl.innerHTML; // mantém os botões de voltar/reportar
+    tirarEmojiPlaceholder(fotoEl); // só apaga o texto do boneco; mantém os botões de voltar/reportar
   }
 
   document.getElementById('pvBtnCurtir').innerHTML = `&#128150; Curtir ${escapeHtml(p.nome)}`;
@@ -3500,6 +3508,7 @@ function preencherCard(elId, perfil){
     fotoEl.style.backgroundImage = `url(${API_URL}${perfil.foto_url})`;
     fotoEl.style.backgroundSize = 'cover';
     fotoEl.style.backgroundPosition = 'center 20%';
+    tirarEmojiPlaceholder(fotoEl);
   }
 }
 
