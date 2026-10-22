@@ -305,7 +305,7 @@ const listarMatches = async (req, res) => {
     const matchesComPerfil = await Promise.all(matches.map(async (match) => {
       const outroId = match.usuario1_id === usuario_id ? match.usuario2_id : match.usuario1_id;
       const outroUsuario = await Usuario.findByPk(outroId, {
-        attributes: ['id', 'nome', 'foto_url', 'verificado', 'data_nascimento']
+        attributes: ['id', 'nome', 'foto_url', 'verificado', 'selo_fundador', 'data_nascimento']
       });
       const totalMensagens = await Mensagem.count({ where: { match_id: match.id } });
       return {

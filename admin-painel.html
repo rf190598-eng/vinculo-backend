@@ -607,6 +607,21 @@ function limparFotoVerificacaoRevelada(){
   fotoVerificacaoRevelada = null;
 }
 
+async function alternarSeloFundador(id, ativo){
+  try{
+    const resp = await fetch(API_URL + '/api/admin/painel/usuarios/' + encodeURIComponent(id) + '/selo-fundador', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ ativo })
+    });
+    const d = await resp.json().catch(() => ({}));
+    if(!resp.ok) throw new Error(d.erro || 'Não foi possível atualizar o selo.');
+    await abrirFichaUsuario(id);
+  }catch(e){
+    alert(e.message || 'Erro ao atualizar o selo.');
+  }
+}
+
 async function abrirFichaUsuario(id){
   document.getElementById('fichaConteudo').innerHTML = '<div class="vazio">Carregando...</div>';
   document.getElementById('fichaOverlay').style.display = 'block';
@@ -1304,9 +1319,11 @@ function montarFichaUsuario(u, modoEdicao, mostrarFormSuspensao, mostrarConfirmR
         ${campoFicha('Liveness aprovado', simNao(u.liveness_aprovado))}
         ${campoFicha('Conta ativa', simNao(u.ativo))}
         ${campoFicha('Admin', simNao(u.is_admin))}
+        ${campoFicha('Selo de Fundador', u.selo_fundador ? '&#128081; Ativo' : 'Não')}
         ${campoFicha('Cadastro', dataBR(u.createdAt))}
         ${campoFicha('Última atualização', dataBR(u.updatedAt))}
       </div>
+      <div style="margin-top:10px"><button class="btn btn-secundario" onclick="alternarSeloFundador('${esc(u.id)}', ${u.selo_fundador ? 'false' : 'true'})">${u.selo_fundador ? 'Remover selo de Fundador' : '&#128081; Dar selo de Fundador'}</button></div>
       ${modoEdicao ? '<div class="ficha-vazio-nota" style="margin-top:8px">Estes campos não são editáveis por aqui — mudam por outros fluxos (pagamento, verificação) ou entram em ações próprias nos próximos lotes.</div>' : ''}
     </div>
 

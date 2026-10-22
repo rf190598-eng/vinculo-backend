@@ -102,6 +102,13 @@ const Usuario = sequelize.define('Usuario', {
     type: DataTypes.DATE,
     allowNull: true
   },
+  // Selo "Fundador" (conta dos donos). Só o Painel Central liga/desliga —
+  // fora de propósito das listas de campos editáveis pela própria usuária.
+  selo_fundador: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
   // Plano pago ATUALMENTE ativo: 'semanal' | 'mensal' | 'anual', ou null se
   // não há assinatura vigente. Diferente de `premium`, que hoje vem true por
   // padrão na fase gratuita — este campo só é preenchido por pagamento
