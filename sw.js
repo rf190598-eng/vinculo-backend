@@ -36,7 +36,7 @@ self.addEventListener('push', (event) => {
   let dados = {};
   try { dados = event.data ? event.data.json() : {}; } catch (e) { dados = {}; }
 
-  const titulo = dados.title || 'Vínculo';
+  const titulo = dados.title || 'Vinculom';
   const opcoes = {
     body: dados.body || '',
     icon: dados.icon || '/icons/icon-192.png',

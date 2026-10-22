@@ -220,7 +220,7 @@ const avaliarDupla = async (req, res) => {
                 await Notificacao.create({
                   usuario_id: idMembro,
                   tipo: 'match_dupla',
-                  texto: 'Sua dupla deu um Vínculo com outra dupla!'
+                  texto: 'Sua dupla deu um Vinculom com outra dupla!'
                 });
               }
             }
@@ -230,7 +230,7 @@ const avaliarDupla = async (req, res) => {
       }
     }
 
-    res.json({ mensagem: match ? 'É um Vínculo em dupla!' : 'Avaliação registrada!', match });
+    res.json({ mensagem: match ? 'É um Vinculom em dupla!' : 'Avaliação registrada!', match });
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao avaliar: ' + erro.message });
   }
