@@ -109,6 +109,8 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
 .match-avatar.me{border-color:#d4839a;background:linear-gradient(160deg,#5c1a2e,#2b0f17);}
 .match-avatar.them{border-color:#c9a06b;background:linear-gradient(160deg,#7a3a52,#3a1420);}
 .badge{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:20px;font-size:11px;font-weight:700;}
+.badge-fundador{background:linear-gradient(135deg,#f3d58a,#c9a06b);border:1.5px solid #f3d58a;color:#2b0f17;font-weight:800;}
+.card-fundador{position:absolute;top:14px;left:14px;z-index:3;background:linear-gradient(135deg,#f3d58a,#c9a06b);color:#2b0f17;border-radius:20px;padding:5px 11px;font-size:11px;font-weight:800;box-shadow:0 2px 10px rgba(0,0,0,.35)}
 .badge-gold{background:rgba(201,160,107,.2);border:1.5px solid rgba(201,160,107,.6);color:#d4b87a;font-weight:700;}
 .badge-green{background:rgba(109,204,109,.15);border:1.5px solid rgba(109,204,109,.5);color:#6dcc6d;font-weight:700;}
 .interest-tag{padding:7px 14px;border-radius:20px;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);font-size:12.5px;color:#fdf6f2;display:inline-block;margin:0 6px 7px 0;font-weight:500;}
@@ -1674,6 +1676,7 @@ select.inp option{background-color:#2b0f17;color:#fdf6f2;}
   <div style="padding:14px 18px 8px">
     <div class="card-name" style="font-size:26px"><span id="meuPerfilNome">—</span> <span class="card-age" style="font-size:18px" id="meuPerfilIdade"></span></div>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <div class="badge badge-fundador" id="meuPerfilBadgeFundador" style="display:none">&#128081; Fundador</div>
       <div class="badge badge-gold" id="meuPerfilBadgeVerificado" style="display:none">&#10003; Verificado</div>
       <div class="badge badge-green" id="meuPerfilBadgePorcentagem">0% do perfil completo</div>
     </div>
@@ -3057,7 +3060,7 @@ async function abrirChat(match){
   matchAtual = match;
   const outro = match.outro_usuario || {};
   perfilDenunciadoId = outro.id || null;
-  document.getElementById('chatroomNome').textContent = outro.nome || 'Usuário';
+  document.getElementById('chatroomNome').textContent = (outro.nome || 'Usuário') + (outro.selo_fundador ? ' \uD83D\uDC51' : '');
   const checklistNome = document.getElementById('checklistNomeTexto');
   if(checklistNome) checklistNome.textContent = `Um checklist rapido para o seu encontro com ${outro.nome || 'essa pessoa'}`;
   goTo('chatroom');
@@ -3441,7 +3444,7 @@ function verPerfilCompleto(){
   }
 
   const badgesEl = document.getElementById('pvBadges');
-  badgesEl.innerHTML = p.verificado ? '<div class="badge badge-gold">&#10003; Foto verificada</div>' : '';
+  badgesEl.innerHTML = (p.selo_fundador ? '<div class="badge badge-fundador">&#128081; Fundador</div> ' : '') + (p.verificado ? '<div class="badge badge-gold">&#10003; Foto verificada</div>' : '');
 
   const badgesFotoEl = document.getElementById('pvBadgesFoto');
   badgesFotoEl.innerHTML = p.verificado ? '<span style="background:rgba(26,10,14,.85);border:1px solid #c9a06b;border-radius:20px;padding:5px 12px;font-size:10.5px;color:#c9a06b;font-weight:700">&#10003; Foto verificada</span>' : '';
@@ -3483,6 +3486,16 @@ function preencherCard(elId, perfil){
   const verificadoEl = el.querySelector('.card-verified');
   if(verificadoEl) verificadoEl.style.display = perfil.verificado ? '' : 'none';
   const fotoEl = el.querySelector('.card-photo');
+  if(fotoEl){
+    const antigo = fotoEl.querySelector('.card-fundador');
+    if(antigo) antigo.remove();
+    if(perfil.selo_fundador){
+      const sel = document.createElement('div');
+      sel.className = 'card-fundador';
+      sel.textContent = '\uD83D\uDC51 Fundador';
+      fotoEl.appendChild(sel);
+    }
+  }
   if(fotoEl && perfil.foto_url){
     fotoEl.style.backgroundImage = `url(${API_URL}${perfil.foto_url})`;
     fotoEl.style.backgroundSize = 'cover';
@@ -4044,6 +4057,7 @@ async function carregarMeuPerfil(){
   document.getElementById('meuPerfilNome').textContent = usuarioAtual.nome;
   document.getElementById('meuPerfilIdade').textContent = idade;
  document.getElementById('meuPerfilBadgeVerificado').style.display = usuarioAtual.verificado ? 'flex' : 'none';
+  { const bf = document.getElementById('meuPerfilBadgeFundador'); if(bf) bf.style.display = usuarioAtual.selo_fundador ? 'flex' : 'none'; }
 
   const igInputEl = document.getElementById('editInstagram');
   const igStatusEl = document.getElementById('igStatusTexto');

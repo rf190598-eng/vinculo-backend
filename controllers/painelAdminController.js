@@ -223,7 +223,7 @@ const CAMPOS_FICHA_USUARIO = [
   'pref_genero', 'pref_idade_min', 'pref_idade_max', 'pref_distancia_km',
   'pref_apenas_verificados', 'pref_objetivo', 'pref_altura_min', 'pref_altura_max',
   'pref_peso_min', 'pref_peso_max', 'pref_cor_cabelo',
-  'verificado', 'liveness_aprovado', 'liveness_confianca', 'premium', 'premium_ate',
+  'verificado', 'selo_fundador', 'liveness_aprovado', 'liveness_confianca', 'premium', 'premium_ate',
   'plano_atual', 'ativo', 'is_admin', 'tour_seguranca_visto',
   'suspenso_ate', 'suspenso_permanente', 'suspenso_motivo', 'sessoes_revogadas_em',
   'codigo_indicacao', 'indicado_por', 'bonus_indicacao_creditado',
@@ -1093,7 +1093,34 @@ const obterSegmentacaoPagantes = async (req, res) => {
   }
 };
 
+// PATCH /api/admin/painel/usuarios/:id/selo-fundador   body: { ativo: true|false }
+// Liga/desliga o selo "Fundador" (conta dos donos). Registra no log de auditoria.
+const definirSeloFundador = async (req, res) => {
+  try {
+    if (typeof req.body.ativo !== 'boolean') {
+      return res.status(400).json({ erro: 'Informe ativo: true ou false.' });
+    }
+    const usuario = await Usuario.findByPk(req.params.id, { attributes: ['id', 'nome', 'email', 'selo_fundador'] });
+    if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
+
+    const anterior = !!usuario.selo_fundador;
+    await Usuario.update({ selo_fundador: req.body.ativo }, { where: { id: usuario.id } });
+
+    await registrarLogAuditoria({
+      admin: req.usuarioAdmin,
+      acao: 'selo_fundador',
+      usuarioAlvo: usuario,
+      detalhes: { de: anterior, para: req.body.ativo }
+    });
+    res.json({ mensagem: 'Selo atualizado.', selo_fundador: req.body.ativo });
+  } catch (erro) {
+    console.error('Erro ao definir selo de fundador:', erro);
+    res.status(500).json({ erro: 'Erro ao atualizar o selo.' });
+  }
+};
+
 module.exports = {
+  definirSeloFundador,
   obterPainel,
   listarUsuarios,
   obterUsuarioDetalhe,

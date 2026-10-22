@@ -510,6 +510,15 @@ const iniciar = async () => {
   // Sequelize como os models se relacionam (habilita include/eager loading).
   registrarAssociacoes();
 
+  // Coluna do selo de Fundador: criada aqui, na subida, pra o deploy nunca
+  // ficar na frente do banco (o model já a seleciona em toda query de Usuario).
+  // IF NOT EXISTS: seguro rodar a cada subida.
+  try {
+    await sequelize.query('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS selo_fundador BOOLEAN NOT NULL DEFAULT false');
+  } catch (erroSelo) {
+    console.error('Aviso: não foi possível garantir a coluna selo_fundador:', erroSelo.message);
+  }
+
   // ===== SEGURANÇA DE DADOS: alter:true só em desenvolvimento =====
   // sequelize.sync({ alter: true }) muda o schema do banco automaticamente
   // toda vez que o servidor sobe. Ótimo pra prototipar sozinho, perigoso

@@ -15,7 +15,8 @@ const {
   obterConversasUsuario,
   obterMensagensConversaUsuario,
   obterRankingComissoes,
-  obterSegmentacaoPagantes
+  obterSegmentacaoPagantes,
+  definirSeloFundador
 } = require('../controllers/painelAdminController');
 const { listarLogsAuditoria } = require('../controllers/auditoriaController');
 const { listarSolicitacoesParceria, atualizarStatusSolicitacao } = require('../controllers/painelParceriaController');
@@ -37,6 +38,7 @@ router.use(autenticar, verificarAdmin, limitarTaxa({ chave: 'painel-admin', jane
 router.get('/', obterPainel);
 router.get('/usuarios', listarUsuarios);
 router.get('/usuarios/:id', obterUsuarioDetalhe);
+router.patch('/usuarios/:id/selo-fundador', definirSeloFundador);
 router.patch('/usuarios/:id', editarUsuario);
 router.post('/usuarios/:id/suspender', suspenderUsuario);
 router.post('/usuarios/:id/remover-suspensao', removerSuspensaoUsuario);
